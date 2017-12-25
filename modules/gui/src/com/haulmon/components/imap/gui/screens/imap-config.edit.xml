@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://configuration.caption"
+        class="com.haulmon.components.imap.gui.screens.ImapConfigEditor"
+        focusComponent="params"
+        messagesPack="com.haulmon.components.imap.gui.screens">
+    <dialogMode height="600"
+                width="800"/>
+    <layout>
+        <fieldGroup id="params">
+            <column width="250px">
+                <field id="imapHostNameField"
+                       caption="msg://configuration.hostName">
+                    <textField id="imapHostName"/>
+                </field>
+                <field id="imapPortField"
+                       caption="msg://configuration.port">
+                    <textField id="imapPort"/>
+                </field>
+                <field id="imapAuthenticationMethodField"
+                       caption="msg://configuration.authenicationMethod">
+                    <optionsGroup id="imapAuthenticationMethod"/>
+                </field>
+                <field id="imapUseSecureConnectionField"
+                       caption="msg://configuration.useSecureConnection">
+                    <checkBox id="imapUseSecureConnection"/>
+                </field>
+                <field id="imapSecureConnectionTypeField"
+                       caption="msg://configuration.secureConnectionOptions">
+                    <optionsGroup id="imapSecureConnectionType"/>
+                </field>
+            </column>
+        </fieldGroup>
+    </layout>
+</window>
