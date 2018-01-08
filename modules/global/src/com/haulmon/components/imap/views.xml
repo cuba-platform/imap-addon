@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <views xmlns="http://schemas.haulmont.com/cuba/view.xsd">
-
+    <view class="com.haulmon.components.imap.entity.MailBox"
+          extends="_local"
+          name="mailbox-edit">
+        <property name="authentication"
+                  view="_local"/>
+        <property name="folders"
+                  view="_minimal"/>
+        <property name="rootCertificate"
+                  view="_minimal"/>
+    </view>
 </views>

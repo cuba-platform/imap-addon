@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <screen-config xmlns="http://schemas.haulmont.com/cuba/screens.xsd">
-
     <include file="com/haulmon/components/imap/screens.xml"/>
-
+    <screen id="mailcomponent$MailFolder.edit"
+            template="com/haulmon/components/imap/web/mailfolder/mail-folder-edit.xml"/>
+    <screen id="mailcomponent$MailBox.edit"
+            template="com/haulmon/components/imap/web/mailbox/mail-box-edit.xml"/>
+    <screen id="mailcomponent$MailBox.browse"
+            template="com/haulmon/components/imap/web/mailbox/mail-box-browse.xml"/>
 </screen-config>

@@ -2,6 +2,6 @@
 <menu-config xmlns="http://schemas.haulmont.com/cuba/menu.xsd">
     <menu id="imap-component"
           insertAfter="performanceStatistics">
-        <item screen="imap-config-edit"/>
+        <item screen="mailcomponent$MailBox.browse"/>
     </menu>
 </menu-config>

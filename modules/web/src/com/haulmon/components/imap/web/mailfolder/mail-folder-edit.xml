@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://editorCaption"
+        class="com.haulmon.components.imap.web.mailfolder.MailFolderEdit"
+        datasource="mailFolderDs"
+        focusComponent="fieldGroup"
+        messagesPack="com.haulmon.components.imap.web.mailfolder">
+    <dsContext>
+        <datasource id="mailFolderDs"
+                    class="com.haulmon.components.imap.entity.MailFolder"
+                    view="_local"/>
+    </dsContext>
+    <dialogMode height="600"
+                width="800"/>
+    <layout expand="windowActions"
+            spacing="true">
+        <fieldGroup id="fieldGroup"
+                    datasource="mailFolderDs">
+            <column width="250px">
+                <field property="name" editable="false"/>
+                <field property="listenNewEmail"/>
+                <field property="listenEmailSeen" editable="false"/>
+                <field property="listenNewAnswer" editable="false"/>
+                <field property="listenEmailMove" editable="false"/>
+                <field property="listenFlagsUpdate" editable="false"/>
+                <field property="listenEmailRemove" editable="false"/>
+                <field property="listenNewThread" editable="false"/>
+            </column>
+        </fieldGroup>
+        <frame id="windowActions"
+               screen="editWindowActions"/>
+    </layout>
+</window>
