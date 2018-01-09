@@ -26,11 +26,14 @@
                 <field property="port"/>
                 <field property="secureMode"/>
                 <field property="rootCertificate" id="mailBoxRootCertificateField"/>
-                <field property="authentication.username"/>
-                <field property="authentication.password"/>
+                <field property="username" datasource="authenticationDs"/>
+                <field id="authenticationPasswordId">
+                    <passwordField required="true" property="password" datasource="authenticationDs" caption="Password"/>
+                </field>
                 <field property="pollInterval"/>
             </column>
         </fieldGroup>
+        <button caption="msg://checkConnectionCaption" invoke="checkTheConnection"/>
         <groupBox id="foldersBox"
                   caption="msg://com.haulmon.components.imap.entity/MailBox.folders">
             <table id="foldersTable"

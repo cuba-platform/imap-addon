@@ -8,11 +8,13 @@ import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.gui.components.AbstractEditor;
 import com.haulmon.components.imap.entity.MailBox;
 import com.haulmont.cuba.gui.components.FieldGroup;
+import com.haulmont.cuba.gui.data.Datasource;
 
 import javax.inject.Inject;
 import javax.mail.MessagingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class MailBoxEdit extends AbstractEditor<MailBox> {
@@ -26,6 +28,18 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
     @Inject
     private Metadata metadata;
 
+    @Inject
+    private Datasource<MailBox> mailBoxDs;
+
+    public void checkTheConnection() {
+        try {
+            service.testConnection(getItem());
+            showNotification("Connection succeed", NotificationType.HUMANIZED);
+        } catch (Exception e) {
+            showNotification("Connection failed", NotificationType.ERROR);
+        }
+    }
+
     @Override
     protected void initNewItem(MailBox item) {
         item.setAuthenticationMethod(MailAuthenticationMethod.SIMPLE);
@@ -37,6 +51,11 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
     protected void postInit() {
         FieldGroup.FieldConfig mailBoxRootCertificateField = this.mainParams.getFieldNN("mailBoxRootCertificateField");
         mailBoxRootCertificateField.setVisible(getItem().getSecureMode() != null);
+        mailBoxDs.addItemPropertyChangeListener(event -> {
+            if (Objects.equals("secureMode", event.getProperty())) {
+                mailBoxRootCertificateField.setVisible(event.getValue() != null);
+            }
+        });
     }
 
     @Override
