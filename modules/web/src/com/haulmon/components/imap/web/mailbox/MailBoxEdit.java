@@ -6,6 +6,7 @@ import com.haulmon.components.imap.entity.MailFolder;
 import com.haulmon.components.imap.entity.MailSimpleAuthentication;
 import com.haulmon.components.imap.service.ImapService;
 import com.haulmont.cuba.core.global.Metadata;
+import com.haulmont.cuba.core.global.PersistenceHelper;
 import com.haulmont.cuba.gui.components.AbstractEditor;
 import com.haulmon.components.imap.entity.MailBox;
 import com.haulmont.cuba.gui.components.FieldGroup;
@@ -67,12 +68,19 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
         MailBox mailBox = getItem();
         try {
             List<FolderDto> folders = service.fetchFolders(mailBox);
-            System.out.println(folders);
-            /*List<MailFolder> boxFolders = mailBox.getFolders();
+            List<MailFolder> boxFolders = mailBox.getFolders();
             if (boxFolders == null) {
                 mailBox.setFolders(new ArrayList<>(folders.size()));
             }
-            List<String> savedFolders = mailBox.getFolders().stream()
+
+            if (PersistenceHelper.isNew(mailBox)) {
+                MailFolder mailFolder = metadata.create(MailFolder.class);
+                mailFolder.setMailBox(mailBox);
+                mailFolder.setName(folders.get(0).getFullName());
+                mailBox.getFolders().add(mailFolder);
+                getDsContext().addBeforeCommitListener(context -> context.getCommitInstances().add(mailFolder));
+            }
+            /*List<String> savedFolders = mailBox.getFolders().stream()
                     .map(MailFolder::getName)
                     .collect(Collectors.toList());
 

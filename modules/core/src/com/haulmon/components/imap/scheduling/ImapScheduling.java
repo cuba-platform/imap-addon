@@ -68,7 +68,7 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
                     "select distinct b from mailcomponent$MailBox b " +
                             "join fetch b.rootCertificate " +
                             "join fetch b.authentication " +
-                            "join fetch b.folders",
+                            "left join fetch b.folders",
                     MailBox.class
             );
             query.getResultList().forEach(this::processMailBox);
