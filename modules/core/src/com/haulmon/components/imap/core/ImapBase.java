@@ -34,12 +34,6 @@ public class ImapBase {
     @Inject
     private FileLoader fileLoader;
 
-    protected List<String> getFolders(Store store) throws MessagingException {
-        Folder defaultFolder = store.getDefaultFolder();
-
-        return Arrays.stream(defaultFolder.list()).map(Folder::getName).collect(Collectors.toList());
-    }
-
     protected Store getStore(MailBox box) throws MessagingException {
 
         String protocol = box.getSecureMode() == MailSecureMode.TLS ? "imaps" : "imap";

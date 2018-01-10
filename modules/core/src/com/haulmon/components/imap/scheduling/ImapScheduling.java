@@ -17,22 +17,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Nonnull;
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.mail.Flags;
 import javax.mail.Folder;
-import javax.mail.MessagingException;
 import javax.mail.Store;
 import javax.mail.search.AndTerm;
 import javax.mail.search.FlagTerm;
 import javax.mail.search.NotTerm;
 import javax.mail.search.SearchTerm;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component(ImapSchedulingAPI.NAME)
@@ -54,26 +51,13 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
     @Inject
     private Authentication authentication;
 
-    protected ExecutorService executorService;
+    protected ForkJoinPool forkJoinPool = new ForkJoinPool();
 
     protected ConcurrentMap<MailBox, Long> runningTasks = new ConcurrentHashMap<>();
 
     protected Map<MailBox, Long> lastStartCache = new ConcurrentHashMap<>();
 
     protected Map<MailBox, Long> lastFinishCache = new ConcurrentHashMap<>();
-
-    @PostConstruct
-    public void init() {
-        executorService = Executors.newFixedThreadPool(5, new ThreadFactory() {
-            private final AtomicInteger threadNumber = new AtomicInteger(1);
-            @Override
-            public Thread newThread(@Nonnull Runnable r) {
-                Thread thread = new Thread(r, "ScheduledRunnerThread-" + threadNumber.getAndIncrement());
-                thread.setDaemon(true);
-                return thread;
-            }
-        });
-    }
 
     @Override
     public void processMailBoxes() {
@@ -107,46 +91,106 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
         log.trace("{}\n now={} lastStart={} lastFinish={}", mailBox, now, lastStart, lastFinish);
         if ((lastStart == 0 || lastStart < lastFinish) && now >= lastFinish + mailBox.getPollInterval() * 1000L) {
             lastStartCache.put(mailBox, now);
-            executorService.submit(() -> {
-                log.debug("{}: running", mailBox);
-
-                try {
-                    Store store = getStore(mailBox);
-                    List<String> listenedFolders = mailBox.getFolders().stream()
-                            .filter(f -> Boolean.TRUE.equals(f.getListenNewEmail()))
-                            .map(MailFolder::getName)
-                            .collect(Collectors.toList());
-                    List<String> folders = getFolders(store).stream().filter(listenedFolders::contains).collect(Collectors.toList());
-                    for (String folderName : folders) {
-                        IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
-                        processFolder(mailBox, folder);
-
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(
-                            String.format("error processing mailbox %s:%d", mailBox.getHost(), mailBox.getPort()), e
-                    );
-                } finally {
-                    lastFinishCache.put(mailBox, timeSource.currentTimeMillis());
-                }
-            });
+            forkJoinPool.execute(new MailBoxProcessingTask(mailBox));
         } else {
             log.trace("{}\n time has not come", mailBox);
         }
     }
 
-    private void processFolder(MailBox mailBox, IMAPFolder folder) throws MessagingException { //todo: process folders concurrently
-        if ((folder.getType() & Folder.HOLDS_MESSAGES) != 0) {
-            folder.open(Folder.READ_WRITE);
-            Flags supportedFlags = folder.getPermanentFlags();
-            SearchTerm searchTerm = generateSearchTerm(supportedFlags, folder);
-            IMAPMessage[] messages = nullSafeMessages((IMAPMessage[]) (searchTerm != null ? folder.search(searchTerm) : folder.getMessages()));
-            for (IMAPMessage message : messages) {
-                events.publish(new NewEmailEvent(mailBox, folder.getFullName(), "" + folder.getUID(message))); //todo: process messages concurrently (ForkJoin)
+    private class MailBoxProcessingTask extends RecursiveAction {
+
+        private final MailBox mailBox;
+
+        MailBoxProcessingTask(MailBox mailBox) {
+            this.mailBox = mailBox;
+        }
+
+        @Override
+        protected void compute() {
+            log.debug("{}: running", mailBox);
+
+            try {
+                Store store = getStore(mailBox);
+                List<String> listenedFolders = mailBox.getFolders().stream()
+                        .filter(f -> Boolean.TRUE.equals(f.getListenNewEmail()))
+                        .map(MailFolder::getName)
+                        .collect(Collectors.toList());
+                List<FolderProcessingTask> folderSubtasks = new LinkedList<>();
+                for (String folderName : listenedFolders) {
+                    IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
+                    FolderProcessingTask subtask = new FolderProcessingTask(mailBox, folder);
+                    folderSubtasks.add(subtask);
+                    subtask.fork();
+                }
+                folderSubtasks.forEach(ForkJoinTask::join);
+            } catch (Exception e) {
+                throw new RuntimeException(
+                        String.format("error processing mailbox %s:%d", mailBox.getHost(), mailBox.getPort()), e
+                );
+            } finally {
+                lastFinishCache.put(mailBox, timeSource.currentTimeMillis());
             }
-        } else if ((folder.getType() & Folder.HOLDS_FOLDERS) != 0) {
-            for (Folder childFolder : folder.list()) {
-                processFolder(mailBox, (IMAPFolder) childFolder);
+        }
+    }
+
+    private class FolderProcessingTask extends RecursiveAction {
+
+        private final MailBox mailBox;
+        private final IMAPFolder folder;
+
+        public FolderProcessingTask(MailBox mailBox, IMAPFolder folder) {
+            this.mailBox = mailBox;
+            this.folder = folder;
+        }
+
+        @Override
+        protected void compute() {
+            try {
+                if ((folder.getType() & Folder.HOLDS_MESSAGES) != 0) {
+                    folder.open(Folder.READ_WRITE);
+                    Flags supportedFlags = folder.getPermanentFlags();
+                    SearchTerm searchTerm = generateSearchTerm(supportedFlags, folder);
+                    IMAPMessage[] messages = nullSafeMessages((IMAPMessage[]) (searchTerm != null ? folder.search(searchTerm) : folder.getMessages()));
+
+                    List<RecursiveTask<String>> uidSubtasks = new LinkedList<>();
+
+                    for (IMAPMessage message : messages) {
+                        RecursiveTask<String> uidFetch = new RecursiveTask<String>() {
+                            @Override
+                            protected String compute() {
+                                try {
+                                    return "" + folder.getUID(message);
+                                } catch (Exception e) {
+                                    throw new RuntimeException(
+                                            String.format("error retrieving uid of message in folder %s of mailbox %s:%d",
+                                                    folder.getFullName(), mailBox.getHost(), mailBox.getPort()),
+                                            e
+                                    );
+                                }
+                            }
+                        };
+                        uidSubtasks.add(uidFetch);
+
+                    }
+
+                    for (RecursiveTask<String> uid : uidSubtasks) {
+                        events.publish(new NewEmailEvent(mailBox, folder.getFullName(), uid.join()));
+                    }
+                } else if ((folder.getType() & Folder.HOLDS_FOLDERS) != 0) {
+                    List<FolderProcessingTask> subTasks = new LinkedList<>();
+
+                    for (Folder childFolder : folder.list()) {
+                        FolderProcessingTask childFolderTask = new FolderProcessingTask(mailBox, (IMAPFolder) childFolder);
+                        subTasks.add(childFolderTask);
+                        childFolderTask.fork();
+                    }
+
+                    subTasks.forEach(ForkJoinTask::join);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(
+                        String.format("error processing folder %s of mailbox %s:%d", folder.getFullName(), mailBox.getHost(), mailBox.getPort()), e
+                );
             }
         }
     }
