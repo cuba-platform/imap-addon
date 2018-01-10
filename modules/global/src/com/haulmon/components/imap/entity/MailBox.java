@@ -28,7 +28,7 @@ public class MailBox extends StandardEntity {
     protected Integer port = 993;
 
     @Column(name = "SECURE_MODE")
-    protected Integer secureMode;
+    protected String secureMode;
 
     @OnDelete(DeletePolicy.CASCADE)
     @OneToOne(fetch = FetchType.LAZY)
@@ -41,7 +41,7 @@ public class MailBox extends StandardEntity {
     protected FileDescriptor clientCertificate;
 
     @Column(name = "AUTHENTICATION_METHOD", nullable = false)
-    protected Integer authenticationMethod;
+    protected String authenticationMethod;
 
     @Composition
     @OnDelete(DeletePolicy.CASCADE)
@@ -56,6 +56,24 @@ public class MailBox extends StandardEntity {
     @OnDelete(DeletePolicy.CASCADE)
     @OneToMany(mappedBy = "mailBox")
     protected List<MailFolder> folders;
+
+    public MailAuthenticationMethod getAuthenticationMethod() {
+        return authenticationMethod == null ? null : MailAuthenticationMethod.fromId(authenticationMethod);
+    }
+
+    public void setAuthenticationMethod(MailAuthenticationMethod authenticationMethod) {
+        this.authenticationMethod = authenticationMethod == null ? null : authenticationMethod.getId();
+    }
+
+
+    public MailSecureMode getSecureMode() {
+        return secureMode == null ? null : MailSecureMode.fromId(secureMode);
+    }
+
+    public void setSecureMode(MailSecureMode secureMode) {
+        this.secureMode = secureMode == null ? null : secureMode.getId();
+    }
+
 
     public Integer getPort() {
         return port;
@@ -92,22 +110,6 @@ public class MailBox extends StandardEntity {
     }
 
 
-    public void setAuthenticationMethod(MailAuthenticationMethod authenticationMethod) {
-        this.authenticationMethod = authenticationMethod == null ? null : authenticationMethod.getId();
-    }
-
-    public MailAuthenticationMethod getAuthenticationMethod() {
-        return authenticationMethod == null ? null : MailAuthenticationMethod.fromId(authenticationMethod);
-    }
-
-
-    public void setSecureMode(MailSecureMode secureMode) {
-        this.secureMode = secureMode == null ? null : secureMode.getId();
-    }
-
-    public MailSecureMode getSecureMode() {
-        return secureMode == null ? null : MailSecureMode.fromId(secureMode);
-    }
 
 
     public void setHost(String host) {

@@ -5,23 +5,23 @@ import com.haulmont.chile.core.datatypes.impl.EnumClass;
 import javax.annotation.Nullable;
 
 
-public enum MailAuthenticationMethod implements EnumClass<Integer> {
+public enum MailAuthenticationMethod implements EnumClass<String> {
 
-    SIMPLE(10),
-    SASL(20);
+    SIMPLE("simple"),
+    SASL("sasl");
 
-    private Integer id;
+    private String id;
 
-    MailAuthenticationMethod(Integer value) {
+    MailAuthenticationMethod(String value) {
         this.id = value;
     }
 
-    public Integer getId() {
+    public String getId() {
         return id;
     }
 
     @Nullable
-    public static MailAuthenticationMethod fromId(Integer id) {
+    public static MailAuthenticationMethod fromId(String id) {
         for (MailAuthenticationMethod at : MailAuthenticationMethod.values()) {
             if (at.getId().equals(id)) {
                 return at;

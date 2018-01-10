@@ -5,28 +5,28 @@ import com.haulmont.chile.core.datatypes.impl.EnumClass;
 import javax.annotation.Nullable;
 
 
-public enum MailEventType implements EnumClass<Integer> {
+public enum MailEventType implements EnumClass<String> {
 
-    NEW_EMAIL(10),
-    EMAIL_SEEN(20),
-    NEW_ANSWER(30),
-    EMAIL_MOVED(40),
-    FLAGS_UPDATED(50),
-    EMAIL_DELETED(60),
-    NEW_THREAD(70);
+    NEW_EMAIL("new_email"),
+    EMAIL_SEEN("seen"),
+    NEW_ANSWER("new_answer"),
+    EMAIL_MOVED("moved"),
+    FLAGS_UPDATED("flags_updated"),
+    EMAIL_DELETED("deleted"),
+    NEW_THREAD("new_thread");
 
-    private Integer id;
+    private String id;
 
-    MailEventType(Integer value) {
+    MailEventType(String value) {
         this.id = value;
     }
 
-    public Integer getId() {
+    public String getId() {
         return id;
     }
 
     @Nullable
-    public static MailEventType fromId(Integer id) {
+    public static MailEventType fromId(String id) {
         for (MailEventType at : MailEventType.values()) {
             if (at.getId().equals(id)) {
                 return at;

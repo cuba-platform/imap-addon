@@ -5,23 +5,23 @@ import com.haulmont.chile.core.datatypes.impl.EnumClass;
 import javax.annotation.Nullable;
 
 
-public enum MailSecureMode implements EnumClass<Integer> {
+public enum MailSecureMode implements EnumClass<String> {
 
-    STARTTLS(10),
-    TLS(20);
+    STARTTLS("starttls"),
+    TLS("tls");
 
-    private Integer id;
+    private String id;
 
-    MailSecureMode(Integer value) {
+    MailSecureMode(String value) {
         this.id = value;
     }
 
-    public Integer getId() {
+    public String getId() {
         return id;
     }
 
     @Nullable
-    public static MailSecureMode fromId(Integer id) {
+    public static MailSecureMode fromId(String id) {
         for (MailSecureMode at : MailSecureMode.values()) {
             if (at.getId().equals(id)) {
                 return at;

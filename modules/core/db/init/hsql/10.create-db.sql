@@ -35,10 +35,10 @@ create table MAILCOMPONENT_MAIL_BOX (
     --
     HOST varchar(255) not null,
     PORT integer not null,
-    SECURE_MODE integer,
+    SECURE_MODE varchar(50),
     ROOT_CERTIFICATE_ID varchar(36),
     CLIENT_CERTIFICATE_ID varchar(36),
-    AUTHENTICATION_METHOD integer not null,
+    AUTHENTICATION_METHOD varchar(50) not null,
     AUTHENTICATION_ID varchar(36),
     POLL_INTERVAL integer not null,
     --
