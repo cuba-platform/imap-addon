@@ -1,5 +1,6 @@
 package com.haulmon.components.imap.web.mailbox;
 
+import com.haulmon.components.imap.dto.FolderDto;
 import com.haulmon.components.imap.entity.MailAuthenticationMethod;
 import com.haulmon.components.imap.entity.MailFolder;
 import com.haulmon.components.imap.entity.MailSimpleAuthentication;
@@ -60,10 +61,14 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
 
     @Override
     protected boolean preCommit() {
+
+        //todo: it should be done through usage of custom add\exclude for folders using service.fetchFolders(mailBox)
+
         MailBox mailBox = getItem();
         try {
-            List<String> folders = service.fetchFolders(mailBox);
-            List<MailFolder> boxFolders = mailBox.getFolders();
+            List<FolderDto> folders = service.fetchFolders(mailBox);
+            System.out.println(folders);
+            /*List<MailFolder> boxFolders = mailBox.getFolders();
             if (boxFolders == null) {
                 mailBox.setFolders(new ArrayList<>(folders.size()));
             }
@@ -77,7 +82,7 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
                 mailFolder.setName(name);
                 mailBox.getFolders().add(mailFolder);
                 getDsContext().addBeforeCommitListener(context -> context.getCommitInstances().add(mailFolder));
-            });
+            });*/
 
             return true;
         } catch (MessagingException e) {
