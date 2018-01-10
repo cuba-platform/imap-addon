@@ -1,0 +1,250 @@
+package com.haulmon.components.imap.scheduling;
+
+import com.haulmon.components.imap.core.ImapBase;
+import com.haulmon.components.imap.entity.MailBox;
+import com.haulmon.components.imap.entity.MailFolder;
+import com.haulmon.components.imap.events.NewEmailEvent;
+import com.haulmont.cuba.core.EntityManager;
+import com.haulmont.cuba.core.Persistence;
+import com.haulmont.cuba.core.Transaction;
+import com.haulmont.cuba.core.TypedQuery;
+import com.haulmont.cuba.core.global.Events;
+import com.haulmont.cuba.core.global.TimeSource;
+import com.haulmont.cuba.security.app.Authentication;
+import com.sun.mail.imap.IMAPFolder;
+import com.sun.mail.imap.IMAPMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.Nonnull;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import javax.mail.Flags;
+import javax.mail.Folder;
+import javax.mail.MessagingException;
+import javax.mail.Store;
+import javax.mail.search.AndTerm;
+import javax.mail.search.FlagTerm;
+import javax.mail.search.NotTerm;
+import javax.mail.search.SearchTerm;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+@Component(ImapSchedulingAPI.NAME)
+public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
+
+    private final static Logger log = LoggerFactory.getLogger(ImapScheduling.class);
+
+    private volatile String userFlag = "cuba-imap";
+
+    @Inject
+    private Persistence persistence;
+
+    @Inject
+    private TimeSource timeSource;
+
+    @Inject
+    private Events events;
+
+    @Inject
+    private Authentication authentication;
+
+    protected ExecutorService executorService;
+
+    protected ConcurrentMap<MailBox, Long> runningTasks = new ConcurrentHashMap<>();
+
+    protected Map<MailBox, Long> lastStartCache = new ConcurrentHashMap<>();
+
+    protected Map<MailBox, Long> lastFinishCache = new ConcurrentHashMap<>();
+
+    @PostConstruct
+    public void init() {
+        executorService = Executors.newFixedThreadPool(5, new ThreadFactory() {
+            private final AtomicInteger threadNumber = new AtomicInteger(1);
+            @Override
+            public Thread newThread(@Nonnull Runnable r) {
+                Thread thread = new Thread(r, "ScheduledRunnerThread-" + threadNumber.getAndIncrement());
+                thread.setDaemon(true);
+                return thread;
+            }
+        });
+    }
+
+    @Override
+    public void processMailBoxes() {
+        authentication.begin();
+        try (Transaction tx = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            TypedQuery<MailBox> query = em.createQuery(
+                    "select distinct b from mailcomponent$MailBox b " +
+                            "join fetch b.rootCertificate " +
+                            "join fetch b.authentication " +
+                            "join fetch b.folders",
+                    MailBox.class
+            );
+            query.getResultList().forEach(this::processMailBox);
+        } finally {
+            authentication.end();
+        }
+    }
+
+    private void processMailBox(MailBox mailBox) {
+        if (isRunning(mailBox)) {
+            log.trace("{} is running", mailBox);
+            return;
+        }
+
+        long now = timeSource.currentTimeMillis();
+
+        Long lastStart = lastStartCache.getOrDefault(mailBox, 0L);
+        Long lastFinish = lastFinishCache.getOrDefault(mailBox, 0L);
+
+        log.trace("{}\n now={} lastStart={} lastFinish={}", mailBox, now, lastStart, lastFinish);
+        if ((lastStart == 0 || lastStart < lastFinish) && now >= lastFinish + mailBox.getPollInterval() * 1000L) {
+            lastStartCache.put(mailBox, now);
+            executorService.submit(() -> {
+                log.debug("{}: running", mailBox);
+
+                try {
+                    Store store = getStore(mailBox);
+                    List<String> listenedFolders = mailBox.getFolders().stream()
+                            .filter(f -> Boolean.TRUE.equals(f.getListenNewEmail()))
+                            .map(MailFolder::getName)
+                            .collect(Collectors.toList());
+                    List<String> folders = getFolders(store).stream().filter(listenedFolders::contains).collect(Collectors.toList());
+                    for (String folderName : folders) {
+                        IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
+                        processFolder(mailBox, folder);
+
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(
+                            String.format("error processing mailbox %s:%d", mailBox.getHost(), mailBox.getPort()), e
+                    );
+                } finally {
+                    lastFinishCache.put(mailBox, timeSource.currentTimeMillis());
+                }
+            });
+        } else {
+            log.trace("{}\n time has not come", mailBox);
+        }
+    }
+
+    private void processFolder(MailBox mailBox, IMAPFolder folder) throws MessagingException { //todo: process folders concurrently
+        if ((folder.getType() & Folder.HOLDS_MESSAGES) != 0) {
+            folder.open(Folder.READ_WRITE);
+            Flags supportedFlags = folder.getPermanentFlags();
+            SearchTerm searchTerm = generateSearchTerm(supportedFlags, folder);
+            IMAPMessage[] messages = nullSafeMessages((IMAPMessage[]) (searchTerm != null ? folder.search(searchTerm) : folder.getMessages()));
+            for (IMAPMessage message : messages) {
+                events.publish(new NewEmailEvent(mailBox, folder.getFullName(), "" + folder.getUID(message))); //todo: process messages concurrently (ForkJoin)
+            }
+        } else if ((folder.getType() & Folder.HOLDS_FOLDERS) != 0) {
+            for (Folder childFolder : folder.list()) {
+                processFolder(mailBox, (IMAPFolder) childFolder);
+            }
+        }
+    }
+
+    private IMAPMessage[] nullSafeMessages(IMAPMessage[] messageArray) {
+        boolean hasNulls = false;
+        for (IMAPMessage message : messageArray) {
+            if (message == null) {
+                hasNulls = true;
+                break;
+            }
+        }
+        if (!hasNulls) {
+            return messageArray;
+        }
+        else {
+            List<IMAPMessage> messages = new ArrayList<>();
+            for (IMAPMessage message : messageArray) {
+                if (message != null) {
+                    messages.add(message);
+                }
+            }
+            return messages.toArray(new IMAPMessage[messages.size()]);
+        }
+    }
+
+    private SearchTerm generateSearchTerm(Flags supportedFlags, Folder folder) {
+        SearchTerm searchTerm = null;
+        boolean recentFlagSupported = false;
+        if (supportedFlags != null) {
+            recentFlagSupported = supportedFlags.contains(Flags.Flag.RECENT);
+            if (recentFlagSupported) {
+                searchTerm = new FlagTerm(new Flags(Flags.Flag.RECENT), true);
+            }
+            if (supportedFlags.contains(Flags.Flag.ANSWERED)) {
+                NotTerm notAnswered = new NotTerm(new FlagTerm(new Flags(Flags.Flag.ANSWERED), true));
+                if (searchTerm == null) {
+                    searchTerm = notAnswered;
+                }
+                else {
+                    searchTerm = new AndTerm(searchTerm, notAnswered);
+                }
+            }
+            if (supportedFlags.contains(Flags.Flag.DELETED)) {
+                NotTerm notDeleted = new NotTerm(new FlagTerm(new Flags(Flags.Flag.DELETED), true));
+                if (searchTerm == null) {
+                    searchTerm = notDeleted;
+                }
+                else {
+                    searchTerm = new AndTerm(searchTerm, notDeleted);
+                }
+            }
+            if (supportedFlags.contains(Flags.Flag.SEEN)) {
+                NotTerm notSeen = new NotTerm(new FlagTerm(new Flags(Flags.Flag.SEEN), true));
+                if (searchTerm == null) {
+                    searchTerm = notSeen;
+                }
+                else {
+                    searchTerm = new AndTerm(searchTerm, notSeen);
+                }
+            }
+        }
+
+        if (!recentFlagSupported) {
+            NotTerm notFlagged;
+            if (folder.getPermanentFlags().contains(Flags.Flag.USER)) {
+                log.debug("This email server does not support RECENT flag, but it does support " +
+                        "USER flags which will be used to prevent duplicates during email fetch." +
+                        " This receiver instance uses flag: " + userFlag);
+                Flags siFlags = new Flags();
+                siFlags.add(userFlag);
+                notFlagged = new NotTerm(new FlagTerm(siFlags, true));
+            }
+            else {
+                log.debug("This email server does not support RECENT or USER flags. " +
+                        "System flag 'Flag.FLAGGED' will be used to prevent duplicates during email fetch.");
+                notFlagged = new NotTerm(new FlagTerm(new Flags(Flags.Flag.FLAGGED), true));
+            }
+            if (searchTerm == null) {
+                searchTerm = notFlagged;
+            }
+            else {
+                searchTerm = new AndTerm(searchTerm, notFlagged);
+            }
+        }
+        return searchTerm;
+    }
+
+    private boolean isRunning(MailBox mailBox) {
+        Long startTime = runningTasks.get(mailBox);
+        if (startTime != null) {
+            boolean timedOut = startTime + 15 * 1000 > timeSource.currentTimeMillis();
+            if (timedOut) {
+                runningTasks.remove(mailBox);
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
+}
