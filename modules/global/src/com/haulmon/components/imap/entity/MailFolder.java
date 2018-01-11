@@ -8,6 +8,9 @@ import com.haulmont.cuba.core.entity.StandardEntity;
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.annotation.OnDeleteInverse;
 
+import java.util.Collections;
+import java.util.List;
+
 @NamePattern("%s|name")
 @Table(name = "MAILCOMPONENT_MAIL_FOLDER")
 @Entity(name = "mailcomponent$MailFolder")
@@ -17,88 +20,24 @@ public class MailFolder extends StandardEntity {
     @Column(name = "NAME", nullable = false)
     protected String name;
 
-    @Column(name = "LISTEN_NEW_EMAIL", nullable = false)
-    protected Boolean listenNewEmail = true;
-
-    @Column(name = "LISTEN_EMAIL_SEEN", nullable = false)
-    protected Boolean listenEmailSeen = false;
-
-    @Column(name = "LISTEN_NEW_ANSWER", nullable = false)
-    protected Boolean listenNewAnswer = false;
-
-    @Column(name = "LISTEN_EMAIL_MOVE", nullable = false)
-    protected Boolean listenEmailMove = false;
-
-    @Column(name = "LISTEN_FLAGS_UPDATE", nullable = false)
-    protected Boolean listenFlagsUpdate = false;
-
-    @Column(name = "LISTEN_EMAIL_REMOVE", nullable = false)
-    protected Boolean listenEmailRemove = false;
-
-    @Column(name = "LISTEN_NEW_THREAD", nullable = false)
-    protected Boolean listenNewThread = false;
+    @JoinTable(name = "MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK",
+        joinColumns = @JoinColumn(name = "MAIL_FOLDER_ID"),
+        inverseJoinColumns = @JoinColumn(name = "MAIL_EVENT_TYPE_ID"))
+    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST })
+    protected List<MailEventType> events;
 
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "MAIL_BOX_ID")
     protected MailBox mailBox;
 
-    public void setListenNewEmail(Boolean listenNewEmail) {
-        this.listenNewEmail = listenNewEmail;
+    public void setEvents(List<MailEventType> events) {
+        this.events = events;
     }
 
-    public Boolean getListenNewEmail() {
-        return listenNewEmail;
+    public List<MailEventType> getEvents() {
+        return events;
     }
-
-    public void setListenEmailSeen(Boolean listenEmailSeen) {
-        this.listenEmailSeen = listenEmailSeen;
-    }
-
-    public Boolean getListenEmailSeen() {
-        return listenEmailSeen;
-    }
-
-    public void setListenNewAnswer(Boolean listenNewAnswer) {
-        this.listenNewAnswer = listenNewAnswer;
-    }
-
-    public Boolean getListenNewAnswer() {
-        return listenNewAnswer;
-    }
-
-    public void setListenEmailMove(Boolean listenEmailMove) {
-        this.listenEmailMove = listenEmailMove;
-    }
-
-    public Boolean getListenEmailMove() {
-        return listenEmailMove;
-    }
-
-    public void setListenFlagsUpdate(Boolean listenFlagsUpdate) {
-        this.listenFlagsUpdate = listenFlagsUpdate;
-    }
-
-    public Boolean getListenFlagsUpdate() {
-        return listenFlagsUpdate;
-    }
-
-    public void setListenEmailRemove(Boolean listenEmailRemove) {
-        this.listenEmailRemove = listenEmailRemove;
-    }
-
-    public Boolean getListenEmailRemove() {
-        return listenEmailRemove;
-    }
-
-    public void setListenNewThread(Boolean listenNewThread) {
-        this.listenNewThread = listenNewThread;
-    }
-
-    public Boolean getListenNewThread() {
-        return listenNewThread;
-    }
-
 
     public void setMailBox(MailBox mailBox) {
         this.mailBox = mailBox;
@@ -116,5 +55,10 @@ public class MailFolder extends StandardEntity {
         return name;
     }
 
+    public boolean hasEvent(String eventType) {
+        List<MailEventType> safeEvents = events != null ? events : Collections.<MailEventType>emptyList();
+
+        return safeEvents.stream().anyMatch(e -> e.getName().equals(eventType));
+    }
 
 }

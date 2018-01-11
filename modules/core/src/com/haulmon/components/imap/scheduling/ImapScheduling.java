@@ -2,6 +2,7 @@ package com.haulmon.components.imap.scheduling;
 
 import com.haulmon.components.imap.core.ImapBase;
 import com.haulmon.components.imap.entity.MailBox;
+import com.haulmon.components.imap.entity.PredefinedEventType;
 import com.haulmon.components.imap.entity.MailFolder;
 import com.haulmon.components.imap.events.NewEmailEvent;
 import com.haulmont.cuba.core.EntityManager;
@@ -68,7 +69,8 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
                     "select distinct b from mailcomponent$MailBox b " +
                             "join fetch b.rootCertificate " +
                             "join fetch b.authentication " +
-                            "left join fetch b.folders",
+                            "left join fetch b.folders f " +
+                            "left join fetch f.events",
                     MailBox.class
             );
             query.getResultList().forEach(this::processMailBox);
@@ -112,7 +114,7 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
             try {
                 Store store = getStore(mailBox);
                 List<String> listenedFolders = mailBox.getFolders().stream()
-                        .filter(f -> Boolean.TRUE.equals(f.getListenNewEmail()))
+                        .filter(f -> f.hasEvent(PredefinedEventType.NEW_EMAIL.name()))
                         .map(MailFolder::getName)
                         .collect(Collectors.toList());
                 List<FolderProcessingTask> folderSubtasks = new LinkedList<>();

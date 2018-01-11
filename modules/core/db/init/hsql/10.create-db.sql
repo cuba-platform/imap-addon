@@ -10,13 +10,6 @@ create table MAILCOMPONENT_MAIL_FOLDER (
     DELETED_BY varchar(50),
     --
     NAME varchar(255) not null,
-    LISTEN_NEW_EMAIL boolean not null,
-    LISTEN_EMAIL_SEEN boolean not null,
-    LISTEN_NEW_ANSWER boolean not null,
-    LISTEN_EMAIL_MOVE boolean not null,
-    LISTEN_FLAGS_UPDATE boolean not null,
-    LISTEN_EMAIL_REMOVE boolean not null,
-    LISTEN_NEW_THREAD boolean not null,
     MAIL_BOX_ID varchar(36) not null,
     --
     primary key (ID)
@@ -62,3 +55,27 @@ create table MAILCOMPONENT_MAIL_SIMPLE_AUTHENTICATION (
     primary key (ID)
 )^
 -- end MAILCOMPONENT_MAIL_SIMPLE_AUTHENTICATION
+-- begin MAILCOMPONENT_MAIL_EVENT_TYPE
+create table MAILCOMPONENT_MAIL_EVENT_TYPE (
+    ID varchar(36) not null,
+    VERSION integer not null,
+    CREATE_TS timestamp,
+    CREATED_BY varchar(50),
+    UPDATE_TS timestamp,
+    UPDATED_BY varchar(50),
+    DELETE_TS timestamp,
+    DELETED_BY varchar(50),
+    --
+    NAME varchar(255) not null,
+    DESCRIPTION varchar(255) not null,
+    --
+    primary key (ID)
+)^
+-- end MAILCOMPONENT_MAIL_EVENT_TYPE
+-- begin MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK
+create table MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK (
+    MAIL_FOLDER_ID varchar(36) not null,
+    MAIL_EVENT_TYPE_ID varchar(36) not null,
+    primary key (MAIL_FOLDER_ID, MAIL_EVENT_TYPE_ID)
+)^
+-- end MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK

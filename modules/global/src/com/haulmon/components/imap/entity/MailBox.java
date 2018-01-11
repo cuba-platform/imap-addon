@@ -52,7 +52,6 @@ public class MailBox extends StandardEntity {
     @Column(name = "POLL_INTERVAL", nullable = false)
     protected Integer pollInterval;
 
-    @Composition
     @OnDelete(DeletePolicy.CASCADE)
     @OneToMany(mappedBy = "mailBox")
     protected List<MailFolder> folders;

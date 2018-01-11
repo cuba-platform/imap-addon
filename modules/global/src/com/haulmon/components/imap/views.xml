@@ -10,4 +10,12 @@
         <property name="rootCertificate"
                   view="_minimal"/>
     </view>
+    <view class="com.haulmon.components.imap.entity.MailFolder"
+          extends="_local"
+          name="mailFolder-edit">
+        <property name="events"
+                  view="_minimal"/>
+        <property name="mailBox"
+                  view="_minimal"/>
+    </view>
 </views>
