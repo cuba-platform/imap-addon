@@ -23,7 +23,7 @@ public class MailFolder extends StandardEntity {
     @JoinTable(name = "MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK",
         joinColumns = @JoinColumn(name = "MAIL_FOLDER_ID"),
         inverseJoinColumns = @JoinColumn(name = "MAIL_EVENT_TYPE_ID"))
-    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST })
+    @ManyToMany
     protected List<MailEventType> events;
 
     @OnDeleteInverse(DeletePolicy.CASCADE)

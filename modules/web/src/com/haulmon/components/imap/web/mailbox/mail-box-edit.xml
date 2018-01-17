@@ -48,6 +48,7 @@
                 <rows datasource="foldersDs"/>
                 <buttonsPanel>
                     <button action="foldersTable.edit"/>
+                    <button caption="msg://selectFoldersCaption" invoke="selectFolders"/>
                 </buttonsPanel>
             </table>
         </groupBox>

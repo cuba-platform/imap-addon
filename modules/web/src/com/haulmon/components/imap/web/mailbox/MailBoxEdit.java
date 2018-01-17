@@ -1,12 +1,14 @@
 package com.haulmon.components.imap.web.mailbox;
 
-import com.haulmon.components.imap.dto.FolderDto;
+import com.haulmon.components.imap.dto.MailFolderDto;
 import com.haulmon.components.imap.entity.MailAuthenticationMethod;
 import com.haulmon.components.imap.entity.MailFolder;
 import com.haulmon.components.imap.entity.MailSimpleAuthentication;
 import com.haulmon.components.imap.service.ImapService;
+import com.haulmont.bali.util.ParamsMap;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.PersistenceHelper;
+import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.AbstractEditor;
 import com.haulmon.components.imap.entity.MailBox;
 import com.haulmont.cuba.gui.components.FieldGroup;
@@ -17,7 +19,6 @@ import javax.mail.MessagingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class MailBoxEdit extends AbstractEditor<MailBox> {
 
@@ -40,6 +41,16 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
         } catch (Exception e) {
             showNotification("Connection failed", NotificationType.ERROR);
         }
+    }
+
+    public void selectFolders() {
+        AbstractEditor selectFolders = openEditor(
+                "mailcomponent$MailFolder.browse",
+                getItem(),
+                WindowManager.OpenType.THIS_TAB,
+                ParamsMap.of("mailBox", getItem())
+        );
+        selectFolders.addCloseWithCommitListener(() -> mailBoxDs.refresh());
     }
 
     @Override
@@ -67,7 +78,7 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
 
         MailBox mailBox = getItem();
         try {
-            List<FolderDto> folders = service.fetchFolders(mailBox);
+            List<MailFolderDto> folders = service.fetchFolders(mailBox);
             List<MailFolder> boxFolders = mailBox.getFolders();
             if (boxFolders == null) {
                 mailBox.setFolders(new ArrayList<>(folders.size()));

@@ -3,6 +3,8 @@
     <include file="com/haulmon/components/imap/screens.xml"/>
     <screen id="mailcomponent$MailFolder.edit"
             template="com/haulmon/components/imap/web/mailfolder/mail-folder-edit.xml"/>
+    <screen id="mailcomponent$MailFolder.browse"
+            template="com/haulmon/components/imap/web/mailfolder/mail-folder-browse.xml"/>
     <screen id="mailcomponent$MailBox.edit"
             template="com/haulmon/components/imap/web/mailbox/mail-box-edit.xml"/>
     <screen id="mailcomponent$MailBox.browse"

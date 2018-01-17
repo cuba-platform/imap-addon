@@ -61,7 +61,7 @@ public class ImapBase {
             try ( InputStream rootCert = fileLoader.openStream(box.getRootCertificate()) ) {
                 socketFactory.setTrustManagers(new TrustManager[] {new UnifiedTrustManager(rootCert) });
             } catch (FileStorageException | GeneralSecurityException | IOException e) {
-                e.printStackTrace(); //todo:
+                throw new RuntimeException("SSL error", e);
             }
         }
         return socketFactory;

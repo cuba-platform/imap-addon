@@ -69,10 +69,10 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
                     "select distinct b from mailcomponent$MailBox b " +
                             "join fetch b.rootCertificate " +
                             "join fetch b.authentication " +
-                            "left join fetch b.folders f " +
-                            "left join fetch f.events",
+                            "left join fetch b.folders",
                     MailBox.class
             );
+            query.getResultList().stream().flatMap(mb -> mb.getFolders().stream()).forEach(f -> f.getEvents().size());
             query.getResultList().forEach(this::processMailBox);
         } finally {
             authentication.end();
@@ -178,7 +178,8 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
                     for (RecursiveTask<String> uid : uidSubtasks) {
                         events.publish(new NewEmailEvent(mailBox, folder.getFullName(), uid.join()));
                     }
-                } else if ((folder.getType() & Folder.HOLDS_FOLDERS) != 0) {
+                }
+                if ((folder.getType() & Folder.HOLDS_FOLDERS) != 0) {
                     List<FolderProcessingTask> subTasks = new LinkedList<>();
 
                     for (Folder childFolder : folder.list()) {
