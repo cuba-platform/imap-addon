@@ -71,41 +71,4 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
         });
     }
 
-    @Override
-    protected boolean preCommit() {
-
-        //todo: it should be done through usage of custom add\exclude for folders using service.fetchFolders(mailBox)
-
-        MailBox mailBox = getItem();
-        try {
-            List<MailFolderDto> folders = service.fetchFolders(mailBox);
-            List<MailFolder> boxFolders = mailBox.getFolders();
-            if (boxFolders == null) {
-                mailBox.setFolders(new ArrayList<>(folders.size()));
-            }
-
-            if (PersistenceHelper.isNew(mailBox)) {
-                MailFolder mailFolder = metadata.create(MailFolder.class);
-                mailFolder.setMailBox(mailBox);
-                mailFolder.setName(folders.get(0).getFullName());
-                mailBox.getFolders().add(mailFolder);
-                getDsContext().addBeforeCommitListener(context -> context.getCommitInstances().add(mailFolder));
-            }
-            /*List<String> savedFolders = mailBox.getFolders().stream()
-                    .map(MailFolder::getName)
-                    .collect(Collectors.toList());
-
-            folders.stream().filter(f -> !savedFolders.contains(f)).forEach(name -> {
-                MailFolder mailFolder = metadata.create(MailFolder.class);
-                mailFolder.setMailBox(mailBox);
-                mailFolder.setName(name);
-                mailBox.getFolders().add(mailFolder);
-                getDsContext().addBeforeCommitListener(context -> context.getCommitInstances().add(mailFolder));
-            });*/
-
-            return true;
-        } catch (MessagingException e) {
-            return false;
-        }
-    }
 }
