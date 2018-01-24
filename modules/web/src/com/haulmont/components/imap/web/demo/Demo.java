@@ -10,18 +10,14 @@ import com.haulmont.cuba.core.global.DataManager;
 import com.haulmont.cuba.core.global.Events;
 import com.haulmont.cuba.core.global.LoadContext;
 import com.haulmont.cuba.gui.components.AbstractWindow;
-import com.haulmont.cuba.gui.events.UiEvent;
+import com.haulmont.cuba.gui.components.Timer;
 import com.haulmont.cuba.gui.executors.*;
-import org.springframework.context.ApplicationEvent;
-import org.springframework.context.event.EventListener;
+import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 
 import javax.inject.Inject;
 import javax.mail.MessagingException;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class Demo extends AbstractWindow {
 
@@ -35,18 +31,20 @@ public class Demo extends AbstractWindow {
     private DataManager dm;
 
     @Inject
-    private Events events;
-
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
-
-    @EventListener
-    protected void repeat(Event event) {
-        showNewMessage();
-    }
+    private ComponentsFactory componentsFactory;
 
     @Override
     public void init(Map<String, Object> params) {
-        showNewMessage();
+        Timer timer = componentsFactory.createTimer();
+
+        addTimer(timer);
+
+        timer.setDelay(10000);
+        timer.setRepeating(true);
+
+        timer.addActionListener(_timer -> showNewMessage());
+
+        timer.start();
     }
 
     private void showNewMessage() {
@@ -62,7 +60,7 @@ public class Demo extends AbstractWindow {
             public Void run(TaskLifeCycle<Integer> taskLifeCycle) {
                 MailMessage newMessage = dm.load(LoadContext.create(MailMessage.class).setQuery(
                         LoadContext.createQuery("select m from mailcomponent$MailMessage m where m.seen is null or m.seen = false").setMaxResults(1))
-                .setView("mailMessage-full"));
+                        .setView("mailMessage-full"));
                 if (newMessage != null) {
                     newMessage.setSeen(true);
                     dm.commit(new CommitContext(newMessage));
@@ -86,14 +84,6 @@ public class Demo extends AbstractWindow {
 
             @Override
             public void done(Void result) {
-                executorService.submit(() -> {
-                    try {
-                        TimeUnit.SECONDS.sleep(5);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                    events.publish(new Event(Demo.this));
-                });
             }
 
             @Override
@@ -103,9 +93,4 @@ public class Demo extends AbstractWindow {
         };
     }
 
-    public static class Event extends ApplicationEvent implements UiEvent {
-        public Event(Object source) {
-            super(source);
-        }
-    }
 }

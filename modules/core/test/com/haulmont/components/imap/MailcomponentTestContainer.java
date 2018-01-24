@@ -25,7 +25,7 @@ public class MailcomponentTestContainer extends TestContainer {
         appPropertiesFiles = Arrays.asList(
                 // List the files defined in your web.xml
                 // in appPropertiesConfig context parameter of the core module
-                "com/haulmon/components/imap/app.properties",
+                "com/haulmont/components/imap/app.properties",
                 // Add this file which is located in CUBA and defines some properties
                 // specifically for test environment. You can replace it with your own
                 // or add another one in the end.

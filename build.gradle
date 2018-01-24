@@ -127,7 +127,7 @@ configure(guiModule) {
 
     task deployConf(type: Copy) {
         from file('src')
-        include "com/haulmon/components/imap/**"
+        include "com/haulmont/components/imap/**"
         into "$cuba.tomcat.dir/conf/imap"
     }
 }
@@ -155,7 +155,7 @@ configure(webModule) {
 
     task deployConf(type: Copy) {
         from file('src')
-        include "com/haulmon/components/imap/**"
+        include "com/haulmont/components/imap/**"
         into "$cuba.tomcat.dir/conf/imap"
     }
 
