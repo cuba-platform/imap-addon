@@ -1,13 +1,10 @@
 package com.haulmon.components.imap.web.mailbox;
 
-import com.haulmon.components.imap.dto.MailFolderDto;
 import com.haulmon.components.imap.entity.MailAuthenticationMethod;
-import com.haulmon.components.imap.entity.MailFolder;
 import com.haulmon.components.imap.entity.MailSimpleAuthentication;
 import com.haulmon.components.imap.service.ImapService;
 import com.haulmont.bali.util.ParamsMap;
 import com.haulmont.cuba.core.global.Metadata;
-import com.haulmont.cuba.core.global.PersistenceHelper;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.AbstractEditor;
 import com.haulmon.components.imap.entity.MailBox;
@@ -15,9 +12,6 @@ import com.haulmont.cuba.gui.components.FieldGroup;
 import com.haulmont.cuba.gui.data.Datasource;
 
 import javax.inject.Inject;
-import javax.mail.MessagingException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 public class MailBoxEdit extends AbstractEditor<MailBox> {

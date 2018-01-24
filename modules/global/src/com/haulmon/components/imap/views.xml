@@ -18,4 +18,23 @@
         <property name="mailBox"
                   view="_minimal"/>
     </view>
+    <view class="com.haulmon.components.imap.entity.MailMessage"
+          extends="_local"
+          name="mailMessage-full">
+        <property name="mailBox"
+                  view="mailBox-connect"/>
+    </view>
+    <view class="com.haulmon.components.imap.entity.MailBox"
+          extends="_local"
+          name="mailBox-connect">
+        <property name="rootCertificate"
+                  view="_minimal"/>
+        <property name="clientCertificate"
+                  view="_minimal"/>
+        <property name="authentication"
+                  view="_minimal">
+            <property name="username"/>
+            <property name="password"/>
+        </property>
+    </view>
 </views>

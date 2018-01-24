@@ -2,6 +2,7 @@ package com.haulmon.components.imap.scheduling;
 
 import com.haulmon.components.imap.core.ImapBase;
 import com.haulmon.components.imap.entity.MailBox;
+import com.haulmon.components.imap.entity.MailMessage;
 import com.haulmon.components.imap.entity.PredefinedEventType;
 import com.haulmon.components.imap.entity.MailFolder;
 import com.haulmon.components.imap.events.NewEmailEvent;
@@ -10,6 +11,7 @@ import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.TypedQuery;
 import com.haulmont.cuba.core.global.Events;
+import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.TimeSource;
 import com.haulmont.cuba.security.app.Authentication;
 import com.sun.mail.imap.IMAPFolder;
@@ -52,6 +54,9 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
     @Inject
     private Authentication authentication;
 
+    @Inject
+    private Metadata metadata;
+
     protected ForkJoinPool forkJoinPool = new ForkJoinPool();
 
     protected ConcurrentMap<MailBox, Long> runningTasks = new ConcurrentHashMap<>();
@@ -67,7 +72,7 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
             EntityManager em = persistence.getEntityManager();
             TypedQuery<MailBox> query = em.createQuery(
                     "select distinct b from mailcomponent$MailBox b " +
-                            "join fetch b.rootCertificate " +
+                            "left join fetch b.rootCertificate " +
                             "join fetch b.authentication " +
                             "left join fetch b.folders",
                     MailBox.class
@@ -154,14 +159,14 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
                     SearchTerm searchTerm = generateSearchTerm(supportedFlags, folder);
                     IMAPMessage[] messages = nullSafeMessages((IMAPMessage[]) (searchTerm != null ? folder.search(searchTerm) : folder.getMessages()));
 
-                    List<RecursiveTask<String>> uidSubtasks = new LinkedList<>();
+                    List<RecursiveTask<Long>> uidSubtasks = new LinkedList<>();
 
-                    for (IMAPMessage message : messages) {
-                        RecursiveTask<String> uidFetch = new RecursiveTask<String>() {
+                    /*for (IMAPMessage message : messages) {
+                        RecursiveTask<Long> uidFetch = new RecursiveTask<Long>() {
                             @Override
-                            protected String compute() {
+                            protected Long compute() {
                                 try {
-                                    return "" + folder.getUID(message);
+                                    return folder.getUID(message);
                                 } catch (Exception e) {
                                     throw new RuntimeException(
                                             String.format("error retrieving uid of message in folder %s of mailbox %s:%d",
@@ -172,11 +177,36 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
                             }
                         };
                         uidSubtasks.add(uidFetch);
-
                     }
 
-                    for (RecursiveTask<String> uid : uidSubtasks) {
+                    for (RecursiveTask<Long> uid : uidSubtasks) {
                         events.publish(new NewEmailEvent(mailBox, folder.getFullName(), uid.join()));
+                    }*/
+                    for (IMAPMessage message : messages) {
+                        long uid = folder.getUID(message);
+                        authentication.begin();
+                        try (Transaction tx = persistence.createTransaction()) {
+                            EntityManager em = persistence.getEntityManager();
+                            int sameUids = em.createQuery(
+                                    "select m from mailcomponent$MailMessage m where m.messageUid = :uid and m.mailBox.id = :mailBoxId"
+                            )
+                                    .setParameter("uid", uid)
+                                    .setParameter("mailBoxId", mailBox.getId())
+                                    .getResultList()
+                                    .size();
+                            if (sameUids == 0) {
+                                MailMessage mailMessage = metadata.create(MailMessage.class);
+                                mailMessage.setMessageUid(uid);
+                                mailMessage.setMailBox(mailBox);
+                                mailMessage.setFolderName(folder.getFullName());
+                                em.reload(mailBox);
+                                em.persist(mailMessage);
+                                events.publish(new NewEmailEvent(mailBox, folder.getFullName(), uid));
+                                tx.commit();
+                            }
+                        } finally {
+                            authentication.end();
+                        }
                     }
                 }
                 if ((folder.getType() & Folder.HOLDS_FOLDERS) != 0) {

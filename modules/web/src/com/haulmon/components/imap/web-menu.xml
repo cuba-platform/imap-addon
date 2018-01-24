@@ -3,5 +3,6 @@
     <menu id="imap-component"
           insertAfter="performanceStatistics">
         <item screen="mailcomponent$MailBox.browse"/>
+        <item screen="Demo"/>
     </menu>
 </menu-config>

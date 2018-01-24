@@ -54,16 +54,17 @@ public class ImapBase {
         MailSSLSocketFactory socketFactory = null;
         try {
             socketFactory = new MailSSLSocketFactory();
+            socketFactory.setTrustAllHosts(true);
         } catch (GeneralSecurityException e) {
             throw new MessagingException("SSL Socket factory exception", e);
         }
-        if (box.getRootCertificate() != null) {
+        /*if (box.getRootCertificate() != null) {
             try ( InputStream rootCert = fileLoader.openStream(box.getRootCertificate()) ) {
                 socketFactory.setTrustManagers(new TrustManager[] {new UnifiedTrustManager(rootCert) });
             } catch (FileStorageException | GeneralSecurityException | IOException e) {
                 throw new RuntimeException("SSL error", e);
             }
-        }
+        }*/
         return socketFactory;
     }
 

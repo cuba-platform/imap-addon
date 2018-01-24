@@ -3,13 +3,13 @@ package com.haulmon.components.imap.events;
 import com.haulmon.components.imap.entity.MailBox;
 import org.springframework.context.ApplicationEvent;
 
-public class NewEmailEvent extends ApplicationEvent {
+public class NewEmailEvent extends BaseImapEvent {
 
     private final MailBox mailBox;
     private final String folderName;
-    private final String messageId;
+    private final Long messageId;
 
-    public NewEmailEvent(MailBox mailBox, String folderName, String messageId) {
+    public NewEmailEvent(MailBox mailBox, String folderName, Long messageId) {
         super(mailBox);
 
         this.mailBox = mailBox;
@@ -30,7 +30,7 @@ public class NewEmailEvent extends ApplicationEvent {
         return folderName;
     }
 
-    public String getMessageId() {
+    public Long getMessageId() {
         return messageId;
     }
 }
