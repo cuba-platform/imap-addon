@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://browseCaption"
+        datasource="mailBoxDs"
+        class="com.haulmont.components.imap.web.mailfolder.MailFolderBrowse"
+        messagesPack="com.haulmont.components.imap.web.mailfolder">
+    <dsContext>
+        <datasource id="mailBoxDs"
+                    class="com.haulmont.components.imap.entity.MailBox"
+                    view="_minimal"/>
+        <hierarchicalDatasource id="mailFolderDs"
+                              allowCommit="false"
+                              class="com.haulmont.components.imap.dto.MailFolderDto"
+                              datasourceClass="com.haulmont.components.imap.web.ds.MailFolderDatasource" hierarchyProperty="parent"/>
+    </dsContext>
+    <layout>
+        <treeTable id="mailFoldersTable" width="100%" height="100%" editable="true">
+            <columns>
+                <column id="name"/>
+                <column id="selected" editable="true"/>
+            </columns>
+            <rows datasource="mailFolderDs"/>
+        </treeTable>
+        <frame id="windowActions"
+               screen="editWindowActions"/>
+    </layout>
+</window>

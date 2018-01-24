@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://browseCaption"
+        class="com.haulmont.components.imap.web.maileventtype.MailEventTypeBrowse"
+        focusComponent="mailEventTypesTable"
+        lookupComponent="mailEventTypesTable"
+        messagesPack="com.haulmont.components.imap.web.maileventtype">
+    <dsContext>
+        <collectionDatasource id="mailEventTypesDs"
+                              class="com.haulmont.components.imap.entity.MailEventType"
+                              view="_minimal">
+            <query>
+                <![CDATA[select e from mailcomponent$MailEventType e]]>
+            </query>
+        </collectionDatasource>
+    </dsContext>
+    <dialogMode height="600"
+                width="800"/>
+    <layout expand="mailEventTypesTable"
+            spacing="true">
+        <filter id="filter"
+                applyTo="mailEventTypesTable"
+                datasource="mailEventTypesDs">
+            <properties include=".*"/>
+        </filter>
+        <table id="mailEventTypesTable"
+               width="100%">
+            <columns>
+                <column id="description"/>
+            </columns>
+            <rows datasource="mailEventTypesDs"/>
+            <rowsCount/>
+        </table>
+    </layout>
+</window>

@@ -29,7 +29,7 @@ apply(plugin: 'cuba')
 
 cuba {
     artifact {
-        group = 'com.haulmon.components.imap'
+        group = 'com.haulmont.components.imap'
         version = '0.1'
         isSnapshot = true
     }

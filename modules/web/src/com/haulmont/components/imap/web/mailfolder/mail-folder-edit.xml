@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://editorCaption"
+        class="com.haulmont.components.imap.web.mailfolder.MailFolderEdit"
+        datasource="mailFolderDs"
+        focusComponent="fieldGroup"
+        messagesPack="com.haulmont.components.imap.web.mailfolder">
+    <dsContext>
+        <datasource id="mailFolderDs"
+                    class="com.haulmont.components.imap.entity.MailFolder"
+                    view="mailFolder-edit">
+            <collectionDatasource id="eventsDs"
+                                  property="events"/>
+        </datasource>
+    </dsContext>
+    <dialogMode height="600"
+                width="800"/>
+    <layout expand="windowActions"
+            spacing="true">
+        <fieldGroup id="fieldGroup"
+                    datasource="mailFolderDs">
+            <column width="250px">
+                <field editable="false"
+                       property="name"/>
+            </column>
+        </fieldGroup>
+        <groupBox id="eventsBox"
+                  caption="msg://com.haulmont.components.imap.entity/MailFolder.events">
+            <table id="eventsTable"
+                   height="200px"
+                   width="100%">
+                <actions>
+                    <action id="add"/>
+                    <action id="exclude"/>
+                </actions>
+                <columns>
+                    <column id="description"/>
+                </columns>
+                <rows datasource="eventsDs"/>
+                <buttonsPanel>
+                    <button action="eventsTable.add"/>
+                    <button action="eventsTable.exclude"/>
+                </buttonsPanel>
+            </table>
+        </groupBox>
+        <frame id="windowActions"
+               screen="editWindowActions"/>
+    </layout>
+</window>
