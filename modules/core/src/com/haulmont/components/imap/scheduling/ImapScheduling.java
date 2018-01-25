@@ -1,5 +1,6 @@
 package com.haulmont.components.imap.scheduling;
 
+import com.haulmont.components.imap.config.ImapConfig;
 import com.haulmont.components.imap.core.ImapHelper;
 import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.components.imap.entity.MailMessage;
@@ -59,6 +60,9 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
     @Inject
     private ImapHelper imapHelper;
+
+    @Inject
+    private ImapConfig config;
 
     protected ForkJoinPool forkJoinPool = new ForkJoinPool();
 
@@ -317,7 +321,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
     private boolean isRunning(MailBox mailBox) {
         Long startTime = runningTasks.get(mailBox);
         if (startTime != null) {
-            boolean timedOut = startTime + 15 * 1000 > timeSource.currentTimeMillis();
+            boolean timedOut = startTime + config.getMailBoxProcessingTimeoutSec() * 1000 > timeSource.currentTimeMillis();
             if (timedOut) {
                 runningTasks.remove(mailBox);
             } else {
