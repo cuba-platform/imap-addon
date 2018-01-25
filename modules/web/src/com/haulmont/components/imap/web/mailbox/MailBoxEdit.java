@@ -42,7 +42,7 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
 
     public void selectFolders() {
         AbstractEditor selectFolders = openEditor(
-                "mailcomponent$MailFolder.browse",
+                "mailcomponent$MailBox.folders",
                 getItem(),
                 WindowManager.OpenType.THIS_TAB,
                 ParamsMap.of("mailBox", getItem())

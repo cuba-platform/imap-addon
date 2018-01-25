@@ -13,11 +13,12 @@ import java.util.stream.Collectors;
 
 public class MailFolderDatasource extends CustomHierarchicalDatasource<MailFolderDto, UUID> {
 
+    public static final String FOLDER_DS_MAILBOX_PARAM = "mailBox";
     private ImapService service = AppBeans.get(ImapService.class);
 
     @Override
     protected Collection<MailFolderDto> getEntities(Map<String, Object> params) {
-        MailBox mailBox = (MailBox) params.get("mail-box");
+        MailBox mailBox = (MailBox) params.get(FOLDER_DS_MAILBOX_PARAM);
         if (mailBox == null) {
             throw new UnsupportedOperationException();
         }

@@ -6,11 +6,6 @@ import com.haulmont.components.imap.entity.MailMessage;
 import com.haulmont.components.imap.entity.PredefinedEventType;
 import com.haulmont.components.imap.entity.MailFolder;
 import com.haulmont.components.imap.events.NewEmailEvent;
-import com.haulmont.components.imap.core.ImapBase;
-import com.haulmont.components.imap.entity.MailBox;
-import com.haulmont.components.imap.entity.MailFolder;
-import com.haulmont.components.imap.entity.MailMessage;
-import com.haulmont.components.imap.entity.PredefinedEventType;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
@@ -158,7 +153,7 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
         @Override
         protected void compute() {
             try {
-                if ((folder.getType() & Folder.HOLDS_MESSAGES) != 0) {
+                if (canHoldMessages(folder)) {
                     folder.open(Folder.READ_WRITE);
                     Flags supportedFlags = folder.getPermanentFlags();
                     SearchTerm searchTerm = generateSearchTerm(supportedFlags, folder);
@@ -214,7 +209,7 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
                         }
                     }
                 }
-                if ((folder.getType() & Folder.HOLDS_FOLDERS) != 0) {
+                if (canHoldFolders(folder)) {
                     List<FolderProcessingTask> subTasks = new LinkedList<>();
 
                     for (Folder childFolder : folder.list()) {

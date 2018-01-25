@@ -2,10 +2,8 @@ package com.haulmont.components.imap.core;
 
 import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.components.imap.entity.MailSecureMode;
-import com.haulmont.components.imap.entity.MailBox;
-import com.haulmont.components.imap.entity.MailSecureMode;
 import com.haulmont.cuba.core.global.FileLoader;
-import com.haulmont.cuba.core.global.FileStorageException;
+import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.util.MailSSLSocketFactory;
 
 import javax.inject.Inject;
@@ -68,6 +66,14 @@ public class ImapBase {
             }
         }*/
         return socketFactory;
+    }
+
+    protected boolean canHoldFolders(IMAPFolder folder) throws MessagingException {
+        return (folder.getType() & Folder.HOLDS_FOLDERS) != 0;
+    }
+
+    protected boolean canHoldMessages(IMAPFolder folder) throws MessagingException {
+        return (folder.getType() & Folder.HOLDS_MESSAGES) != 0;
     }
 
     private static class UnifiedTrustManager implements X509TrustManager {

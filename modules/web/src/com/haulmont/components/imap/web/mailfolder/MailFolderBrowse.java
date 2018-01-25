@@ -34,7 +34,7 @@ public class MailFolderBrowse extends AbstractEditor<MailBox> {
     @Override
     public void init(Map<String, Object> params) {
         MailBox mailBox = (MailBox) params.get("mailBox");
-        mailFolderDs.refresh(ParamsMap.of("mail-box", mailBox));
+        mailFolderDs.refresh(ParamsMap.of(MailFolderDatasource.FOLDER_DS_MAILBOX_PARAM, mailBox));
 
         addCloseWithCommitListener(() -> {
             Map<String, MailFolderDto> selected = new HashMap<>(mailFolderDs.getItems().stream()

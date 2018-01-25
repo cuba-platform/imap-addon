@@ -5,12 +5,6 @@ import com.haulmont.components.imap.dto.MailFolderDto;
 import com.haulmont.components.imap.dto.MailMessageDto;
 import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.components.imap.entity.MailMessage;
-import com.haulmont.components.imap.events.NewEmailEvent;
-import com.haulmont.components.imap.core.ImapBase;
-import com.haulmont.components.imap.dto.MailFolderDto;
-import com.haulmont.components.imap.dto.MailMessageDto;
-import com.haulmont.components.imap.entity.MailBox;
-import com.haulmont.components.imap.entity.MailMessage;
 import com.sun.mail.imap.IMAPFolder;
 import org.springframework.stereotype.Service;
 
@@ -104,7 +98,7 @@ public class ImapServiceBean extends ImapBase implements ImapService {
     private MailFolderDto map(IMAPFolder folder) throws MessagingException {
         List<MailFolderDto> subFolders = new ArrayList<>();
 
-        if ((folder.getType() & Folder.HOLDS_FOLDERS) != 0) {
+        if (canHoldFolders(folder)) {
             for (Folder childFolder : folder.list()) {
                 subFolders.add(map((IMAPFolder) childFolder));
             }
@@ -112,7 +106,7 @@ public class ImapServiceBean extends ImapBase implements ImapService {
         MailFolderDto result = new MailFolderDto(
                 folder.getName(),
                 folder.getFullName(),
-                (folder.getType() & Folder.HOLDS_MESSAGES) != 0,
+                canHoldMessages(folder),
                 subFolders);
         result.getChildren().forEach(f -> f.setParent(result));
         return result;
