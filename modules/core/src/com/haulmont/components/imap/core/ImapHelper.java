@@ -5,6 +5,7 @@ import com.haulmont.components.imap.entity.MailSecureMode;
 import com.haulmont.cuba.core.global.FileLoader;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.util.MailSSLSocketFactory;
+import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
 import javax.mail.Folder;
@@ -27,12 +28,13 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Properties;
 
-public class ImapBase {
+@Component
+public class ImapHelper {
 
     @Inject
     private FileLoader fileLoader;
 
-    protected Store getStore(MailBox box) throws MessagingException {
+    public Store getStore(MailBox box) throws MessagingException {
 
         String protocol = box.getSecureMode() == MailSecureMode.TLS ? "imaps" : "imap";
 
@@ -68,11 +70,11 @@ public class ImapBase {
         return socketFactory;
     }
 
-    protected boolean canHoldFolders(IMAPFolder folder) throws MessagingException {
+    public boolean canHoldFolders(IMAPFolder folder) throws MessagingException {
         return (folder.getType() & Folder.HOLDS_FOLDERS) != 0;
     }
 
-    protected boolean canHoldMessages(IMAPFolder folder) throws MessagingException {
+    public boolean canHoldMessages(IMAPFolder folder) throws MessagingException {
         return (folder.getType() & Folder.HOLDS_MESSAGES) != 0;
     }
 

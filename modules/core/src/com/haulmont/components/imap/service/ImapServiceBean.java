@@ -1,6 +1,6 @@
 package com.haulmont.components.imap.service;
 
-import com.haulmont.components.imap.core.ImapBase;
+import com.haulmont.components.imap.core.ImapHelper;
 import com.haulmont.components.imap.dto.MailFolderDto;
 import com.haulmont.components.imap.dto.MailMessageDto;
 import com.haulmont.components.imap.entity.MailBox;
@@ -8,21 +8,25 @@ import com.haulmont.components.imap.entity.MailMessage;
 import com.sun.mail.imap.IMAPFolder;
 import org.springframework.stereotype.Service;
 
+import javax.inject.Inject;
 import javax.mail.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service(ImapService.NAME)
-public class ImapServiceBean extends ImapBase implements ImapService {
+public class ImapServiceBean implements ImapService {
+
+    @Inject
+    private ImapHelper imapHelper;
 
     @Override
     public void testConnection(MailBox box) throws MessagingException {
-        getStore(box);
+        imapHelper.getStore(box);
     }
 
     @Override
     public List<MailFolderDto> fetchFolders(MailBox box) throws MessagingException {
-        Store store = getStore(box);
+        Store store = imapHelper.getStore(box);
 
         List<MailFolderDto> result = new ArrayList<>();
 
@@ -39,7 +43,7 @@ public class ImapServiceBean extends ImapBase implements ImapService {
 
     @Override
     public MailMessageDto fetchMessage(MailMessage message) throws MessagingException {
-        Store store = getStore(message.getMailBox());
+        Store store = imapHelper.getStore(message.getMailBox());
 
         IMAPFolder folder = (IMAPFolder) store.getFolder(message.getFolderName());
         folder.open(Folder.READ_WRITE);
@@ -98,7 +102,7 @@ public class ImapServiceBean extends ImapBase implements ImapService {
     private MailFolderDto map(IMAPFolder folder) throws MessagingException {
         List<MailFolderDto> subFolders = new ArrayList<>();
 
-        if (canHoldFolders(folder)) {
+        if (imapHelper.canHoldFolders(folder)) {
             for (Folder childFolder : folder.list()) {
                 subFolders.add(map((IMAPFolder) childFolder));
             }
@@ -106,7 +110,7 @@ public class ImapServiceBean extends ImapBase implements ImapService {
         MailFolderDto result = new MailFolderDto(
                 folder.getName(),
                 folder.getFullName(),
-                canHoldMessages(folder),
+                imapHelper.canHoldMessages(folder),
                 subFolders);
         result.getChildren().forEach(f -> f.setParent(result));
         return result;

@@ -1,6 +1,6 @@
 package com.haulmont.components.imap.scheduling;
 
-import com.haulmont.components.imap.core.ImapBase;
+import com.haulmont.components.imap.core.ImapHelper;
 import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.components.imap.entity.MailMessage;
 import com.haulmont.components.imap.entity.PredefinedEventType;
@@ -36,7 +36,7 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Component(ImapSchedulingAPI.NAME)
-public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
+public class ImapScheduling implements ImapSchedulingAPI {
 
     private final static Logger log = LoggerFactory.getLogger(ImapScheduling.class);
 
@@ -56,6 +56,9 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
 
     @Inject
     private Metadata metadata;
+
+    @Inject
+    private ImapHelper imapHelper;
 
     protected ForkJoinPool forkJoinPool = new ForkJoinPool();
 
@@ -117,7 +120,7 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
             log.debug("{}: running", mailBox);
 
             try {
-                Store store = getStore(mailBox);
+                Store store = imapHelper.getStore(mailBox);
                 List<String> listenedFolders = mailBox.getFolders().stream()
                         .filter(f -> f.hasEvent(PredefinedEventType.NEW_EMAIL.name()))
                         .map(MailFolder::getName)
@@ -153,7 +156,7 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
         @Override
         protected void compute() {
             try {
-                if (canHoldMessages(folder)) {
+                if (imapHelper.canHoldMessages(folder)) {
                     folder.open(Folder.READ_WRITE);
                     Flags supportedFlags = folder.getPermanentFlags();
                     SearchTerm searchTerm = generateSearchTerm(supportedFlags, folder);
@@ -208,7 +211,7 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
                         }
                     }
                 }
-                if (canHoldFolders(folder)) {
+                if (imapHelper.canHoldFolders(folder)) {
                     List<FolderProcessingTask> subTasks = new LinkedList<>();
 
                     for (Folder childFolder : folder.list()) {
