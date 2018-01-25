@@ -4,7 +4,7 @@
     <screen id="mailcomponent$MailFolder.edit"
             template="com/haulmont/components/imap/web/mailfolder/mail-folder-edit.xml"/>
     <screen id="mailcomponent$MailBox.folders"
-            template="com/haulmont/components/imap/web/mailfolder/mail-folder-browse.xml"/>
+            template="/com/haulmont/components/imap/web/mailbox/mail-box-folders.xml"/>
     <screen id="mailcomponent$MailBox.edit"
             template="com/haulmont/components/imap/web/mailbox/mail-box-edit.xml"/>
     <screen id="mailcomponent$MailBox.browse"

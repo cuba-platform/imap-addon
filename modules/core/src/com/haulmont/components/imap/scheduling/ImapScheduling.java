@@ -199,7 +199,6 @@ public class ImapScheduling extends ImapBase implements ImapSchedulingAPI {
                                 mailMessage.setMessageUid(uid);
                                 mailMessage.setMailBox(mailBox);
                                 mailMessage.setFolderName(folder.getFullName());
-                                em.reload(mailBox);
                                 em.persist(mailMessage);
                                 events.publish(new NewEmailEvent(mailBox, folder.getFullName(), uid));
                                 tx.commit();

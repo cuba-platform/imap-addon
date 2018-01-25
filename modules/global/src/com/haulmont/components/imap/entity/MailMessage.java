@@ -13,27 +13,20 @@ import com.haulmont.cuba.core.entity.BaseUuidEntity;
 import com.haulmont.cuba.core.entity.SoftDelete;
 import com.haulmont.cuba.core.entity.Creatable;
 import com.haulmont.chile.core.annotations.NamePattern;
+import com.haulmont.cuba.core.entity.StandardEntity;
 
 @NamePattern("%s|messageUid")
 @Table(name = "MAILCOMPONENT_MAIL_MESSAGE")
 @Entity(name = "mailcomponent$MailMessage")
-public class MailMessage extends BaseUuidEntity implements SoftDelete, Creatable {
+public class MailMessage extends StandardEntity {
     private static final long serialVersionUID = 1529635256109331665L;
 
-    @Column(name = "CREATE_TS")
-    protected Date createTs;
 
     @Column(name = "SEEN")
     protected Boolean seen;
 
-    @Column(name = "CREATED_BY", length = 50)
-    protected String createdBy;
 
-    @Column(name = "DELETE_TS")
-    protected Date deleteTs;
 
-    @Column(name = "DELETED_BY", length = 50)
-    protected String deletedBy;
 
     @Column(name = "MESSAGE_UID", nullable = false)
     protected Long messageUid;
@@ -55,47 +48,15 @@ public class MailMessage extends BaseUuidEntity implements SoftDelete, Creatable
     }
 
 
-    @Override
-    public Boolean isDeleted() {
-        return deleteTs != null;
-    }
 
 
-    public void setCreateTs(Date createTs) {
-        this.createTs = createTs;
-    }
 
-    public Date getCreateTs() {
-        return createTs;
-    }
 
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
 
-    public String getCreatedBy() {
-        return createdBy;
-    }
 
-    @Override
-    public void setDeleteTs(Date deleteTs) {
-        this.deleteTs = deleteTs;
-    }
 
-    @Override
-    public Date getDeleteTs() {
-        return deleteTs;
-    }
 
-    @Override
-    public void setDeletedBy(String deletedBy) {
-        this.deletedBy = deletedBy;
-    }
 
-    @Override
-    public String getDeletedBy() {
-        return deletedBy;
-    }
 
     public void setMessageUid(Long messageUid) {
         this.messageUid = messageUid;

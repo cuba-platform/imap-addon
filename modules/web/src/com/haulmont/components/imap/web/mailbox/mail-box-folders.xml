@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
-        caption="msg://browseCaption"
+        caption="msg://selectFoldersCaption"
         datasource="mailBoxDs"
-        class="com.haulmont.components.imap.web.mailfolder.MailFolderBrowse"
+        class="com.haulmont.components.imap.web.mailbox.MailBoxFolders"
         messagesPack="com.haulmont.components.imap.web.mailfolder">
     <dsContext>
         <datasource id="mailBoxDs"

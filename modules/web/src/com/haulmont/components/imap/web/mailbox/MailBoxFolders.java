@@ -1,4 +1,4 @@
-package com.haulmont.components.imap.web.mailfolder;
+package com.haulmont.components.imap.web.mailbox;
 
 import com.haulmont.components.imap.dto.MailFolderDto;
 import com.haulmont.components.imap.entity.MailBox;
@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class MailFolderBrowse extends AbstractEditor<MailBox> {
+public class MailBoxFolders extends AbstractEditor<MailBox> {
 
     @Inject
     private MailFolderDatasource mailFolderDs;
