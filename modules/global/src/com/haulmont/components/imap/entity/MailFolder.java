@@ -55,10 +55,10 @@ public class MailFolder extends StandardEntity {
         return name;
     }
 
-    public boolean hasEvent(String eventType) {
+    public boolean hasEvent(PredefinedEventType eventType) {
         List<MailEventType> safeEvents = events != null ? events : Collections.<MailEventType>emptyList();
 
-        return safeEvents.stream().anyMatch(e -> e.getName().equals(eventType));
+        return safeEvents.stream().anyMatch(e -> e.getEventType() == eventType);
     }
 
 }

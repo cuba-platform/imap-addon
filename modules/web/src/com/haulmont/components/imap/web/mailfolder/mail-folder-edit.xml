@@ -34,7 +34,7 @@
                     <action id="exclude"/>
                 </actions>
                 <columns>
-                    <column id="description"/>
+                    <column id="eventType"/>
                 </columns>
                 <rows datasource="eventsDs"/>
                 <buttonsPanel>

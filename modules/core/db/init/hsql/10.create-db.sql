@@ -59,8 +59,7 @@ create table MAILCOMPONENT_MAIL_SIMPLE_AUTHENTICATION (
 create table MAILCOMPONENT_MAIL_EVENT_TYPE (
     ID varchar(36) not null,
     --
-    NAME varchar(255) not null,
-    DESCRIPTION varchar(255) not null,
+    EVENT_TYPE varchar(50) not null,
     --
     primary key (ID)
 )^

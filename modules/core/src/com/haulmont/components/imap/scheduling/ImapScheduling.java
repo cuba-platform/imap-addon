@@ -126,7 +126,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             try {
                 Store store = imapHelper.getStore(mailBox);
                 List<String> listenedFolders = mailBox.getFolders().stream()
-                        .filter(f -> f.hasEvent(PredefinedEventType.NEW_EMAIL.name()))
+                        .filter(f -> f.hasEvent(PredefinedEventType.NEW_EMAIL))
                         .map(MailFolder::getName)
                         .collect(Collectors.toList());
                 List<FolderProcessingTask> folderSubtasks = new LinkedList<>();

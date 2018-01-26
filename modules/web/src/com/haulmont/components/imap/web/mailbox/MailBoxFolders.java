@@ -58,7 +58,7 @@ public class MailBoxFolders extends AbstractEditor<MailBox> {
 
             MailEventType newEmailEvent = dm.load(LoadContext.create(MailEventType.class).setQuery(
                     LoadContext.createQuery(
-                            String.format("select e from mailcomponent$MailEventType e where e.name = '%s'", PredefinedEventType.NEW_EMAIL.name())
+                            String.format("select e from mailcomponent$MailEventType e where e.eventType = '%s'", PredefinedEventType.NEW_EMAIL.getId())
                     )
             ));
 

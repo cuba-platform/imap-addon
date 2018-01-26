@@ -26,7 +26,6 @@
         <table id="mailEventTypesTable"
                width="100%">
             <columns>
-                <column id="description"/>
             </columns>
             <rows datasource="mailEventTypesDs"/>
             <rowsCount/>
