@@ -1,7 +1,9 @@
 package com.haulmont.components.imap.dto;
 
 import com.haulmont.chile.core.annotations.MetaClass;
+import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.chile.core.annotations.NamePattern;
+import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.cuba.core.entity.AbstractNotPersistentEntity;
 
 import java.util.List;
@@ -10,13 +12,25 @@ import java.util.List;
 @MetaClass(name = "mailcomponent$MailMessageDto")
 public class MailMessageDto extends AbstractNotPersistentEntity {
 
+    @MetaProperty(mandatory = true)
     private String from;
+    @MetaProperty(mandatory = true)
     private List<String> toList;
+    @MetaProperty
     private List<String> ccList;
+    @MetaProperty
     private List<String> bccList;
+    @MetaProperty
     private String subject;
+    @MetaProperty
     private String body;
+    @MetaProperty
     private List<String> flags;
+
+    @MetaProperty(mandatory = true)
+    private String mailBoxHost;
+    @MetaProperty(mandatory = true)
+    private Integer mailBoxPort;
 
     public String getFrom() {
         return from;
@@ -74,6 +88,22 @@ public class MailMessageDto extends AbstractNotPersistentEntity {
         this.flags = flags;
     }
 
+    public String getMailBoxHost() {
+        return mailBoxHost;
+    }
+
+    public void setMailBoxHost(String mailBoxHost) {
+        this.mailBoxHost = mailBoxHost;
+    }
+
+    public Integer getMailBoxPort() {
+        return mailBoxPort;
+    }
+
+    public void setMailBoxPort(Integer mailBoxPort) {
+        this.mailBoxPort = mailBoxPort;
+    }
+
     @Override
     public String toString() {
         return "MailMessageDto{" +
@@ -84,6 +114,8 @@ public class MailMessageDto extends AbstractNotPersistentEntity {
                 ", subject='" + subject + '\'' +
                 ", body='" + body + '\'' +
                 ", flags=" + flags +
+                ", mailBoxHost='" + mailBoxHost + '\'' +
+                ", mailBoxPort='" + mailBoxPort + '\'' +
                 '}';
     }
 }

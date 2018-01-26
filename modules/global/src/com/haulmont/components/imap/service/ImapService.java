@@ -14,4 +14,5 @@ public interface ImapService {
     List<MailFolderDto> fetchFolders(MailBox box) throws MessagingException;
 
     MailMessageDto fetchMessage(MailMessage message) throws MessagingException;
+    List<MailMessageDto> fetchMessages(List<MailMessage> messages) throws MessagingException;
 }

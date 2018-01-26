@@ -14,6 +14,8 @@ import com.haulmont.cuba.core.entity.SoftDelete;
 import com.haulmont.cuba.core.entity.Creatable;
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.StandardEntity;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 
 @NamePattern("%s|messageUid")
 @Table(name = "MAILCOMPONENT_MAIL_MESSAGE")
@@ -28,6 +30,10 @@ public class MailMessage extends StandardEntity {
 
 
 
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "SEEN_TIME")
+    protected Date seenTime;
+
     @Column(name = "MESSAGE_UID", nullable = false)
     protected Long messageUid;
 
@@ -38,6 +44,15 @@ public class MailMessage extends StandardEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "MAIL_BOX_ID")
     protected MailBox mailBox;
+
+    public void setSeenTime(Date seenTime) {
+        this.seenTime = seenTime;
+    }
+
+    public Date getSeenTime() {
+        return seenTime;
+    }
+
 
     public void setSeen(Boolean seen) {
         this.seen = seen;

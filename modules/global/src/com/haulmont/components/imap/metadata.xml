@@ -3,6 +3,7 @@
 
     <metadata-model root-package="com.haulmont.components.imap" namespace="mailcomponent">
         <class>com.haulmont.components.imap.dto.MailFolderDto</class>
+        <class>com.haulmont.components.imap.dto.MailMessageDto</class>
     </metadata-model>
 
 </metadata>

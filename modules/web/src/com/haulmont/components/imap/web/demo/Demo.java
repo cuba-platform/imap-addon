@@ -5,10 +5,8 @@ import com.haulmont.components.imap.entity.MailMessage;
 import com.haulmont.components.imap.service.ImapService;
 import com.haulmont.components.imap.dto.MailMessageDto;
 import com.haulmont.components.imap.entity.MailMessage;
-import com.haulmont.cuba.core.global.CommitContext;
-import com.haulmont.cuba.core.global.DataManager;
-import com.haulmont.cuba.core.global.Events;
-import com.haulmont.cuba.core.global.LoadContext;
+import com.haulmont.components.imap.web.ds.MailMessageDatasource;
+import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.gui.components.AbstractWindow;
 import com.haulmont.cuba.gui.components.Timer;
 import com.haulmont.cuba.gui.executors.*;
@@ -33,8 +31,16 @@ public class Demo extends AbstractWindow {
     @Inject
     private ComponentsFactory componentsFactory;
 
+    @Inject
+    private MailMessageDatasource mailMessageDs;
+
+    @Inject
+    private TimeSource timeSource;
+
     @Override
     public void init(Map<String, Object> params) {
+        showNewMessage();
+
         Timer timer = componentsFactory.createTimer();
 
         addTimer(timer);
@@ -63,11 +69,12 @@ public class Demo extends AbstractWindow {
                         .setView("mailMessage-full"));
                 if (newMessage != null) {
                     newMessage.setSeen(true);
+                    newMessage.setSeenTime(timeSource.currentTimestamp());
                     dm.commit(new CommitContext(newMessage));
                     uiAccessor.access(() -> {
                         try {
                             MailMessageDto mailMessageDto = service.fetchMessage(newMessage);
-                            showNotification("New message arrived", mailMessageDto.toString(), NotificationType.HUMANIZED);
+                            showNotification("New message arrived", mailMessageDto.toString(), NotificationType.TRAY);
                         } catch (MessagingException e) {
                             showNotification(e.getMessage(), NotificationType.ERROR);
                         }
@@ -84,6 +91,7 @@ public class Demo extends AbstractWindow {
 
             @Override
             public void done(Void result) {
+                mailMessageDs.refresh();
             }
 
             @Override

@@ -3,7 +3,7 @@
         caption="msg://selectFoldersCaption"
         datasource="mailBoxDs"
         class="com.haulmont.components.imap.web.mailbox.MailBoxFolders"
-        messagesPack="com.haulmont.components.imap.web.mailfolder">
+        messagesPack="com.haulmont.components.imap.web.mailbox">
     <dsContext>
         <datasource id="mailBoxDs"
                     class="com.haulmont.components.imap.entity.MailBox"

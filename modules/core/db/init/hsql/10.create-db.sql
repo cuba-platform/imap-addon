@@ -83,6 +83,7 @@ create table MAILCOMPONENT_MAIL_MESSAGE (
     DELETED_BY varchar(50),
     --
     SEEN boolean,
+    SEEN_TIME timestamp,
     MESSAGE_UID bigint not null,
     FOLDER_NAME varchar(255) not null,
     MAIL_BOX_ID varchar(36),

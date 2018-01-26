@@ -43,8 +43,11 @@ public class ImapServiceBean implements ImapService {
 
     @Override
     public MailMessageDto fetchMessage(MailMessage message) throws MessagingException {
-        Store store = imapHelper.getStore(message.getMailBox());
+        MailBox mailBox = message.getMailBox();
+        Store store = imapHelper.getStore(mailBox);
 
+
+        //todo: add getFolderMethod in imapHelper and cache it
         IMAPFolder folder = (IMAPFolder) store.getFolder(message.getFolderName());
         folder.open(Folder.READ_WRITE);
         Message nativeMessage = folder.getMessageByUID(message.getMessageUid());
@@ -56,8 +59,48 @@ public class ImapServiceBean implements ImapService {
         result.setBccList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.BCC)));
         result.setSubject(nativeMessage.getSubject());
         result.setFlags(getFlags(nativeMessage));
+        result.setMailBoxHost(mailBox.getHost());
+        result.setMailBoxPort(mailBox.getPort());
 
         return result;
+    }
+
+    @Override
+    public List<MailMessageDto> fetchMessages(List<MailMessage> messages) throws MessagingException {
+        List<MailMessageDto> mailMessageDtos = new ArrayList<>(messages.size());
+        Map<MailBox, List<MailMessage>> byMailBox = messages.stream().collect(Collectors.groupingBy(MailMessage::getMailBox));
+        byMailBox.entrySet().parallelStream().forEach(mailBoxGroup -> {
+            try {
+                MailBox mailBox = mailBoxGroup.getKey();
+                Map<String, List<MailMessage>> byFolder = mailBoxGroup.getValue().stream().collect(Collectors.groupingBy(MailMessage::getFolderName));
+
+                Store store = imapHelper.getStore(mailBox);
+                for (Map.Entry<String, List<MailMessage>> folderGroup : byFolder.entrySet()) {
+                    String folderName = folderGroup.getKey();
+                    IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
+                    folder.open(Folder.READ_WRITE);
+                    for (MailMessage message : folderGroup.getValue()) {
+                        Message nativeMessage = folder.getMessageByUID(message.getMessageUid());
+                        MailMessageDto dto = new MailMessageDto();
+                        dto.setFrom(Arrays.toString(nativeMessage.getFrom()));
+                        dto.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
+                        dto.setCcList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.CC)));
+                        dto.setBccList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.BCC)));
+                        dto.setSubject(nativeMessage.getSubject());
+                        dto.setFlags(getFlags(nativeMessage));
+                        dto.setMailBoxHost(mailBox.getHost());
+                        dto.setMailBoxPort(mailBox.getPort());
+                        mailMessageDtos.add(dto);
+                    }
+                }
+            } catch (MessagingException e) {
+                throw new RuntimeException("fetch exception", e);
+            }
+
+        });
+
+        //todo: sort dto according to messages input
+        return mailMessageDtos;
     }
 
     private List<String> getAddressList(Address[] addresses) {

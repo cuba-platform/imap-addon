@@ -25,17 +25,53 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Properties;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class ImapHelper {
+
+    private volatile Map<MailBox, Store> boxesStores = new ConcurrentHashMap<>();
+
+    private static final Object lock = new Object();
 
     @Inject
     private FileLoader fileLoader;
 
     public Store getStore(MailBox box) throws MessagingException {
+        /*Store store = boxesStores.get(box);
+        if (store != null) {
+            return store;
+        }
+        synchronized (lock) { //todo: should be more fine-grained scoped to mailbox
+            store = boxesStores.get(box);
+            if (store != null) {
+                return store;
+            }
 
+            String protocol = box.getSecureMode() == MailSecureMode.TLS ? "imaps" : "imap";
+
+            Properties props = System.getProperties();
+            props.setProperty("mail.store.protocol", protocol);
+
+            MailSSLSocketFactory socketFactory = getMailSSLSocketFactory(box);
+            props.put("mail.imaps.ssl.socketFactory", socketFactory);
+
+            Session session = Session.getDefaultInstance(props, null);
+
+            store = session.getStore(protocol);
+            store.connect(box.getHost(), box.getAuthentication().getUsername(), box.getAuthentication().getPassword());
+            boxesStores.put(box, store);
+        }
+
+        if (!store.isConnected()) {
+            *//*if (this.logger.isDebugEnabled()) {
+                this.logger.debug("connecting to store [" + MailTransportUtils.toPasswordProtectedString(this.url) + "]");
+            }*//*
+            store.connect();
+        }
+
+        return store;*/
         String protocol = box.getSecureMode() == MailSecureMode.TLS ? "imaps" : "imap";
 
         Properties props = System.getProperties();
@@ -47,7 +83,7 @@ public class ImapHelper {
         Session session = Session.getDefaultInstance(props, null);
 
         Store store = session.getStore(protocol);
-        store.connect(box.getHost(),box.getAuthentication().getUsername(), box.getAuthentication().getPassword());
+        store.connect(box.getHost(), box.getAuthentication().getUsername(), box.getAuthentication().getPassword());
 
         return store;
     }

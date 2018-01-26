@@ -1,9 +1,25 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
         caption="msg://caption"
+        datasource="mailMessageDs"
         class="com.haulmont.components.imap.web.demo.Demo"
         messagesPack="com.haulmont.components.imap.web.demo">
-    <dialogMode height="600"
-                width="800"/>
-    <layout/>
+<dsContext>
+    <collectionDatasource id="mailMessageDs"
+                            allowCommit="false"
+                            class="com.haulmont.components.imap.dto.MailMessageDto"
+                            datasourceClass="com.haulmont.components.imap.web.ds.MailMessageDatasource" />
+</dsContext>
+<layout>
+    <table id="mailMessageTable" width="100%" height="100%">
+        <columns>
+            <column id="mailBoxHost"/>
+            <column id="mailBoxPort"/>
+            <column id="subject"/>
+            <column id="from"/>
+            <column id="toList" />
+        </columns>
+        <rows datasource="mailMessageDs"/>
+    </table>
+</layout>
 </window>
