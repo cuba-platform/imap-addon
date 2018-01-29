@@ -1,8 +1,10 @@
 package com.haulmont.components.imap.core;
 
+import com.haulmont.components.imap.config.ImapConfig;
 import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.components.imap.entity.MailSecureMode;
 import com.haulmont.cuba.core.global.FileLoader;
+import com.haulmont.cuba.core.global.FileStorageException;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.util.MailSSLSocketFactory;
 import org.springframework.stereotype.Component;
@@ -37,6 +39,9 @@ public class ImapHelper {
 
     @Inject
     private FileLoader fileLoader;
+
+    @Inject
+    private ImapConfig config;
 
     public Store getStore(MailBox box) throws MessagingException {
         /*Store store = boxesStores.get(box);
@@ -92,17 +97,18 @@ public class ImapHelper {
         MailSSLSocketFactory socketFactory = null;
         try {
             socketFactory = new MailSSLSocketFactory();
-            socketFactory.setTrustAllHosts(true);
+            if (config.getTrusAllCertificates()) {
+                socketFactory.setTrustAllHosts(true);
+            } else if (box.getRootCertificate() != null) {
+                try ( InputStream rootCert = fileLoader.openStream(box.getRootCertificate()) ) {
+                    socketFactory.setTrustManagers(new TrustManager[] {new UnifiedTrustManager(rootCert) });
+                } catch (FileStorageException | GeneralSecurityException | IOException e) {
+                    throw new RuntimeException("SSL error", e);
+                }
+            }
         } catch (GeneralSecurityException e) {
             throw new MessagingException("SSL Socket factory exception", e);
         }
-        /*if (box.getRootCertificate() != null) {
-            try ( InputStream rootCert = fileLoader.openStream(box.getRootCertificate()) ) {
-                socketFactory.setTrustManagers(new TrustManager[] {new UnifiedTrustManager(rootCert) });
-            } catch (FileStorageException | GeneralSecurityException | IOException e) {
-                throw new RuntimeException("SSL error", e);
-            }
-        }*/
         return socketFactory;
     }
 

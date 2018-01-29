@@ -1,6 +1,7 @@
 package com.haulmont.components.imap.config;
 
 import com.haulmont.cuba.core.config.*;
+import com.haulmont.cuba.core.config.defaults.DefaultBoolean;
 import com.haulmont.cuba.core.config.defaults.DefaultInt;
 import com.haulmont.cuba.core.config.defaults.DefaultInteger;
 import com.haulmont.cuba.core.config.defaults.DefaultString;
@@ -13,4 +14,9 @@ public interface ImapConfig extends Config {
     @DefaultInt(30)
     int getMailBoxProcessingTimeoutSec();
     void setMailBoxProcessingTimeoutSec(int timeout);
+
+    @Property("cuba.email.imap.server.trustAllCertificates")
+    @DefaultBoolean(false)
+    boolean getTrusAllCertificates();
+    void setTrusAllCertificates(boolean value);
 }
