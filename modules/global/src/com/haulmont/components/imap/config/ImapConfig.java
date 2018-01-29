@@ -7,7 +7,7 @@ import com.haulmont.cuba.core.config.defaults.DefaultInteger;
 import com.haulmont.cuba.core.config.defaults.DefaultString;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 
-@Source(type = SourceType.APP)
+@Source(type = SourceType.DATABASE)
 public interface ImapConfig extends Config {
 
     @Property("cuba.email.imap.server.mailBoxProcessingTimeoutSec")

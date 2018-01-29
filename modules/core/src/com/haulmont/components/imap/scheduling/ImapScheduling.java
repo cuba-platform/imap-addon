@@ -210,6 +210,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                                 events.publish(new NewEmailEvent(mailBox, folder.getFullName(), uid));
                                 tx.commit();
                             }
+                            message.setFlags(cubaFlags(), true);
                         } finally {
                             authentication.end();
                         }
@@ -268,8 +269,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 NotTerm notAnswered = new NotTerm(new FlagTerm(new Flags(Flags.Flag.ANSWERED), true));
                 if (searchTerm == null) {
                     searchTerm = notAnswered;
-                }
-                else {
+                } else {
                     searchTerm = new AndTerm(searchTerm, notAnswered);
                 }
             }
@@ -277,8 +277,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 NotTerm notDeleted = new NotTerm(new FlagTerm(new Flags(Flags.Flag.DELETED), true));
                 if (searchTerm == null) {
                     searchTerm = notDeleted;
-                }
-                else {
+                } else {
                     searchTerm = new AndTerm(searchTerm, notDeleted);
                 }
             }
@@ -286,8 +285,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 NotTerm notSeen = new NotTerm(new FlagTerm(new Flags(Flags.Flag.SEEN), true));
                 if (searchTerm == null) {
                     searchTerm = notSeen;
-                }
-                else {
+                } else {
                     searchTerm = new AndTerm(searchTerm, notSeen);
                 }
             }
@@ -299,23 +297,25 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 log.debug("This email server does not support RECENT flag, but it does support " +
                         "USER flags which will be used to prevent duplicates during email fetch." +
                         " This receiver instance uses flag: " + userFlag);
-                Flags siFlags = new Flags();
-                siFlags.add(userFlag);
-                notFlagged = new NotTerm(new FlagTerm(siFlags, true));
-            }
-            else {
+                notFlagged = new NotTerm(new FlagTerm(cubaFlags(), true));
+            } else {
                 log.debug("This email server does not support RECENT or USER flags. " +
                         "System flag 'Flag.FLAGGED' will be used to prevent duplicates during email fetch.");
                 notFlagged = new NotTerm(new FlagTerm(new Flags(Flags.Flag.FLAGGED), true));
             }
             if (searchTerm == null) {
                 searchTerm = notFlagged;
-            }
-            else {
+            } else {
                 searchTerm = new AndTerm(searchTerm, notFlagged);
             }
         }
         return searchTerm;
+    }
+
+    private Flags cubaFlags() {
+        Flags cubaFlags = new Flags();
+        cubaFlags.add(userFlag);
+        return cubaFlags;
     }
 
     private boolean isRunning(MailBox mailBox) {
