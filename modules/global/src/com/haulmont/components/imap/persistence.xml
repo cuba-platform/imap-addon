@@ -8,6 +8,6 @@
         <class>com.haulmont.components.imap.entity.MailAuthentication</class>
         <class>com.haulmont.components.imap.entity.MailSimpleAuthentication</class>
         <class>com.haulmont.components.imap.entity.MailEventType</class>
-        <class>com.haulmont.components.imap.entity.MailMessage</class>
+        <class>com.haulmont.components.imap.entity.demo.MailMessage</class>
     </persistence-unit>
 </persistence>

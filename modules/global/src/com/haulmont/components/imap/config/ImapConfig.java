@@ -19,4 +19,9 @@ public interface ImapConfig extends Config {
     @DefaultBoolean(false)
     boolean getTrusAllCertificates();
     void setTrusAllCertificates(boolean value);
+
+    @Property("cuba.email.imap.server.filterByCustomFlag")
+    @DefaultBoolean(false)
+    boolean getFilterByCustomFlag();
+    void setFilterByCustomFlag(boolean value);
 }

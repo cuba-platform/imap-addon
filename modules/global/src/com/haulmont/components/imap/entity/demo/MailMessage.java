@@ -1,7 +1,9 @@
-package com.haulmont.components.imap.entity;
+package com.haulmont.components.imap.entity.demo;
 
 import javax.persistence.Entity;
 import javax.persistence.Table;
+
+import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.cuba.core.entity.annotation.OnDeleteInverse;
 import com.haulmont.cuba.core.global.DeletePolicy;
 import java.util.Date;
@@ -23,12 +25,30 @@ import javax.persistence.TemporalType;
 public class MailMessage extends StandardEntity {
     private static final long serialVersionUID = 1529635256109331665L;
 
-
     @Column(name = "SEEN")
     protected Boolean seen;
 
+    @Column(name = "FROM_")
+    protected String from;
 
+    @Column(name = "TO_LIST")
+    protected String toList;
 
+    @Column(name = "CC_LIST")
+    protected String ccList;
+
+    @Column(name = "BCC_LIST")
+    protected String bccList;
+
+    @Column(name = "SUBJECT")
+    protected String subject;
+
+    @Column(name = "FLAGS_LIST")
+    protected String flagsList;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "DATE_")
+    protected Date date;
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "SEEN_TIME")
@@ -44,6 +64,65 @@ public class MailMessage extends StandardEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "MAIL_BOX_ID")
     protected MailBox mailBox;
+
+    public void setDate(Date date) {
+        this.date = date;
+    }
+
+    public Date getDate() {
+        return date;
+    }
+
+
+    public void setFlagsList(String flagsList) {
+        this.flagsList = flagsList;
+    }
+
+    public String getFlagsList() {
+        return flagsList;
+    }
+
+
+    public void setFrom(String from) {
+        this.from = from;
+    }
+
+    public String getFrom() {
+        return from;
+    }
+
+    public void setToList(String toList) {
+        this.toList = toList;
+    }
+
+    public String getToList() {
+        return toList;
+    }
+
+    public void setCcList(String ccList) {
+        this.ccList = ccList;
+    }
+
+    public String getCcList() {
+        return ccList;
+    }
+
+    public void setBccList(String bccList) {
+        this.bccList = bccList;
+    }
+
+    public String getBccList() {
+        return bccList;
+    }
+
+    public void setSubject(String subject) {
+        this.subject = subject;
+    }
+
+    public String getSubject() {
+        return subject;
+    }
+
 
     public void setSeenTime(Date seenTime) {
         this.seenTime = seenTime;
@@ -61,17 +140,6 @@ public class MailMessage extends StandardEntity {
     public Boolean getSeen() {
         return seen;
     }
-
-
-
-
-
-
-
-
-
-
-
 
     public void setMessageUid(Long messageUid) {
         this.messageUid = messageUid;

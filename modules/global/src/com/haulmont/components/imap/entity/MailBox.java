@@ -1,18 +1,14 @@
 package com.haulmont.components.imap.entity;
 
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import javax.persistence.*;
+
 import com.haulmont.cuba.core.entity.StandardEntity;
 import com.haulmont.chile.core.annotations.Composition;
 import com.haulmont.cuba.core.entity.annotation.OnDelete;
 import com.haulmont.cuba.core.global.DeletePolicy;
 import java.util.List;
-import javax.persistence.Column;
-import javax.persistence.OneToMany;
+
 import com.haulmont.chile.core.annotations.NamePattern;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 
 @NamePattern("%s:%s|host,port")
@@ -31,12 +27,12 @@ public class MailBox extends StandardEntity {
     protected String secureMode;
 
     @OnDelete(DeletePolicy.CASCADE)
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinColumn(name = "ROOT_CERTIFICATE_ID")
     protected FileDescriptor rootCertificate;
 
     @OnDelete(DeletePolicy.CASCADE)
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinColumn(name = "CLIENT_CERTIFICATE_ID")
     protected FileDescriptor clientCertificate;
 
@@ -45,7 +41,7 @@ public class MailBox extends StandardEntity {
 
     @Composition
     @OnDelete(DeletePolicy.CASCADE)
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @JoinColumn(name = "AUTHENTICATION_ID")
     protected MailSimpleAuthentication authentication;
 

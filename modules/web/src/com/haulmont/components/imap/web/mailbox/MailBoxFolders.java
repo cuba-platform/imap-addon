@@ -9,10 +9,7 @@ import com.haulmont.components.imap.web.ds.MailFolderDatasource;
 import com.haulmont.bali.util.ParamsMap;
 import com.haulmont.components.imap.web.ds.MailFolderDatasource;
 import com.haulmont.cuba.core.entity.Entity;
-import com.haulmont.cuba.core.global.CommitContext;
-import com.haulmont.cuba.core.global.DataManager;
-import com.haulmont.cuba.core.global.LoadContext;
-import com.haulmont.cuba.core.global.Metadata;
+import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.gui.components.AbstractEditor;
 
 import javax.inject.Inject;
@@ -70,6 +67,9 @@ public class MailBoxFolders extends AbstractEditor<MailBox> {
                 return mailFolder;
             }).collect(Collectors.toList());
 
+            if (PersistenceHelper.isNew(mailBox)) {
+                toCommit.add(mailBox);
+            }
             dm.commit(new CommitContext(toCommit, toDelete));
         });
     }

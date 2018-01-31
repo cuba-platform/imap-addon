@@ -6,6 +6,7 @@ import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.cuba.core.entity.AbstractNotPersistentEntity;
 
+import java.util.Date;
 import java.util.List;
 
 @NamePattern("%s | subject")
@@ -26,6 +27,8 @@ public class MailMessageDto extends AbstractNotPersistentEntity {
     private String body;
     @MetaProperty
     private List<String> flags;
+    @MetaProperty
+    private Date date;
 
     @MetaProperty(mandatory = true)
     private String mailBoxHost;
@@ -86,6 +89,14 @@ public class MailMessageDto extends AbstractNotPersistentEntity {
 
     public void setFlags(List<String> flags) {
         this.flags = flags;
+    }
+
+    public Date getDate() {
+        return date;
+    }
+
+    public void setDate(Date sendDate) {
+        this.date = sendDate;
     }
 
     public String getMailBoxHost() {

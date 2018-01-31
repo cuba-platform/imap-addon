@@ -4,7 +4,7 @@ import com.haulmont.components.imap.core.ImapHelper;
 import com.haulmont.components.imap.dto.MailFolderDto;
 import com.haulmont.components.imap.dto.MailMessageDto;
 import com.haulmont.components.imap.entity.MailBox;
-import com.haulmont.components.imap.entity.MailMessage;
+import com.haulmont.components.imap.entity.demo.MailMessage;
 import com.sun.mail.imap.IMAPFolder;
 import org.springframework.stereotype.Service;
 
@@ -42,15 +42,13 @@ public class ImapServiceBean implements ImapService {
     }
 
     @Override
-    public MailMessageDto fetchMessage(MailMessage message) throws MessagingException {
-        MailBox mailBox = message.getMailBox();
+    public MailMessageDto fetchMessage(MailBox mailBox, String folderName, long uid) throws MessagingException {
         Store store = imapHelper.getStore(mailBox);
 
-
         //todo: add getFolderMethod in imapHelper and cache it
-        IMAPFolder folder = (IMAPFolder) store.getFolder(message.getFolderName());
+        IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
         folder.open(Folder.READ_WRITE);
-        Message nativeMessage = folder.getMessageByUID(message.getMessageUid());
+        Message nativeMessage = folder.getMessageByUID(uid);
 
         MailMessageDto result = new MailMessageDto();
         result.setFrom(Arrays.toString(nativeMessage.getFrom()));
@@ -81,6 +79,9 @@ public class ImapServiceBean implements ImapService {
                     folder.open(Folder.READ_WRITE);
                     for (MailMessage message : folderGroup.getValue()) {
                         Message nativeMessage = folder.getMessageByUID(message.getMessageUid());
+                        if (nativeMessage == null) {
+                            continue;
+                        }
                         MailMessageDto dto = new MailMessageDto();
                         dto.setFrom(Arrays.toString(nativeMessage.getFrom()));
                         dto.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
@@ -90,6 +91,7 @@ public class ImapServiceBean implements ImapService {
                         dto.setFlags(getFlags(nativeMessage));
                         dto.setMailBoxHost(mailBox.getHost());
                         dto.setMailBoxPort(mailBox.getPort());
+                        dto.setDate(nativeMessage.getReceivedDate());
                         mailMessageDtos.add(dto);
                     }
                 }

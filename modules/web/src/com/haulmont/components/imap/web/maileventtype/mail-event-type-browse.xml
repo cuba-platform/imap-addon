@@ -8,7 +8,7 @@
     <dsContext>
         <collectionDatasource id="mailEventTypesDs"
                               class="com.haulmont.components.imap.entity.MailEventType"
-                              view="_minimal">
+                              view="_local">
             <query>
                 <![CDATA[select e from mailcomponent$MailEventType e]]>
             </query>
@@ -26,6 +26,7 @@
         <table id="mailEventTypesTable"
                width="100%">
             <columns>
+                <column id="eventType"/>
             </columns>
             <rows datasource="mailEventTypesDs"/>
             <rowsCount/>

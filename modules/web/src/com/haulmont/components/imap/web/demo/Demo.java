@@ -1,21 +1,18 @@
 package com.haulmont.components.imap.web.demo;
 
-import com.haulmont.components.imap.dto.MailMessageDto;
-import com.haulmont.components.imap.entity.MailMessage;
+import com.haulmont.components.imap.entity.demo.MailMessage;
 import com.haulmont.components.imap.service.ImapService;
-import com.haulmont.components.imap.dto.MailMessageDto;
-import com.haulmont.components.imap.entity.MailMessage;
-import com.haulmont.components.imap.web.ds.MailMessageDatasource;
 import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.gui.components.AbstractWindow;
 import com.haulmont.cuba.gui.components.Timer;
+import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.executors.*;
 import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 
 import javax.inject.Inject;
-import javax.mail.MessagingException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class Demo extends AbstractWindow {
 
@@ -32,7 +29,7 @@ public class Demo extends AbstractWindow {
     private ComponentsFactory componentsFactory;
 
     @Inject
-    private MailMessageDatasource mailMessageDs;
+    private CollectionDatasource<MailMessage, UUID> mailMessageDs;
 
     @Inject
     private TimeSource timeSource;
@@ -62,23 +59,21 @@ public class Demo extends AbstractWindow {
         UIAccessor uiAccessor = backgroundWorker.getUIAccessor();
 
         return new BackgroundTask<Integer, Void>(10, this) {
+            private boolean added = false;
+
             @Override
             public Void run(TaskLifeCycle<Integer> taskLifeCycle) {
                 MailMessage newMessage = dm.load(LoadContext.create(MailMessage.class).setQuery(
                         LoadContext.createQuery("select m from mailcomponent$MailMessage m where m.seen is null or m.seen = false").setMaxResults(1))
                         .setView("mailMessage-full"));
+                added = newMessage != null;
                 if (newMessage != null) {
                     newMessage.setSeen(true);
                     newMessage.setSeenTime(timeSource.currentTimestamp());
                     dm.commit(new CommitContext(newMessage));
-                    uiAccessor.access(() -> {
-                        try {
-                            MailMessageDto mailMessageDto = service.fetchMessage(newMessage);
-                            showNotification("New message arrived", mailMessageDto.toString(), NotificationType.TRAY);
-                        } catch (MessagingException e) {
-                            showNotification(e.getMessage(), NotificationType.ERROR);
-                        }
-                    });
+                    uiAccessor.access(() ->
+                        showNotification("New message arrived", newMessage.toString(), NotificationType.TRAY)
+                    );
                 }
 
                 return null;
@@ -91,7 +86,9 @@ public class Demo extends AbstractWindow {
 
             @Override
             public void done(Void result) {
-                mailMessageDs.refresh();
+                if (added) {
+                    mailMessageDs.refresh();
+                }
             }
 
             @Override

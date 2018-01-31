@@ -6,20 +6,26 @@
         messagesPack="com.haulmont.components.imap.web.demo">
 <dsContext>
     <collectionDatasource id="mailMessageDs"
-                            allowCommit="false"
-                            class="com.haulmont.components.imap.dto.MailMessageDto"
-                            datasourceClass="com.haulmont.components.imap.web.ds.MailMessageDatasource" />
+                          allowCommit="false"
+                          class="com.haulmont.components.imap.entity.demo.MailMessage"
+                          view="mailMessage-full">
+        <query>
+            <![CDATA[select msg from mailcomponent$MailMessage msg where msg.seen = true order by msg.seenTime desc]]>
+        </query>
+    </collectionDatasource>
+
 </dsContext>
 <layout>
     <table id="mailMessageTable" width="100%" height="100%">
         <columns>
-            <column id="mailBoxHost"/>
-            <column id="mailBoxPort"/>
+            <column id="mailBox"/>
             <column id="subject"/>
+            <column id="date" />
             <column id="from"/>
             <column id="toList" />
         </columns>
         <rows datasource="mailMessageDs"/>
+        <rowsCount/>
     </table>
 </layout>
 </window>

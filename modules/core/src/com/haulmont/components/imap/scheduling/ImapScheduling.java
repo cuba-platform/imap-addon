@@ -3,7 +3,6 @@ package com.haulmont.components.imap.scheduling;
 import com.haulmont.components.imap.config.ImapConfig;
 import com.haulmont.components.imap.core.ImapHelper;
 import com.haulmont.components.imap.entity.MailBox;
-import com.haulmont.components.imap.entity.MailMessage;
 import com.haulmont.components.imap.entity.PredefinedEventType;
 import com.haulmont.components.imap.entity.MailFolder;
 import com.haulmont.components.imap.events.NewEmailEvent;
@@ -12,7 +11,6 @@ import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.TypedQuery;
 import com.haulmont.cuba.core.global.Events;
-import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.TimeSource;
 import com.haulmont.cuba.security.app.Authentication;
 import com.sun.mail.imap.IMAPFolder;
@@ -54,9 +52,6 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
     @Inject
     private Authentication authentication;
-
-    @Inject
-    private Metadata metadata;
 
     @Inject
     private ImapHelper imapHelper;
@@ -191,29 +186,8 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     }*/
                     for (IMAPMessage message : messages) {
                         long uid = folder.getUID(message);
-                        authentication.begin();
-                        try (Transaction tx = persistence.createTransaction()) {
-                            EntityManager em = persistence.getEntityManager();
-                            int sameUids = em.createQuery(
-                                    "select m from mailcomponent$MailMessage m where m.messageUid = :uid and m.mailBox.id = :mailBoxId"
-                            )
-                                    .setParameter("uid", uid)
-                                    .setParameter("mailBoxId", mailBox.getId())
-                                    .getResultList()
-                                    .size();
-                            if (sameUids == 0) {
-                                MailMessage mailMessage = metadata.create(MailMessage.class);
-                                mailMessage.setMessageUid(uid);
-                                mailMessage.setMailBox(mailBox);
-                                mailMessage.setFolderName(folder.getFullName());
-                                em.persist(mailMessage);
-                                events.publish(new NewEmailEvent(mailBox, folder.getFullName(), uid));
-                                tx.commit();
-                            }
-                            message.setFlags(cubaFlags(), true);
-                        } finally {
-                            authentication.end();
-                        }
+                        events.publish(new NewEmailEvent(mailBox, folder.getFullName(), uid));
+                        message.setFlags(cubaFlags(), true);
                     }
                 }
                 if (imapHelper.canHoldFolders(folder)) {
@@ -293,7 +267,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
         if (!recentFlagSupported) {
             NotTerm notFlagged;
-            if (folder.getPermanentFlags().contains(Flags.Flag.USER)) {
+            if (folder.getPermanentFlags().contains(Flags.Flag.USER) && Boolean.TRUE.equals(config.getFilterByCustomFlag())) {
                 log.debug("This email server does not support RECENT flag, but it does support " +
                         "USER flags which will be used to prevent duplicates during email fetch." +
                         " This receiver instance uses flag: " + userFlag);
