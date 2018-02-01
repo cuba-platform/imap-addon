@@ -33,6 +33,22 @@ public class MailBoxFolders extends AbstractEditor<MailBox> {
         MailBox mailBox = (MailBox) params.get("mailBox");
         mailFolderDs.refresh(ParamsMap.of(MailFolderDatasource.FOLDER_DS_MAILBOX_PARAM, mailBox));
 
+        addBeforeCloseWithCloseButtonListener(event -> {
+            if (PersistenceHelper.isNew(mailBox)) {
+                dm.commit(new CommitContext(mailBox));
+                /*toCommit.add(mailBox);
+                if (mailBox.getAuthentication() != null) {
+                    toCommit.add(mailBox.getAuthentication());
+                }
+                if (mailBox.getClientCertificate() != null) {
+                    toCommit.add(mailBox.getClientCertificate());
+                }
+                if (mailBox.getRootCertificate() != null) {
+                    toCommit.add(mailBox.getRootCertificate());
+                }*/
+            }
+        });
+
         addCloseWithCommitListener(() -> {
             Map<String, MailFolderDto> selected = new HashMap<>(mailFolderDs.getItems().stream()
                     .filter(MailFolderDto::getSelected)
@@ -67,9 +83,6 @@ public class MailBoxFolders extends AbstractEditor<MailBox> {
                 return mailFolder;
             }).collect(Collectors.toList());
 
-            if (PersistenceHelper.isNew(mailBox)) {
-                toCommit.add(mailBox);
-            }
             dm.commit(new CommitContext(toCommit, toDelete));
         });
     }

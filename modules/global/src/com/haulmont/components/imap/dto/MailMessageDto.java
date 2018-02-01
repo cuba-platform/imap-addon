@@ -8,11 +8,14 @@ import com.haulmont.cuba.core.entity.AbstractNotPersistentEntity;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @NamePattern("%s | subject")
 @MetaClass(name = "mailcomponent$MailMessageDto")
 public class MailMessageDto extends AbstractNotPersistentEntity {
 
+    @MetaProperty(mandatory = true)
+    private Long uid;
     @MetaProperty(mandatory = true)
     private String from;
     @MetaProperty(mandatory = true)
@@ -34,6 +37,17 @@ public class MailMessageDto extends AbstractNotPersistentEntity {
     private String mailBoxHost;
     @MetaProperty(mandatory = true)
     private Integer mailBoxPort;
+
+    private UUID mailBoxId;
+    private String folderName;
+
+    public Long getUid() {
+        return uid;
+    }
+
+    public void setUid(Long uid) {
+        this.uid = uid;
+    }
 
     public String getFrom() {
         return from;
@@ -113,6 +127,22 @@ public class MailMessageDto extends AbstractNotPersistentEntity {
 
     public void setMailBoxPort(Integer mailBoxPort) {
         this.mailBoxPort = mailBoxPort;
+    }
+
+    public UUID getMailBoxId() {
+        return mailBoxId;
+    }
+
+    public void setMailBoxId(UUID mailBoxId) {
+        this.mailBoxId = mailBoxId;
+    }
+
+    public String getFolderName() {
+        return folderName;
+    }
+
+    public void setFolderName(String folderName) {
+        this.folderName = folderName;
     }
 
     @Override

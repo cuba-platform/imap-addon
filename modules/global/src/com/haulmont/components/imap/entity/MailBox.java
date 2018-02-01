@@ -27,12 +27,12 @@ public class MailBox extends StandardEntity {
     protected String secureMode;
 
     @OnDelete(DeletePolicy.CASCADE)
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ROOT_CERTIFICATE_ID")
     protected FileDescriptor rootCertificate;
 
     @OnDelete(DeletePolicy.CASCADE)
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "CLIENT_CERTIFICATE_ID")
     protected FileDescriptor clientCertificate;
 
@@ -41,7 +41,7 @@ public class MailBox extends StandardEntity {
 
     @Composition
     @OnDelete(DeletePolicy.CASCADE)
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "AUTHENTICATION_ID")
     protected MailSimpleAuthentication authentication;
 

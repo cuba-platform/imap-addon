@@ -42,7 +42,10 @@ public class ImapServiceBean implements ImapService {
     }
 
     @Override
-    public MailMessageDto fetchMessage(MailBox mailBox, String folderName, long uid) throws MessagingException {
+    public MailMessageDto fetchMessage(MessageRef messageRef) throws MessagingException {
+        MailBox mailBox = messageRef.getMailBox();
+        String folderName = messageRef.getFolderName();
+        long uid = messageRef.getUid();
         Store store = imapHelper.getStore(mailBox);
 
         //todo: add getFolderMethod in imapHelper and cache it
@@ -51,6 +54,7 @@ public class ImapServiceBean implements ImapService {
         Message nativeMessage = folder.getMessageByUID(uid);
 
         MailMessageDto result = new MailMessageDto();
+        result.setUid(uid);
         result.setFrom(Arrays.toString(nativeMessage.getFrom()));
         result.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
         result.setCcList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.CC)));
@@ -59,30 +63,35 @@ public class ImapServiceBean implements ImapService {
         result.setFlags(getFlags(nativeMessage));
         result.setMailBoxHost(mailBox.getHost());
         result.setMailBoxPort(mailBox.getPort());
+        result.setDate(nativeMessage.getReceivedDate());
+        result.setFolderName(folderName);
+        result.setMailBoxId(mailBox.getId());
 
         return result;
     }
 
     @Override
-    public List<MailMessageDto> fetchMessages(List<MailMessage> messages) throws MessagingException {
-        List<MailMessageDto> mailMessageDtos = new ArrayList<>(messages.size());
-        Map<MailBox, List<MailMessage>> byMailBox = messages.stream().collect(Collectors.groupingBy(MailMessage::getMailBox));
+    public List<MailMessageDto> fetchMessages(List<MessageRef> messageRefs) throws MessagingException {
+        List<MailMessageDto> mailMessageDtos = new ArrayList<>(messageRefs.size());
+        Map<MailBox, List<MessageRef>> byMailBox = messageRefs.stream().collect(Collectors.groupingBy(MessageRef::getMailBox));
         byMailBox.entrySet().parallelStream().forEach(mailBoxGroup -> {
             try {
                 MailBox mailBox = mailBoxGroup.getKey();
-                Map<String, List<MailMessage>> byFolder = mailBoxGroup.getValue().stream().collect(Collectors.groupingBy(MailMessage::getFolderName));
+                Map<String, List<MessageRef>> byFolder = mailBoxGroup.getValue().stream().collect(Collectors.groupingBy(MessageRef::getFolderName));
 
                 Store store = imapHelper.getStore(mailBox);
-                for (Map.Entry<String, List<MailMessage>> folderGroup : byFolder.entrySet()) {
+                for (Map.Entry<String, List<MessageRef>> folderGroup : byFolder.entrySet()) {
                     String folderName = folderGroup.getKey();
                     IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
                     folder.open(Folder.READ_WRITE);
-                    for (MailMessage message : folderGroup.getValue()) {
-                        Message nativeMessage = folder.getMessageByUID(message.getMessageUid());
+                    for (MessageRef messageRef : folderGroup.getValue()) {
+                        long uid = messageRef.getUid();
+                        Message nativeMessage = folder.getMessageByUID(uid);
                         if (nativeMessage == null) {
                             continue;
                         }
                         MailMessageDto dto = new MailMessageDto();
+                        dto.setUid(uid);
                         dto.setFrom(Arrays.toString(nativeMessage.getFrom()));
                         dto.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
                         dto.setCcList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.CC)));
@@ -92,6 +101,8 @@ public class ImapServiceBean implements ImapService {
                         dto.setMailBoxHost(mailBox.getHost());
                         dto.setMailBoxPort(mailBox.getPort());
                         dto.setDate(nativeMessage.getReceivedDate());
+                        dto.setFolderName(folderName);
+                        dto.setMailBoxId(mailBox.getId());
                         mailMessageDtos.add(dto);
                     }
                 }

@@ -13,6 +13,36 @@ public interface ImapService {
     void testConnection(MailBox box) throws MessagingException;
     List<MailFolderDto> fetchFolders(MailBox box) throws MessagingException;
 
-    MailMessageDto fetchMessage(MailBox mailBox, String folderName, long uid) throws MessagingException;
-    List<MailMessageDto> fetchMessages(List<MailMessage> messages) throws MessagingException;
+    MailMessageDto fetchMessage(MessageRef messageRef) throws MessagingException;
+    List<MailMessageDto> fetchMessages(List<MessageRef> messageRefs) throws MessagingException;
+
+    class MessageRef {
+        private MailBox mailBox;
+        private String folderName;
+        private long uid;
+
+        public MailBox getMailBox() {
+            return mailBox;
+        }
+
+        public void setMailBox(MailBox mailBox) {
+            this.mailBox = mailBox;
+        }
+
+        public String getFolderName() {
+            return folderName;
+        }
+
+        public void setFolderName(String folderName) {
+            this.folderName = folderName;
+        }
+
+        public long getUid() {
+            return uid;
+        }
+
+        public void setUid(long uid) {
+            this.uid = uid;
+        }
+    }
 }

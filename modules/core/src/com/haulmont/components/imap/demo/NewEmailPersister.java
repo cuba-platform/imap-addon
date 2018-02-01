@@ -1,6 +1,7 @@
 package com.haulmont.components.imap.demo;
 
 import com.haulmont.components.imap.dto.MailMessageDto;
+import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.components.imap.entity.demo.MailMessage;
 import com.haulmont.components.imap.events.NewEmailEvent;
 import com.haulmont.components.imap.service.ImapService;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
 import javax.mail.MessagingException;
+import java.util.*;
 
 @Component
 public class NewEmailPersister {
@@ -30,9 +32,12 @@ public class NewEmailPersister {
     @Inject
     private ImapService service;
 
+    private Timer timer;
+
+    private volatile List<ImapService.MessageRef> messageRefs = new ArrayList<>();
+
     @EventListener
     public void handleNewEvent(NewEmailEvent event) {
-        authentication.begin();
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             int sameUids = em.createQuery(
@@ -43,11 +48,71 @@ public class NewEmailPersister {
                     .getResultList()
                     .size();
             if (sameUids == 0) {
+                if (timer != null) {
+                    timer.cancel();
+                }
+                synchronized (messageRefs) {
+                    ImapService.MessageRef ref = new ImapService.MessageRef();
+                    ref.setMailBox(event.getMailBox());
+                    ref.setFolderName(event.getFolderName());
+                    ref.setUid(event.getMessageId());
+                    messageRefs.add(ref);
+                    timer = new Timer();
+                    if (messageRefs.size() > 20) {
+                        timer.schedule(flushTask(), 0);
+                    } else {
+                        timer.schedule(flushTask(), 10_000);
+                    }
+                }
+            }
+        }
+    }
+
+    private TimerTask flushTask() {
+        return new TimerTask() {
+            @Override
+            public void run() {
+                authentication.begin();
+                try {
+                    flush();
+                } finally {
+                    authentication.end();
+                }
+            }
+        };
+    }
+
+    private void flush() {
+        List<MailMessageDto> dtos;
+        synchronized (messageRefs) {
+            try {
+                dtos = service.fetchMessages(messageRefs);
+                messageRefs.clear();
+            } catch (MessagingException e) {
+                throw new RuntimeException("Can't handle new message event", e);
+            }
+
+        }
+        authentication.begin();
+        try (Transaction tx = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            Map<UUID, MailBox> mailBoxes = new HashMap<>();
+            for (MailMessageDto dto : dtos) {
                 MailMessage mailMessage = metadata.create(MailMessage.class);
-                mailMessage.setMessageUid(event.getMessageId());
-                mailMessage.setMailBox(event.getMailBox());
-                mailMessage.setFolderName(event.getFolderName());
-                MailMessageDto dto = service.fetchMessage(event.getMailBox(), event.getFolderName(), event.getMessageId());
+                mailMessage.setMessageUid(dto.getUid());
+                MailBox mailBox = mailBoxes.get(dto.getMailBoxId());
+                if (mailBox == null) {
+                    mailBox = em.createQuery(
+                            "select mb from mailcomponent$MailBox mb where mb.id = :mailBoxId",
+                            MailBox.class
+                    ).setParameter("mailBoxId", dto.getMailBoxId()).getFirstResult();
+                    if (mailBox == null) {
+                        continue;
+                    }
+                    mailBoxes.put(dto.getMailBoxId(), mailBox);
+                }
+                mailMessage.setMailBox(mailBox);
+                mailMessage.setFolderName(dto.getFolderName());
                 mailMessage.setDate(dto.getDate());
                 mailMessage.setSubject(dto.getSubject());
                 mailMessage.setFrom(dto.getFrom());
@@ -56,10 +121,8 @@ public class NewEmailPersister {
                 mailMessage.setCcList(dto.getCcList().toString());
                 mailMessage.setFlagsList(dto.getFlags().toString());
                 em.persist(mailMessage);
-                tx.commit();
             }
-        } catch (MessagingException e) {
-            throw new RuntimeException("Can't handle new message event", e);
+            tx.commit();
         } finally {
             authentication.end();
         }
