@@ -7,7 +7,7 @@
     <dsContext>
         <datasource id="mailBoxDs"
                     class="com.haulmont.components.imap.entity.MailBox"
-                    view="_minimal"/>
+                    view="mailbox-edit"/>
         <hierarchicalDatasource id="mailFolderDs"
                               allowCommit="false"
                               class="com.haulmont.components.imap.dto.MailFolderDto"

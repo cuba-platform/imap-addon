@@ -21,7 +21,12 @@ public interface ImapConfig extends Config {
     void setTrusAllCertificates(boolean value);
 
     @Property("cuba.email.imap.server.filterByCustomFlag")
-    @DefaultBoolean(false)
+    @DefaultBoolean(true)
     boolean getFilterByCustomFlag();
     void setFilterByCustomFlag(boolean value);
+
+    @Property("cuba.email.imap.server.customFlagName")
+    @DefaultString("cuba-imap")
+    String getCustomFlagName();
+    void setCustomFlagName(String value);
 }

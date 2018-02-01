@@ -7,8 +7,6 @@ import com.haulmont.components.imap.entity.MailFolder;
 import com.haulmont.components.imap.entity.PredefinedEventType;
 import com.haulmont.components.imap.web.ds.MailFolderDatasource;
 import com.haulmont.bali.util.ParamsMap;
-import com.haulmont.components.imap.web.ds.MailFolderDatasource;
-import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.gui.components.AbstractEditor;
 
@@ -30,24 +28,12 @@ public class MailBoxFolders extends AbstractEditor<MailBox> {
 
     @Override
     public void init(Map<String, Object> params) {
-        MailBox mailBox = (MailBox) params.get("mailBox");
-        mailFolderDs.refresh(ParamsMap.of(MailFolderDatasource.FOLDER_DS_MAILBOX_PARAM, mailBox));
+        mailFolderDs.refresh(ParamsMap.of(MailFolderDatasource.FOLDER_DS_MAILBOX_PARAM, params.get("mailBox")));
+    }
 
-        addBeforeCloseWithCloseButtonListener(event -> {
-            if (PersistenceHelper.isNew(mailBox)) {
-                dm.commit(new CommitContext(mailBox));
-                /*toCommit.add(mailBox);
-                if (mailBox.getAuthentication() != null) {
-                    toCommit.add(mailBox.getAuthentication());
-                }
-                if (mailBox.getClientCertificate() != null) {
-                    toCommit.add(mailBox.getClientCertificate());
-                }
-                if (mailBox.getRootCertificate() != null) {
-                    toCommit.add(mailBox.getRootCertificate());
-                }*/
-            }
-        });
+    @Override
+    protected void postInit() {
+        MailBox mailBox = getItem();
 
         addCloseWithCommitListener(() -> {
             Map<String, MailFolderDto> selected = new HashMap<>(mailFolderDs.getItems().stream()
@@ -58,6 +44,7 @@ public class MailBoxFolders extends AbstractEditor<MailBox> {
             List<MailFolder> mailBoxFolders = mailBox.getFolders();
             if (mailBoxFolders == null) {
                 mailBoxFolders = new ArrayList<>();
+                mailBox.setFolders(mailBoxFolders);
             }
             List<MailFolder> toDelete = new ArrayList<>(mailBoxFolders.size());
             for (MailFolder folder : mailBoxFolders) {
@@ -75,15 +62,16 @@ public class MailBoxFolders extends AbstractEditor<MailBox> {
                     )
             ));
 
-            List<Entity<?>> toCommit = selected.values().stream().map(dto -> {
-                MailFolder mailFolder = metadata.create(MailFolder.class);
-                mailFolder.setMailBox(mailBox);
-                mailFolder.setName(dto.getFullName());
-                mailFolder.setEvents(Collections.singletonList(newEmailEvent));
-                return mailFolder;
-            }).collect(Collectors.toList());
+            mailBox.getFolders().addAll(selected.values().stream().map(dto -> {
+                        MailFolder mailFolder = metadata.create(MailFolder.class);
+                        mailFolder.setMailBox(mailBox);
+                        mailFolder.setName(dto.getFullName());
+                        mailFolder.setEvents(Collections.singletonList(newEmailEvent));
+                        return mailFolder;
+                    }).collect(Collectors.toList())
+            );
 
-            dm.commit(new CommitContext(toCommit, toDelete));
+            mailBox.getFolders().removeAll(toDelete);
         });
     }
 

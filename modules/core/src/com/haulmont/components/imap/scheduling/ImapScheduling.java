@@ -39,8 +39,6 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
     private final static Logger log = LoggerFactory.getLogger(ImapScheduling.class);
 
-    private volatile String userFlag = "cuba-imap";
-
     @Inject
     private Persistence persistence;
 
@@ -270,7 +268,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             if (folder.getPermanentFlags().contains(Flags.Flag.USER) && Boolean.TRUE.equals(config.getFilterByCustomFlag())) {
                 log.debug("This email server does not support RECENT flag, but it does support " +
                         "USER flags which will be used to prevent duplicates during email fetch." +
-                        " This receiver instance uses flag: " + userFlag);
+                        " This receiver instance uses flag: " + config.getCustomFlagName());
                 notFlagged = new NotTerm(new FlagTerm(cubaFlags(), true));
             } else {
                 log.debug("This email server does not support RECENT or USER flags. " +
@@ -288,7 +286,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
     private Flags cubaFlags() {
         Flags cubaFlags = new Flags();
-        cubaFlags.add(userFlag);
+        cubaFlags.add(config.getCustomFlagName());
         return cubaFlags;
     }
 

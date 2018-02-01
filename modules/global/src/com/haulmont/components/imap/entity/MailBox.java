@@ -49,8 +49,11 @@ public class MailBox extends StandardEntity {
     protected Integer pollInterval;
 
     @OnDelete(DeletePolicy.CASCADE)
-    @OneToMany(mappedBy = "mailBox")
+    @OneToMany(mappedBy = "mailBox", cascade = { CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     protected List<MailFolder> folders;
+
+    @Transient
+    private Boolean newEntity = false;
 
     public MailAuthenticationMethod getAuthenticationMethod() {
         return authenticationMethod == null ? null : MailAuthenticationMethod.fromId(authenticationMethod);
@@ -131,5 +134,11 @@ public class MailBox extends StandardEntity {
         return folders;
     }
 
+    public Boolean getNewEntity() {
+        return newEntity;
+    }
 
+    public void setNewEntity(Boolean newEntity) {
+        this.newEntity = newEntity;
+    }
 }
