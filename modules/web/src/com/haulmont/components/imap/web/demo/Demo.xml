@@ -18,11 +18,11 @@
 <layout>
     <table id="mailMessageTable" width="100%" height="100%">
         <columns>
-            <column id="mailBox"/>
             <column id="subject"/>
             <column id="date" />
             <column id="from"/>
             <column id="toList" />
+            <column id="mailBox"/>
         </columns>
         <rows datasource="mailMessageDs"/>
         <rowsCount/>
