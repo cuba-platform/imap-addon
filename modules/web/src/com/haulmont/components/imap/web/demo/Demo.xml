@@ -15,7 +15,8 @@
     </collectionDatasource>
 
 </dsContext>
-<layout>
+<layout spacing="true">
+
     <table id="mailMessageTable" width="100%" height="100%">
         <columns>
             <column id="subject"/>
@@ -25,6 +26,9 @@
             <column id="mailBox"/>
         </columns>
         <rows datasource="mailMessageDs"/>
+        <buttonsPanel>
+            <button caption="msg://checkNewMessage" invoke="showNewMessage"/>
+        </buttonsPanel>
         <rowsCount/>
     </table>
 </layout>

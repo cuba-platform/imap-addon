@@ -61,7 +61,7 @@ public class NewEmailPersister {
                     if (messageRefs.size() > 20) {
                         timer.schedule(flushTask(), 0);
                     } else {
-                        timer.schedule(flushTask(), 10_000);
+                        timer.schedule(flushTask(), 5_000);
                     }
                 }
             }

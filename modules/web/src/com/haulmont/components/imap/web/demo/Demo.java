@@ -42,7 +42,7 @@ public class Demo extends AbstractWindow {
 
         addTimer(timer);
 
-        timer.setDelay(10000);
+        timer.setDelay(5_000);
         timer.setRepeating(true);
 
         timer.addActionListener(_timer -> showNewMessage());
@@ -50,7 +50,7 @@ public class Demo extends AbstractWindow {
         timer.start();
     }
 
-    private void showNewMessage() {
+    public void showNewMessage() {
         BackgroundTaskHandler taskHandler = backgroundWorker.handle(task());
         taskHandler.execute();
     }
@@ -72,7 +72,11 @@ public class Demo extends AbstractWindow {
                     newMessage.setSeenTime(timeSource.currentTimestamp());
                     dm.commit(new CommitContext(newMessage));
                     uiAccessor.access(() ->
-                        showNotification("New message arrived", newMessage.toString(), NotificationType.TRAY)
+                        showNotification(
+                                "New message arrived",
+                                String.format("%s from %s", newMessage.getSubject(), newMessage.getFrom()),
+                                NotificationType.TRAY
+                        )
                     );
                 }
 
