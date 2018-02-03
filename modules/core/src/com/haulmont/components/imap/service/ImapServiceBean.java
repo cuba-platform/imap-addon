@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
 import javax.mail.*;
+import javax.mail.internet.MimeUtility;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -55,7 +57,7 @@ public class ImapServiceBean implements ImapService {
 
         MailMessageDto result = new MailMessageDto();
         result.setUid(uid);
-        result.setFrom(Arrays.toString(nativeMessage.getFrom()));
+        result.setFrom(getAddressList(nativeMessage.getFrom()).toString());
         result.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
         result.setCcList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.CC)));
         result.setBccList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.BCC)));
@@ -121,7 +123,15 @@ public class ImapServiceBean implements ImapService {
             return Collections.emptyList();
         }
 
-        return Arrays.stream(addresses).map(Object::toString).collect(Collectors.toList());
+        return Arrays.stream(addresses)
+                .map(Object::toString)
+                .map(addr -> {
+                    try {
+                        return MimeUtility.decodeText(addr);
+                    } catch (UnsupportedEncodingException e) {
+                        return addr;
+                    }
+                }).collect(Collectors.toList());
     }
 
     private List<String> getFlags(Message message) throws MessagingException {
