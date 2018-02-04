@@ -3,10 +3,12 @@ package com.haulmont.components.imap.entity.demo;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 
+import com.haulmont.components.imap.dto.MailMessageDto;
 import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.cuba.core.entity.annotation.OnDeleteInverse;
 import com.haulmont.cuba.core.global.DeletePolicy;
 import java.util.Date;
+import java.util.function.Supplier;
 import javax.persistence.Column;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
@@ -165,5 +167,16 @@ public class MailMessage extends StandardEntity {
         return mailBox;
     }
 
-
+    public static void fillMessage(MailMessage mailMessage, MailMessageDto dto, Supplier<MailBox> mailBoxSupplier) {
+        mailMessage.setMessageUid(dto.getUid());
+        mailMessage.setMailBox(mailBoxSupplier.get());
+        mailMessage.setFolderName(dto.getFolderName());
+        mailMessage.setDate(dto.getDate());
+        mailMessage.setSubject(dto.getSubject());
+        mailMessage.setFrom(dto.getFrom());
+        mailMessage.setToList(dto.getToList().toString());
+        mailMessage.setBccList(dto.getBccList().toString());
+        mailMessage.setCcList(dto.getCcList().toString());
+        mailMessage.setFlagsList(dto.getFlags().toString());
+    }
 }

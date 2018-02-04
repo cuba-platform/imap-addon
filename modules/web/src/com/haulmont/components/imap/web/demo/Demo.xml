@@ -20,6 +20,8 @@
     <table id="mailMessageTable" width="100%" height="100%">
         <actions>
             <action id="deleteMessageAction" caption="msg://deleteCaption" invoke="deleteMessage"/>
+            <action id="markAsReadAction" caption="msg://markAsReadCaption" invoke="markAsRead"/>
+            <action id="markAsImportantAction" caption="msg://markAsImportantAction" invoke="markAsImportant"/>
         </actions>
         <columns>
             <column id="subject"/>
@@ -33,6 +35,8 @@
         <buttonsPanel>
             <button caption="msg://checkNewMessage" invoke="showNewMessage"/>
             <button action="mailMessageTable.deleteMessageAction"/>
+            <button action="mailMessageTable.markAsReadAction"/>
+            <button action="mailMessageTable.markAsImportantAction"/>
         </buttonsPanel>
         <rowsCount/>
     </table>

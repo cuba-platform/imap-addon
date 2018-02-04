@@ -99,27 +99,23 @@ public class NewEmailPersister {
             Map<UUID, MailBox> mailBoxes = new HashMap<>();
             for (MailMessageDto dto : dtos) {
                 MailMessage mailMessage = metadata.create(MailMessage.class);
-                mailMessage.setMessageUid(dto.getUid());
-                MailBox mailBox = mailBoxes.get(dto.getMailBoxId());
-                if (mailBox == null) {
-                    mailBox = em.createQuery(
-                            "select mb from mailcomponent$MailBox mb where mb.id = :mailBoxId",
-                            MailBox.class
-                    ).setParameter("mailBoxId", dto.getMailBoxId()).getFirstResult();
+                MailMessage.fillMessage(mailMessage, dto, () -> {
+                    MailBox mailBox = mailBoxes.get(dto.getMailBoxId());
                     if (mailBox == null) {
-                        continue;
+                        mailBox = em.createQuery(
+                                "select mb from mailcomponent$MailBox mb where mb.id = :mailBoxId",
+                                MailBox.class
+                        ).setParameter("mailBoxId", dto.getMailBoxId()).getFirstResult();
+                        if (mailBox == null) {
+                            return null;
+                        }
+                        mailBoxes.put(dto.getMailBoxId(), mailBox);
                     }
-                    mailBoxes.put(dto.getMailBoxId(), mailBox);
+                    return mailBox;
+                });
+                if (mailMessage.getMailBox() == null) {
+                    continue;
                 }
-                mailMessage.setMailBox(mailBox);
-                mailMessage.setFolderName(dto.getFolderName());
-                mailMessage.setDate(dto.getDate());
-                mailMessage.setSubject(dto.getSubject());
-                mailMessage.setFrom(dto.getFrom());
-                mailMessage.setToList(dto.getToList().toString());
-                mailMessage.setBccList(dto.getBccList().toString());
-                mailMessage.setCcList(dto.getCcList().toString());
-                mailMessage.setFlagsList(dto.getFlags().toString());
                 em.persist(mailMessage);
             }
             tx.commit();

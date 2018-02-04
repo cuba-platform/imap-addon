@@ -136,8 +136,22 @@ public class ImapServiceBean implements ImapService {
         } finally {
             store.close();
         }
+    }
 
+    @Override
+    public void markAsRead(MessageRef messageRef) throws MessagingException {
+        consumeMessage(messageRef, msg -> {
+            msg.setFlag(Flags.Flag.SEEN, true);
+            return null;
+        });
+    }
 
+    @Override
+    public void markAsImportant(MessageRef messageRef) throws MessagingException {
+        consumeMessage(messageRef, msg -> {
+            msg.setFlag(Flags.Flag.FLAGGED, true);
+            return null;
+        });
     }
 
     private <T> T consumeMessage(MessageRef ref, MessageFailureAwareFn<Message, T> consumer) throws MessagingException {

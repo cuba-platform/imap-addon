@@ -18,6 +18,8 @@ public interface ImapService {
     List<MailMessageDto> fetchMessages(List<MessageRef> messageRefs) throws MessagingException;
 
     void deleteMessage(MessageRef messageRef) throws MessagingException;
+    void markAsRead(MessageRef messageRef) throws MessagingException;
+    void markAsImportant(MessageRef messageRef) throws MessagingException;
 
     class MessageRef implements Serializable {
         private MailBox mailBox;

@@ -1,5 +1,7 @@
 package com.haulmont.components.imap.web.demo;
 
+import com.haulmont.bali.datastruct.Pair;
+import com.haulmont.components.imap.dto.MailMessageDto;
 import com.haulmont.components.imap.entity.demo.MailMessage;
 import com.haulmont.components.imap.service.ImapService;
 import com.haulmont.cuba.core.global.*;
@@ -16,6 +18,7 @@ import javax.mail.MessagingException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class Demo extends AbstractWindow {
@@ -63,18 +66,53 @@ public class Demo extends AbstractWindow {
     }
 
     public void deleteMessage(Component component) {
+        forEachSelected(pair -> {
+            try {
+                service.deleteMessage(pair.getSecond());
+                dm.remove(pair.getFirst());
+            } catch (MessagingException e) {
+                throw new RuntimeException("delete error", e);
+            }
+        });
+    }
+
+    public void markAsRead() {
+        forEachSelected(pair -> {
+            try {
+                ImapService.MessageRef ref = pair.getSecond();
+                service.markAsRead(ref);
+                MailMessageDto dto = service.fetchMessage(ref);
+                MailMessage mailMessage = pair.getFirst();
+                MailMessage.fillMessage(mailMessage, dto, mailMessage::getMailBox);
+                dm.commit(mailMessage);
+            } catch (MessagingException e) {
+                throw new RuntimeException("markAsRead error", e);
+            }
+        });
+    }
+
+    public void markAsImportant() {
+        forEachSelected(pair -> {
+            try {
+                ImapService.MessageRef ref = pair.getSecond();
+                service.markAsImportant(ref);
+                MailMessageDto dto = service.fetchMessage(ref);
+                MailMessage mailMessage = pair.getFirst();
+                MailMessage.fillMessage(mailMessage, dto, mailMessage::getMailBox);
+                dm.commit(mailMessage);
+            } catch (MessagingException e) {
+                throw new RuntimeException("markAsImportant error", e);
+            }
+        });
+    }
+
+    private void forEachSelected(Consumer<Pair<MailMessage, ImapService.MessageRef>> action) {
         mailMessageTable.getSelected().forEach(msg -> {
             ImapService.MessageRef messageRef = new ImapService.MessageRef();
             messageRef.setUid(msg.getMessageUid());
             messageRef.setMailBox(msg.getMailBox());
             messageRef.setFolderName(msg.getFolderName());
-            try {
-//                msg = dm.reload(msg, "mailMessage-full");
-                service.deleteMessage(messageRef);
-                dm.remove(msg);
-            } catch (MessagingException e) {
-                throw new RuntimeException("delete error", e);
-            }
+            action.accept(new Pair<>(msg, messageRef));
         });
         if (!mailMessageTable.getSelected().isEmpty()) {
             mailMessageDs.refresh();
