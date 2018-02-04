@@ -22,7 +22,7 @@
           extends="_local"
           name="mailMessage-full">
         <property name="mailBox"
-                  view="_minimal"/>
+                  view="mailBox-connect"/>
     </view>
     <view class="com.haulmont.components.imap.entity.MailBox"
           extends="_local"

@@ -4,15 +4,19 @@ import com.haulmont.components.imap.entity.demo.MailMessage;
 import com.haulmont.components.imap.service.ImapService;
 import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.gui.components.AbstractWindow;
+import com.haulmont.cuba.gui.components.Component;
+import com.haulmont.cuba.gui.components.Table;
 import com.haulmont.cuba.gui.components.Timer;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.executors.*;
 import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 
 import javax.inject.Inject;
+import javax.mail.MessagingException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class Demo extends AbstractWindow {
 
@@ -34,6 +38,9 @@ public class Demo extends AbstractWindow {
     @Inject
     private TimeSource timeSource;
 
+    @Inject
+    private Table<MailMessage> mailMessageTable;
+
     @Override
     public void init(Map<String, Object> params) {
         showNewMessage();
@@ -53,6 +60,25 @@ public class Demo extends AbstractWindow {
     public void showNewMessage() {
         BackgroundTaskHandler taskHandler = backgroundWorker.handle(task());
         taskHandler.execute();
+    }
+
+    public void deleteMessage(Component component) {
+        mailMessageTable.getSelected().forEach(msg -> {
+            ImapService.MessageRef messageRef = new ImapService.MessageRef();
+            messageRef.setUid(msg.getMessageUid());
+            messageRef.setMailBox(msg.getMailBox());
+            messageRef.setFolderName(msg.getFolderName());
+            try {
+//                msg = dm.reload(msg, "mailMessage-full");
+                service.deleteMessage(messageRef);
+                dm.remove(msg);
+            } catch (MessagingException e) {
+                throw new RuntimeException("delete error", e);
+            }
+        });
+        if (!mailMessageTable.getSelected().isEmpty()) {
+            mailMessageDs.refresh();
+        }
     }
 
     private BackgroundTask<Integer, Void> task() {

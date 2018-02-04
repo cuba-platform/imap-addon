@@ -5,6 +5,7 @@ import com.haulmont.components.imap.dto.MailMessageDto;
 import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.components.imap.entity.demo.MailMessage;
 import javax.mail.MessagingException;
+import java.io.Serializable;
 import java.util.List;
 
 public interface ImapService {
@@ -16,7 +17,9 @@ public interface ImapService {
     MailMessageDto fetchMessage(MessageRef messageRef) throws MessagingException;
     List<MailMessageDto> fetchMessages(List<MessageRef> messageRefs) throws MessagingException;
 
-    class MessageRef {
+    void deleteMessage(MessageRef messageRef) throws MessagingException;
+
+    class MessageRef implements Serializable {
         private MailBox mailBox;
         private String folderName;
         private long uid;
