@@ -90,7 +90,7 @@ public class ImapServiceBean implements ImapService {
                             }
                             MailMessageDto dto = new MailMessageDto();
                             dto.setUid(uid);
-                            dto.setFrom(Arrays.toString(nativeMessage.getFrom()));
+                            dto.setFrom(getAddressList(nativeMessage.getFrom()).toString());
                             dto.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
                             dto.setCcList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.CC)));
                             dto.setBccList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.BCC)));
