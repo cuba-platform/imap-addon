@@ -3,7 +3,5 @@
     <menu id="imap-component"
           insertBefore="administration">
         <item screen="mailcomponent$MailBox.browse"/>
-        <separator/>
-        <item screen="Demo"/>
     </menu>
 </menu-config>

@@ -3,7 +3,6 @@ package com.haulmont.components.imap.service;
 import com.haulmont.components.imap.dto.MailFolderDto;
 import com.haulmont.components.imap.dto.MailMessageDto;
 import com.haulmont.components.imap.entity.MailBox;
-import com.haulmont.components.imap.entity.demo.MailMessage;
 import javax.mail.MessagingException;
 import java.io.Serializable;
 import java.util.List;

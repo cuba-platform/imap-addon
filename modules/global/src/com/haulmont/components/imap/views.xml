@@ -18,12 +18,6 @@
         <property name="mailBox"
                   view="_minimal"/>
     </view>
-    <view class="com.haulmont.components.imap.entity.demo.MailMessage"
-          extends="_local"
-          name="mailMessage-full">
-        <property name="mailBox"
-                  view="mailBox-connect"/>
-    </view>
     <view class="com.haulmont.components.imap.entity.MailBox"
           extends="_local"
           name="mailBox-connect">
