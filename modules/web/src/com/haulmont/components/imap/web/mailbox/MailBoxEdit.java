@@ -48,6 +48,19 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
         }
     }
 
+    public void selectTrashFolder() {
+        MailBox mailBox = getItem();
+        Boolean newEntity = mailBox.getNewEntity();
+        AbstractEditor selectFolders = openEditor(
+                "mailcomponent$MailBox.trashFolder",
+                mailBox,
+                WindowManager.OpenType.THIS_TAB,
+                ParamsMap.of("mailBox", mailBox),
+                mailBoxDs
+        );
+        selectFolders.addCloseWithCommitListener(() -> getItem().setNewEntity(newEntity));
+    }
+
     public void selectFolders() {
         MailBox mailBox = getItem();
         Boolean newEntity = mailBox.getNewEntity();

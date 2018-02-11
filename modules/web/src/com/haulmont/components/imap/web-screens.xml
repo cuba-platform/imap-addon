@@ -4,12 +4,12 @@
             template="com/haulmont/components/imap/web/mailfolder/mail-folder-edit.xml"/>
     <screen id="mailcomponent$MailBox.folders"
             template="/com/haulmont/components/imap/web/mailbox/mail-box-folders.xml"/>
+    <screen id="mailcomponent$MailBox.trashFolder"
+            template="/com/haulmont/components/imap/web/mailbox/mail-box-trash-folder.xml"/>
     <screen id="mailcomponent$MailBox.edit"
             template="com/haulmont/components/imap/web/mailbox/mail-box-edit.xml"/>
     <screen id="mailcomponent$MailBox.browse"
             template="com/haulmont/components/imap/web/mailbox/mail-box-browse.xml"/>
     <screen id="mailcomponent$MailEventType.browse"
             template="com/haulmont/components/imap/web/maileventtype/mail-event-type-browse.xml"/>
-    <screen id="Demo"
-            template="com/haulmont/components/imap/web/demo/Demo.xml"/>
 </screen-config>

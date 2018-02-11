@@ -48,12 +48,46 @@ public class MailBox extends StandardEntity {
     @Column(name = "POLL_INTERVAL", nullable = false)
     protected Integer pollInterval;
 
+    @Column(name = "PROCESSING_TIMEOUT")
+    protected Integer processingTimeout = 30;
+
+    @Column(name = "CUBA_FLAG")
+    protected String cubaFlag = "cuba-imap";
+
+    @Column(name = "TRASH_FOLDER_NAME")
+    protected String trashFolderName;
+
     @OnDelete(DeletePolicy.CASCADE)
     @OneToMany(mappedBy = "mailBox", cascade = { CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     protected List<MailFolder> folders;
 
     @Transient
     private Boolean newEntity = false;
+
+    public void setProcessingTimeout(Integer processingTimeout) {
+        this.processingTimeout = processingTimeout;
+    }
+
+    public Integer getProcessingTimeout() {
+        return processingTimeout;
+    }
+
+    public void setCubaFlag(String cubaFlag) {
+        this.cubaFlag = cubaFlag;
+    }
+
+    public String getCubaFlag() {
+        return cubaFlag;
+    }
+
+    public void setTrashFolderName(String trashFolderName) {
+        this.trashFolderName = trashFolderName;
+    }
+
+    public String getTrashFolderName() {
+        return trashFolderName;
+    }
+
 
     public MailAuthenticationMethod getAuthenticationMethod() {
         return authenticationMethod == null ? null : MailAuthenticationMethod.fromId(authenticationMethod);

@@ -122,12 +122,19 @@ public class ImapServiceBean implements ImapService {
     public void deleteMessage(MessageRef messageRef) throws MessagingException {
         Store store = imapHelper.getStore(messageRef.getMailBox());
         try {
-            Folder trashFolder = store.getFolder("[Gmail]/Корзина");
-            trashFolder.open(Folder.READ_WRITE);
+            Folder trashFolder = null;
+            if (messageRef.getMailBox().getTrashFolderName() != null) {
+                trashFolder = store.getFolder(messageRef.getMailBox().getTrashFolderName());
+                trashFolder.open(Folder.READ_WRITE);
+            }
             try {
+                Folder finalTrashFolder = trashFolder;
                 consumeMessage(messageRef, msg -> {
-                    msg.getFolder().copyMessages(new Message[]{msg}, trashFolder);
-//                    msg.setFlag(Flags.Flag.DELETED, true);
+                    if (finalTrashFolder != null) {
+                        msg.getFolder().copyMessages(new Message[]{msg}, finalTrashFolder);
+                    } else {
+                        msg.setFlag(Flags.Flag.DELETED, true);
+                    }
                     return null;
                 });
             } finally {

@@ -34,6 +34,9 @@ create table MAILCOMPONENT_MAIL_BOX (
     AUTHENTICATION_METHOD varchar(50) not null,
     AUTHENTICATION_ID varchar(36),
     POLL_INTERVAL integer not null,
+    PROCESSING_TIMEOUT integer,
+    CUBA_FLAG varchar(255),
+    TRASH_FOLDER_NAME varchar(255),
     --
     primary key (ID)
 )^

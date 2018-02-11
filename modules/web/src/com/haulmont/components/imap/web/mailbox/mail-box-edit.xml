@@ -19,39 +19,57 @@
                 width="800"/>
     <layout expand="windowActions"
             spacing="true">
-        <fieldGroup id="mainParams"
-                    datasource="mailBoxDs">
-            <column width="250px">
-                <field property="host"/>
-                <field property="port"/>
-                <field property="secureMode"/>
-                <field property="rootCertificate" id="mailBoxRootCertificateField"/>
-                <field property="username" datasource="authenticationDs"/>
-                <field id="authenticationPasswordId">
-                    <passwordField required="true" property="password" datasource="authenticationDs" caption="Password"/>
-                </field>
-                <field property="pollInterval"/>
-            </column>
-        </fieldGroup>
-        <button caption="msg://checkConnectionCaption" invoke="checkTheConnection"/>
-        <groupBox id="foldersBox"
-                  caption="msg://com.haulmont.components.imap.entity/MailBox.folders">
-            <table id="foldersTable"
-                   height="200px"
-                   width="100%">
-                <actions>
-                    <action id="edit"/>
-                </actions>
-                <columns>
-                    <column id="name"/>
-                </columns>
-                <rows datasource="foldersDs"/>
-                <buttonsPanel>
-                    <button action="foldersTable.edit"/>
-                    <button caption="msg://selectFoldersCaption" invoke="selectFolders"/>
-                </buttonsPanel>
-            </table>
-        </groupBox>
+        <tabSheet id="tabSheet">
+            <tab id="mainParamsTab" caption="Connection configuration" margin="true" spacing="true">
+                <fieldGroup id="mainParams"
+                            datasource="mailBoxDs">
+                    <column width="250px">
+                        <field property="host"/>
+                        <field property="port"/>
+                        <field property="secureMode"/>
+                        <field property="rootCertificate" id="mailBoxRootCertificateField"/>
+                        <field property="username" datasource="authenticationDs"/>
+                        <field id="authenticationPasswordId">
+                            <passwordField required="true" property="password" datasource="authenticationDs" caption="Password"/>
+                        </field>
+                    </column>
+                </fieldGroup>
+                <button caption="msg://checkConnectionCaption" invoke="checkTheConnection"/>
+            </tab>
+            <tab id="fetchParamsTab" caption="Polling configuration" margin="true" spacing="true">
+                <fieldGroup id="pollingParams"
+                            datasource="mailBoxDs">
+                    <column width="250px">
+                        <field property="pollInterval"/>
+                        <field property="processingTimeout"/>
+                        <field property="cubaFlag"/>
+                        <field property="trashFolderName" editable="false"/>
+                    </column>
+                </fieldGroup>
+                <button caption="msg://selectTrashFolderCaption" invoke="selectTrashFolder"/>
+            </tab>
+            <tab id="foldersTab" caption="Folders configuration" margin="true" spacing="true">
+                <groupBox id="foldersBox"
+                          caption="msg://com.haulmont.components.imap.entity/MailBox.folders">
+                    <table id="foldersTable"
+                           height="200px"
+                           width="100%">
+                        <actions>
+                            <action id="edit"/>
+                        </actions>
+                        <columns>
+                            <column id="name"/>
+                        </columns>
+                        <rows datasource="foldersDs"/>
+                        <buttonsPanel>
+                            <button action="foldersTable.edit"/>
+                            <button caption="msg://selectFoldersCaption" invoke="selectFolders"/>
+                        </buttonsPanel>
+                    </table>
+                </groupBox>
+            </tab>
+        </tabSheet>
+
         <frame id="windowActions"
                screen="editWindowActions"/>
     </layout>

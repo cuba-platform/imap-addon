@@ -10,11 +10,6 @@ import com.haulmont.cuba.core.entity.FileDescriptor;
 @Source(type = SourceType.DATABASE)
 public interface ImapConfig extends Config {
 
-    @Property("cuba.email.imap.server.mailBoxProcessingTimeoutSec")
-    @DefaultInt(30)
-    int getMailBoxProcessingTimeoutSec();
-    void setMailBoxProcessingTimeoutSec(int timeout);
-
     @Property("cuba.email.imap.server.trustAllCertificates")
     @DefaultBoolean(false)
     boolean getTrusAllCertificates();
@@ -25,8 +20,4 @@ public interface ImapConfig extends Config {
     boolean getFilterByCustomFlag();
     void setFilterByCustomFlag(boolean value);
 
-    @Property("cuba.email.imap.server.customFlagName")
-    @DefaultString("cuba-imap")
-    String getCustomFlagName();
-    void setCustomFlagName(String value);
 }

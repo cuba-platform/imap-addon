@@ -156,7 +156,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 if (imapHelper.canHoldMessages(folder)) {
                     folder.open(Folder.READ_WRITE);
                     Flags supportedFlags = folder.getPermanentFlags();
-                    SearchTerm searchTerm = generateSearchTerm(supportedFlags, folder);
+                    SearchTerm searchTerm = generateSearchTerm(supportedFlags, folder, mailBox);
                     IMAPMessage[] messages = nullSafeMessages((IMAPMessage[]) (searchTerm != null ? folder.search(searchTerm) : folder.getMessages()));
 
                     List<RecursiveTask<Long>> uidSubtasks = new LinkedList<>();
@@ -185,7 +185,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     for (IMAPMessage message : messages) {
                         long uid = folder.getUID(message);
                         events.publish(new NewEmailEvent(mailBox, folder.getFullName(), uid));
-                        message.setFlags(cubaFlags(), true);
+                        message.setFlags(cubaFlags(mailBox), true);
                     }
                 }
                 if (imapHelper.canHoldFolders(folder)) {
@@ -229,7 +229,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
         }
     }
 
-    private SearchTerm generateSearchTerm(Flags supportedFlags, Folder folder) {
+    private SearchTerm generateSearchTerm(Flags supportedFlags, Folder folder, MailBox mailBox) {
         SearchTerm searchTerm = null;
         boolean recentFlagSupported = false;
         if (supportedFlags != null) {
@@ -268,8 +268,8 @@ public class ImapScheduling implements ImapSchedulingAPI {
             if (folder.getPermanentFlags().contains(Flags.Flag.USER) && Boolean.TRUE.equals(config.getFilterByCustomFlag())) {
                 log.debug("This email server does not support RECENT flag, but it does support " +
                         "USER flags which will be used to prevent duplicates during email fetch." +
-                        " This receiver instance uses flag: " + config.getCustomFlagName());
-                notFlagged = new NotTerm(new FlagTerm(cubaFlags(), true));
+                        " This receiver instance uses flag: " + mailBox.getCubaFlag());
+                notFlagged = new NotTerm(new FlagTerm(cubaFlags(mailBox), true));
             } else {
                 log.debug("This email server does not support RECENT or USER flags. " +
                         "System flag 'Flag.FLAGGED' will be used to prevent duplicates during email fetch.");
@@ -284,16 +284,16 @@ public class ImapScheduling implements ImapSchedulingAPI {
         return searchTerm;
     }
 
-    private Flags cubaFlags() {
+    private Flags cubaFlags(MailBox mailBox) {
         Flags cubaFlags = new Flags();
-        cubaFlags.add(config.getCustomFlagName());
+        cubaFlags.add(mailBox.getCubaFlag());
         return cubaFlags;
     }
 
     private boolean isRunning(MailBox mailBox) {
         Long startTime = runningTasks.get(mailBox);
         if (startTime != null) {
-            boolean timedOut = startTime + config.getMailBoxProcessingTimeoutSec() * 1000 > timeSource.currentTimeMillis();
+            boolean timedOut = startTime + mailBox.getProcessingTimeout() * 1000 > timeSource.currentTimeMillis();
             if (timedOut) {
                 runningTasks.remove(mailBox);
             } else {
