@@ -37,6 +37,7 @@ create table MAILCOMPONENT_MAIL_BOX (
     PROCESSING_TIMEOUT integer,
     CUBA_FLAG varchar(255),
     TRASH_FOLDER_NAME varchar(255),
+    UPDATE_SLICE_SIZE integer not null,
     --
     primary key (ID)
 )^
@@ -67,6 +68,22 @@ create table MAILCOMPONENT_MAIL_EVENT_TYPE (
     primary key (ID)
 )^
 -- end MAILCOMPONENT_MAIL_EVENT_TYPE
+-- begin MAILCOMPONENT_MAIL_MESSAGE_META
+create table MAILCOMPONENT_MAIL_MESSAGE_META (
+    ID varchar(36) not null,
+    --
+    MAIL_BOX_ID varchar(36) not null,
+    MSG_UID bigint not null,
+    FOLDER_NAME varchar(255) not null,
+    IS_DELETED boolean not null,
+    IS_FLAGGED boolean not null,
+    IS_ANSWERED boolean not null,
+    IS_SEEN boolean not null,
+    UPDATED_TS time not null,
+    --
+    primary key (ID)
+)^
+-- end MAILCOMPONENT_MAIL_MESSAGE_META
 -- begin MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK
 create table MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK (
     MAIL_FOLDER_ID varchar(36) not null,

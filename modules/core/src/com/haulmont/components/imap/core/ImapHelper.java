@@ -1,19 +1,24 @@
 package com.haulmont.components.imap.core;
 
+import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.components.imap.config.ImapConfig;
 import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.components.imap.entity.MailSecureMode;
 import com.haulmont.cuba.core.global.FileLoader;
 import com.haulmont.cuba.core.global.FileStorageException;
+import com.sun.mail.iap.Argument;
+import com.sun.mail.iap.Response;
 import com.sun.mail.imap.IMAPFolder;
+import com.sun.mail.imap.protocol.*;
 import com.sun.mail.util.MailSSLSocketFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
-import javax.mail.Folder;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Store;
+import javax.mail.*;
+import javax.mail.search.SearchException;
+import javax.mail.search.SearchTerm;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -29,11 +34,18 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Component
 public class ImapHelper {
 
+    private final static Logger log = LoggerFactory.getLogger(ImapHelper.class);
+
     private volatile Map<MailBox, Store> boxesStores = new ConcurrentHashMap<>();
+
+    private volatile ConcurrentMap<String, Object> folderLocks = new ConcurrentHashMap<>();
 
     private static final Object lock = new Object();
 
@@ -91,6 +103,127 @@ public class ImapHelper {
         store.connect(box.getHost(), box.getAuthentication().getUsername(), box.getAuthentication().getPassword());
 
         return store;
+    }
+
+    public <T> T doWithFolder(MailBox mailBox, IMAPFolder folder, FolderTask<T> task) {
+        String key = String.format("%s:%d[%s]", mailBox.getHost(), mailBox.getPort(), folder.getFullName());
+        folderLocks.putIfAbsent(key, new Object());
+        Object lock = folderLocks.get(key);
+        synchronized (lock) {
+            try {
+                if (!folder.isOpen()) {
+                    folder.open(Folder.READ_WRITE);
+                }
+                T result = task.action.apply(folder);
+                return task.isHasResult() ? result : null;
+            } catch (MessagingException e) {
+                throw new RuntimeException(
+                        String.format("error performing task '%s' for folder '%s' in mailbox '%s:%d'",
+                                task.getDescription(), folder.getFullName(), mailBox.getHost(), mailBox.getPort()
+                        ), e
+                );
+            } finally {
+                if (task.isCloseFolder()) {
+                    try {
+                        folder.close(false);
+                    } catch (MessagingException e) {
+                        log.warn("Can't close folder {} for mailBox {}:{}", folder.getFullName(), mailBox.getHost(), mailBox.getPort());
+                    }
+                }
+            }
+
+        }
+    }
+
+    public List<Pair<Long, Flags>> searchUidAndFlags(IMAPFolder folder, SearchTerm searchTerm) throws MessagingException {
+        long[] uids = (long[]) folder.doCommand(uidSearchCommand(searchTerm));
+        if (uids != null && uids.length > 0) {
+            return (List<Pair<Long, Flags>>) folder.doCommand(uidFetchWithFlagsCommand(uids));
+        }
+        return Collections.emptyList();
+    }
+
+    private IMAPFolder.ProtocolCommand uidSearchCommand(SearchTerm searchTerm) {
+        return protocol -> {
+            try {
+                Argument args = new SearchSequence().generateSequence(searchTerm, null);
+                args.writeAtom("ALL");
+
+                Response[] r = protocol.command("UID SEARCH", args);
+
+                Response response = r[r.length-1];
+                long[] matches = null;
+
+                // Grab all SEARCH responses
+                if (response.isOK()) { // command succesful
+                    List<Long> v = new ArrayList<>();
+                    long num;
+                    for (int i = 0, len = r.length; i < len; i++) {
+                        if (!(r[i] instanceof IMAPResponse))
+                            continue;
+
+                        IMAPResponse ir = (IMAPResponse)r[i];
+                        // There *will* be one SEARCH response.
+                        if (ir.keyEquals("SEARCH")) {
+                            while ((num = ir.readLong()) != -1)
+                                v.add(num);
+                            r[i] = null;
+                        }
+                    }
+
+                    // Copy the vector into 'matches'
+                    int vsize = v.size();
+                    matches = new long[vsize];
+                    for (int i = 0; i < vsize; i++)
+                        matches[i] = v.get(i);
+                }
+
+                // dispatch remaining untagged responses
+                protocol.notifyResponseHandlers(r);
+                protocol.handleResult(response);
+                return matches;
+            } catch (IOException | SearchException e) {
+                throw new RuntimeException("can't perform search with term " + searchTerm, e);
+            }
+
+        };
+    }
+
+    public IMAPFolder.ProtocolCommand uidFetchWithFlagsCommand(long[] uids) {
+        return protocol -> {
+
+            String uidsString = Arrays.stream(uids).mapToObj(String::valueOf).collect(Collectors.joining(","));
+            Response[] responses = protocol.command(String.format("UID FETCH %s (UID FLAGS)", uidsString), null);
+
+            List<Pair<Long, Flags>> result = new ArrayList<>();
+            for (Response response : responses) {
+                if (response == null || !(response instanceof FetchResponse))
+                    continue;
+
+                FetchResponse fr = (FetchResponse) response;
+                if (fr.getItemCount() >= 2) {
+                    Flags flags = null;
+                    Long uid = null;
+                    for (int i = 0; i < fr.getItemCount(); i++) {
+                        Item item = fr.getItem(i);
+                        if (item instanceof Flags) {
+                            flags = (Flags) item;
+                        } else if (item instanceof UID) {
+                            uid = ((UID) item).uid;
+                        }
+                    }
+                    if (flags != null && uid != null) {
+                        result.add(new Pair<>(uid, flags));
+                    }
+                }
+            }
+
+            protocol.notifyResponseHandlers(responses);
+            protocol.handleResult(responses[responses.length-1]);
+
+            return result;
+
+        };
     }
 
     protected MailSSLSocketFactory getMailSSLSocketFactory(MailBox box) throws MessagingException {
@@ -176,5 +309,56 @@ public class ImapHelper {
             System.arraycopy(second, 0, result, first.length, second.length);
             return result;
         }
+    }
+
+    public static class FolderTask<T> {
+        private String description;
+        private MessageFunction<IMAPFolder, T> action;
+        private boolean hasResult;
+        private boolean closeFolder;
+
+        public FolderTask(String description, boolean hasResult, boolean closeFolder, MessageFunction<IMAPFolder, T> action) {
+            this.description = description;
+            this.action = action;
+            this.hasResult = hasResult;
+            this.closeFolder = closeFolder;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public MessageFunction<IMAPFolder, T> getAction() {
+            return action;
+        }
+
+        public void setAction(MessageFunction<IMAPFolder, T> action) {
+            this.action = action;
+        }
+
+        public boolean isHasResult() {
+            return hasResult;
+        }
+
+        public void setHasResult(boolean hasResult) {
+            this.hasResult = hasResult;
+        }
+
+        public boolean isCloseFolder() {
+            return closeFolder;
+        }
+
+        public void setCloseFolder(boolean closeFolder) {
+            this.closeFolder = closeFolder;
+        }
+    }
+
+    @FunctionalInterface
+    public interface MessageFunction<INPUT, OUTPUT> {
+        OUTPUT apply(INPUT input) throws MessagingException;
     }
 }

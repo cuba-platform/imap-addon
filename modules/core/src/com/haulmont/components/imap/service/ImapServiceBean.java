@@ -3,6 +3,7 @@ package com.haulmont.components.imap.service;
 import com.haulmont.components.imap.core.ImapHelper;
 import com.haulmont.components.imap.dto.MailFolderDto;
 import com.haulmont.components.imap.dto.MailMessageDto;
+import com.haulmont.components.imap.dto.MessageRef;
 import com.haulmont.components.imap.entity.MailBox;
 import com.sun.mail.imap.IMAPFolder;
 import org.springframework.stereotype.Service;
@@ -62,7 +63,7 @@ public class ImapServiceBean implements ImapService {
             result.setMailBoxId(mailBox.getId());
 
             return result;
-        });
+        }, "fetch and transform message");
 
 
     }
@@ -80,33 +81,38 @@ public class ImapServiceBean implements ImapService {
                 for (Map.Entry<String, List<MessageRef>> folderGroup : byFolder.entrySet()) {
                     String folderName = folderGroup.getKey();
                     IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
-                    try {
-                        folder.open(Folder.READ_WRITE);
-                        for (MessageRef messageRef : folderGroup.getValue()) {
-                            long uid = messageRef.getUid();
-                            Message nativeMessage = folder.getMessageByUID(uid);
-                            if (nativeMessage == null) {
-                                continue;
-                            }
-                            MailMessageDto dto = new MailMessageDto();
-                            dto.setUid(uid);
-                            dto.setFrom(getAddressList(nativeMessage.getFrom()).toString());
-                            dto.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
-                            dto.setCcList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.CC)));
-                            dto.setBccList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.BCC)));
-                            dto.setSubject(nativeMessage.getSubject());
-                            dto.setFlags(getFlags(nativeMessage));
-                            dto.setMailBoxHost(mailBox.getHost());
-                            dto.setMailBoxPort(mailBox.getPort());
-                            dto.setDate(nativeMessage.getReceivedDate());
-                            dto.setFolderName(folderName);
-                            dto.setMailBoxId(mailBox.getId());
-                            mailMessageDtos.add(dto);
-                        }
-                    } finally {
-                        folder.close(false);
-                    }
-
+                    imapHelper.doWithFolder(
+                            mailBox,
+                            folder,
+                            new ImapHelper.FolderTask<>(
+                                    "fetch messages",
+                                    false,
+                                    true,
+                                    f -> {
+                                        for (MessageRef messageRef : folderGroup.getValue()) {
+                                            long uid = messageRef.getUid();
+                                            Message nativeMessage = folder.getMessageByUID(uid);
+                                            if (nativeMessage == null) {
+                                                continue;
+                                            }
+                                            MailMessageDto dto = new MailMessageDto();
+                                            dto.setUid(uid);
+                                            dto.setFrom(getAddressList(nativeMessage.getFrom()).toString());
+                                            dto.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
+                                            dto.setCcList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.CC)));
+                                            dto.setBccList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.BCC)));
+                                            dto.setSubject(nativeMessage.getSubject());
+                                            dto.setFlags(getFlags(nativeMessage));
+                                            dto.setMailBoxHost(mailBox.getHost());
+                                            dto.setMailBoxPort(mailBox.getPort());
+                                            dto.setDate(nativeMessage.getReceivedDate());
+                                            dto.setFolderName(folderName);
+                                            dto.setMailBoxId(mailBox.getId());
+                                            mailMessageDtos.add(dto);
+                                        }
+                                        return null;
+                                    })
+                            );
                 }
             } catch (MessagingException e) {
                 throw new RuntimeException("fetch exception", e);
@@ -122,23 +128,24 @@ public class ImapServiceBean implements ImapService {
     public void deleteMessage(MessageRef messageRef) throws MessagingException {
         Store store = imapHelper.getStore(messageRef.getMailBox());
         try {
-            Folder trashFolder = null;
+
             if (messageRef.getMailBox().getTrashFolderName() != null) {
-                trashFolder = store.getFolder(messageRef.getMailBox().getTrashFolderName());
-                trashFolder.open(Folder.READ_WRITE);
-            }
-            try {
-                Folder finalTrashFolder = trashFolder;
+                Message message = consumeMessage(messageRef, msg -> msg, "Get message#" + messageRef.getUid());
+                IMAPFolder trashFolder = (IMAPFolder) store.getFolder(messageRef.getMailBox().getTrashFolderName());
+                imapHelper.doWithFolder(
+                        messageRef.getMailBox(),
+                        trashFolder,
+                        new ImapHelper.FolderTask<>(
+                                "copy message to trash bin",
+                                false,
+                                true,
+                                f -> f.appendUIDMessages(new Message[] { message})
+                        ));
+            } else {
                 consumeMessage(messageRef, msg -> {
-                    if (finalTrashFolder != null) {
-                        msg.getFolder().copyMessages(new Message[]{msg}, finalTrashFolder);
-                    } else {
-                        msg.setFlag(Flags.Flag.DELETED, true);
-                    }
+                    msg.setFlag(Flags.Flag.DELETED, true);
                     return null;
-                });
-            } finally {
-                trashFolder.close(false);
+                }, "Mark message#" + messageRef.getUid() + " as DELETED");
             }
         } finally {
             store.close();
@@ -150,7 +157,7 @@ public class ImapServiceBean implements ImapService {
         consumeMessage(messageRef, msg -> {
             msg.setFlag(Flags.Flag.SEEN, true);
             return null;
-        });
+        }, "Mark message#" + messageRef.getUid() + " as SEEN");
     }
 
     @Override
@@ -158,23 +165,27 @@ public class ImapServiceBean implements ImapService {
         consumeMessage(messageRef, msg -> {
             msg.setFlag(Flags.Flag.FLAGGED, true);
             return null;
-        });
+        }, "Mark message#" + messageRef.getUid() + " as FLAGGED");
     }
 
-    private <T> T consumeMessage(MessageRef ref, MessageFailureAwareFn<Message, T> consumer) throws MessagingException {
+    private <T> T consumeMessage(MessageRef ref, ImapHelper.MessageFunction<Message, T> consumer, String actionDescription) throws MessagingException {
         MailBox mailBox = ref.getMailBox();
         String folderName = ref.getFolderName();
         long uid = ref.getUid();
         Store store = imapHelper.getStore(mailBox);
         try {
-            //todo: add getFolderMethod in imapHelper and cache it
+
             IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
-           try {
-               folder.open(Folder.READ_WRITE);
-               return consumer.apply(folder.getMessageByUID(uid));
-           } finally {
-               folder.close(false);
-           }
+            return imapHelper.doWithFolder(
+                    mailBox,
+                    folder,
+                    new ImapHelper.FolderTask<>(
+                            actionDescription,
+                            true,
+                            true,
+                            f -> consumer.apply(folder.getMessageByUID(uid))
+                    )
+            );
         } finally {
             store.close();
         }
@@ -244,7 +255,4 @@ public class ImapServiceBean implements ImapService {
         return result;
     }
 
-    interface MessageFailureAwareFn<IN, OUT> {
-        OUT apply(IN input) throws MessagingException;
-    }
 }

@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.FileDescriptor;
+import javax.validation.constraints.NotNull;
 
 @NamePattern("%s:%s|host,port")
 @Table(name = "MAILCOMPONENT_MAIL_BOX")
@@ -57,12 +58,25 @@ public class MailBox extends StandardEntity {
     @Column(name = "TRASH_FOLDER_NAME")
     protected String trashFolderName;
 
+    @NotNull
+    @Column(name = "UPDATE_SLICE_SIZE", nullable = false)
+    protected Integer updateSliceSize = 1000;
+
     @OnDelete(DeletePolicy.CASCADE)
     @OneToMany(mappedBy = "mailBox", cascade = { CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     protected List<MailFolder> folders;
 
     @Transient
     private Boolean newEntity = false;
+
+    public void setUpdateSliceSize(Integer updateSliceSize) {
+        this.updateSliceSize = updateSliceSize;
+    }
+
+    public Integer getUpdateSliceSize() {
+        return updateSliceSize;
+    }
+
 
     public void setProcessingTimeout(Integer processingTimeout) {
         this.processingTimeout = processingTimeout;

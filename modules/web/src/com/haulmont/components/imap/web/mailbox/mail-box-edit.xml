@@ -20,35 +20,53 @@
     <layout expand="windowActions"
             spacing="true">
         <tabSheet id="tabSheet">
-            <tab id="mainParamsTab" caption="Connection configuration" margin="true" spacing="true">
+            <tab id="mainParamsTab"
+                 caption="Connection configuration"
+                 margin="true"
+                 spacing="true">
                 <fieldGroup id="mainParams"
                             datasource="mailBoxDs">
                     <column width="250px">
                         <field property="host"/>
                         <field property="port"/>
                         <field property="secureMode"/>
-                        <field property="rootCertificate" id="mailBoxRootCertificateField"/>
-                        <field property="username" datasource="authenticationDs"/>
+                        <field id="mailBoxRootCertificateField"
+                               property="rootCertificate"/>
+                        <field datasource="authenticationDs"
+                               property="username"/>
                         <field id="authenticationPasswordId">
-                            <passwordField required="true" property="password" datasource="authenticationDs" caption="Password"/>
+                            <passwordField caption="Password"
+                                           datasource="authenticationDs"
+                                           property="password"
+                                           required="true"/>
                         </field>
                     </column>
                 </fieldGroup>
-                <button caption="msg://checkConnectionCaption" invoke="checkTheConnection"/>
+                <button caption="msg://checkConnectionCaption"
+                        invoke="checkTheConnection"/>
             </tab>
-            <tab id="fetchParamsTab" caption="Polling configuration" margin="true" spacing="true">
+            <tab id="fetchParamsTab"
+                 caption="Polling configuration"
+                 margin="true"
+                 spacing="true">
                 <fieldGroup id="pollingParams"
                             datasource="mailBoxDs">
                     <column width="250px">
                         <field property="pollInterval"/>
                         <field property="processingTimeout"/>
                         <field property="cubaFlag"/>
-                        <field property="trashFolderName" editable="false"/>
+                        <field property="updateSliceSize"/>
+                        <field editable="false"
+                               property="trashFolderName"/>
                     </column>
                 </fieldGroup>
-                <button caption="msg://selectTrashFolderCaption" invoke="selectTrashFolder"/>
+                <button caption="msg://selectTrashFolderCaption"
+                        invoke="selectTrashFolder"/>
             </tab>
-            <tab id="foldersTab" caption="Folders configuration" margin="true" spacing="true">
+            <tab id="foldersTab"
+                 caption="Folders configuration"
+                 margin="true"
+                 spacing="true">
                 <groupBox id="foldersBox"
                           caption="msg://com.haulmont.components.imap.entity/MailBox.folders">
                     <table id="foldersTable"
@@ -63,13 +81,13 @@
                         <rows datasource="foldersDs"/>
                         <buttonsPanel>
                             <button action="foldersTable.edit"/>
-                            <button caption="msg://selectFoldersCaption" invoke="selectFolders"/>
+                            <button caption="msg://selectFoldersCaption"
+                                    invoke="selectFolders"/>
                         </buttonsPanel>
                     </table>
                 </groupBox>
             </tab>
         </tabSheet>
-
         <frame id="windowActions"
                screen="editWindowActions"/>
     </layout>
