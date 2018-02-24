@@ -75,7 +75,7 @@ create table MAILCOMPONENT_IMAP_MESSAGE_REF (
     FOLDER_ID varchar(36),
     MSG_UID bigint not null,
     THREAD_ID bigint,
-    REFERENCE_ID bigint,
+    REFERENCE_ID varchar(255),
     CAPTION varchar(255) not null,
     IS_DELETED boolean not null,
     IS_FLAGGED boolean not null,

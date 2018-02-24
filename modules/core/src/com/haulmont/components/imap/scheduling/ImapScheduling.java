@@ -74,6 +74,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     MailBox.class
             );
             query.getResultList().stream().flatMap(mb -> mb.getFolders().stream()).forEach(f -> f.getEvents().size());
+            query.getResultList().stream().flatMap(mb -> mb.getFolders().stream()).forEach(f -> f.getMailBox().getPollInterval());
             query.getResultList().forEach(this::processMailBox);
         } finally {
             authentication.end();
@@ -166,24 +167,28 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     (mailBox.getUpdateSliceSize() != null) ? Math.max(mailBox.getUpdateSliceSize(), batchSize) : batchSize
             );
 
-            imapHelper.doWithFolder(
+            List<BaseImapEvent> imapEvents = imapHelper.doWithFolder(
                     mailBox,
                     folder,
                     new ImapHelper.FolderTask<>(
                             "updating messages",
-                            false,
+                            true,
                             true,
                             f -> {
                                 if (imapHelper.canHoldMessages(folder)) {
+                                    List<BaseImapEvent> modificationEvents = new ArrayList<>((int) windowSize);
                                     for (int i = 0; i < windowSize; i += batchSize) {
-                                        List<BaseImapEvent> modificationEvents = updateMessages((int) Math.min(batchSize, windowSize - i));
-                                        modificationEvents.forEach(events::publish);
+                                        modificationEvents.addAll(updateMessages((int) Math.min(batchSize, windowSize - i)));
                                     }
+
+                                    return modificationEvents;
                                 }
 
-                                return null;
+                                return Collections.emptyList();
                             })
             );
+            imapEvents.forEach(events::publish);
+
         }
 
         private long getCount() {
@@ -301,12 +306,12 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
         @Override
         protected void compute() {
-            imapHelper.doWithFolder(
+            List<NewEmailEvent> imapEvents = imapHelper.doWithFolder(
                     mailBox,
                     folder,
                     new ImapHelper.FolderTask<>(
                             "get new messages",
-                            false,
+                            true,
                             true,
                             f -> {
                                 if (imapHelper.canHoldMessages(folder)) {
@@ -316,14 +321,16 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
                                     List<NewEmailEvent> newEmailEvents = saveNewMessages(imapMessages);
 
-                                    Message[] messages = folder.getMessagesByUID(imapMessages.stream().mapToLong(ImapHelper.MsgHeader::getUid).toArray());
+                                    Message[] messages = folder.getMessagesByUID(newEmailEvents.stream().mapToLong(NewEmailEvent::getMessageId).toArray());
                                     folder.setFlags(messages, cubaFlags(mailBox), true);
-                                    newEmailEvents.forEach(events::publish);
+                                    return newEmailEvents;
                                 }
 
-                                return null;
+                                return Collections.emptyList();
                             })
             );
+            imapEvents.forEach(events::publish);
+
 
         }
 

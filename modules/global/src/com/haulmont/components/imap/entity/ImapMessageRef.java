@@ -22,6 +22,7 @@ import javax.persistence.TemporalType;
 public class ImapMessageRef extends BaseUuidEntity {
     private static final long serialVersionUID = -295396787486211720L;
 
+    @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "FOLDER_ID")
     protected MailFolder folder;

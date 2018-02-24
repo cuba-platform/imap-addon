@@ -140,13 +140,20 @@ public class ImapServiceBean implements ImapService {
                                 "copy message to trash bin",
                                 false,
                                 true,
-                                f -> f.appendUIDMessages(new Message[] { message})
+                                f -> {
+                                    if (!message.getFolder().isOpen()) {
+                                        message.getFolder().open(Folder.READ_WRITE);
+                                    }
+                                    f.appendUIDMessages(new Message[] { message});
+                                    return null;
+                                }
                         ));
+            } else {
+                consumeMessage(messageRef, msg -> {
+                    msg.setFlag(Flags.Flag.DELETED, true);
+                    return null;
+                }, "Mark message#" + messageRef.getMsgUid() + " as DELETED");
             }
-            consumeMessage(messageRef, msg -> {
-                msg.setFlag(Flags.Flag.DELETED, true);
-                return null;
-            }, "Mark message#" + messageRef.getMsgUid() + " as DELETED");
         } finally {
             store.close();
         }

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 import javax.mail.*;
 import javax.mail.internet.InternetHeaders;
+import javax.mail.internet.MimeUtility;
 import javax.mail.search.SearchException;
 import javax.mail.search.SearchTerm;
 import javax.net.ssl.TrustManager;
@@ -24,6 +25,7 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -241,17 +243,21 @@ public class ImapHelper {
                                 if (isHeader) {
                                     InternetHeaders h = new InternetHeaders();
                                     h.load(headerStream);
-                                    String[] refHeaders = h.getHeader(REFERENCES_HEADER);
-                                    if (refHeaders == null) {
-                                        refHeaders = h.getHeader(IN_REPLY_TO_HEADER);
+                                    String refHeader = h.getHeader(REFERENCES_HEADER, null);
+                                    if (refHeader == null) {
+                                        refHeader = h.getHeader(IN_REPLY_TO_HEADER, null);
+                                    } else {
+                                        refHeader = refHeader.split("\\s+")[0];
                                     }
-                                    if (refHeaders != null && refHeaders.length > 0) {
-                                        referenceId = refHeaders[0];
+                                    if (refHeader != null && refHeader.length() > 0) {
+                                        referenceId = refHeader;
                                     }
 
-                                    String[] subjectHeaders = h.getHeader(SUBJECT_HEADER);
-                                    if (subjectHeaders != null && subjectHeaders.length > 0) {
-                                        subject = subjectHeaders[0];
+                                    String subjectHeader = h.getHeader(SUBJECT_HEADER, null);
+                                    if (subjectHeader != null && subjectHeader.length() > 0) {
+                                        subject = decode(subjectHeader);
+                                    } else {
+                                        subject = "(No Subject)";
                                     }
                                 }
                             }
@@ -270,6 +276,14 @@ public class ImapHelper {
                 throw new RuntimeException("can't perform fetch", e);
             }
         };
+    }
+
+    private String decode(String val) {
+        try {
+            return MimeUtility.decodeText(MimeUtility.unfold(val));
+        } catch (UnsupportedEncodingException ex) {
+            return val;
+        }
     }
 
     private String buildMsgHeadersUnit(IMAPProtocol protocol) {
