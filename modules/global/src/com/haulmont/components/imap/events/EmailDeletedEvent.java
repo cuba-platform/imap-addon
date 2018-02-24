@@ -1,10 +1,10 @@
 package com.haulmont.components.imap.events;
 
-import com.haulmont.components.imap.dto.MessageRef;
+import com.haulmont.components.imap.entity.ImapMessageRef;
 
 public class EmailDeletedEvent extends BaseImapEvent {
 
-    public EmailDeletedEvent(MessageRef messageRef) {
+    public EmailDeletedEvent(ImapMessageRef messageRef) {
         super(messageRef);
     }
 

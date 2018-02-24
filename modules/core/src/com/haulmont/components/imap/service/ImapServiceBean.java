@@ -3,7 +3,7 @@ package com.haulmont.components.imap.service;
 import com.haulmont.components.imap.core.ImapHelper;
 import com.haulmont.components.imap.dto.MailFolderDto;
 import com.haulmont.components.imap.dto.MailMessageDto;
-import com.haulmont.components.imap.dto.MessageRef;
+import com.haulmont.components.imap.entity.ImapMessageRef;
 import com.haulmont.components.imap.entity.MailBox;
 import com.sun.mail.imap.IMAPFolder;
 import org.springframework.stereotype.Service;
@@ -44,12 +44,12 @@ public class ImapServiceBean implements ImapService {
     }
 
     @Override
-    public MailMessageDto fetchMessage(MessageRef messageRef) throws MessagingException {
+    public MailMessageDto fetchMessage(ImapMessageRef messageRef) throws MessagingException {
         return consumeMessage(messageRef, nativeMessage -> {
-            MailBox mailBox = messageRef.getMailBox();
+            MailBox mailBox = messageRef.getFolder().getMailBox();
 
             MailMessageDto result = new MailMessageDto();
-            result.setUid(messageRef.getUid());
+            result.setUid(messageRef.getMsgUid());
             result.setFrom(getAddressList(nativeMessage.getFrom()).toString());
             result.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
             result.setCcList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.CC)));
@@ -59,7 +59,7 @@ public class ImapServiceBean implements ImapService {
             result.setMailBoxHost(mailBox.getHost());
             result.setMailBoxPort(mailBox.getPort());
             result.setDate(nativeMessage.getReceivedDate());
-            result.setFolderName(messageRef.getFolderName());
+            result.setFolderName(messageRef.getFolder().getName());
             result.setMailBoxId(mailBox.getId());
 
             return result;
@@ -69,16 +69,16 @@ public class ImapServiceBean implements ImapService {
     }
 
     @Override
-    public List<MailMessageDto> fetchMessages(List<MessageRef> messageRefs) throws MessagingException {
+    public List<MailMessageDto> fetchMessages(List<ImapMessageRef> messageRefs) throws MessagingException {
         List<MailMessageDto> mailMessageDtos = new ArrayList<>(messageRefs.size());
-        Map<MailBox, List<MessageRef>> byMailBox = messageRefs.stream().collect(Collectors.groupingBy(MessageRef::getMailBox));
+        Map<MailBox, List<ImapMessageRef>> byMailBox = messageRefs.stream().collect(Collectors.groupingBy(msg -> msg.getFolder().getMailBox()));
         byMailBox.entrySet().parallelStream().forEach(mailBoxGroup -> {
             try {
                 MailBox mailBox = mailBoxGroup.getKey();
-                Map<String, List<MessageRef>> byFolder = mailBoxGroup.getValue().stream().collect(Collectors.groupingBy(MessageRef::getFolderName));
+                Map<String, List<ImapMessageRef>> byFolder = mailBoxGroup.getValue().stream().collect(Collectors.groupingBy(msg -> msg.getFolder().getName()));
 
                 Store store = imapHelper.getStore(mailBox);
-                for (Map.Entry<String, List<MessageRef>> folderGroup : byFolder.entrySet()) {
+                for (Map.Entry<String, List<ImapMessageRef>> folderGroup : byFolder.entrySet()) {
                     String folderName = folderGroup.getKey();
                     IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
                     imapHelper.doWithFolder(
@@ -89,8 +89,8 @@ public class ImapServiceBean implements ImapService {
                                     false,
                                     true,
                                     f -> {
-                                        for (MessageRef messageRef : folderGroup.getValue()) {
-                                            long uid = messageRef.getUid();
+                                        for (ImapMessageRef messageRef : folderGroup.getValue()) {
+                                            long uid = messageRef.getMsgUid();
                                             Message nativeMessage = folder.getMessageByUID(uid);
                                             if (nativeMessage == null) {
                                                 continue;
@@ -125,15 +125,16 @@ public class ImapServiceBean implements ImapService {
     }
 
     @Override
-    public void deleteMessage(MessageRef messageRef) throws MessagingException {
-        Store store = imapHelper.getStore(messageRef.getMailBox());
+    public void deleteMessage(ImapMessageRef messageRef) throws MessagingException {
+        MailBox mailBox = messageRef.getFolder().getMailBox();
+        Store store = imapHelper.getStore(mailBox);
         try {
 
-            if (messageRef.getMailBox().getTrashFolderName() != null) {
-                Message message = consumeMessage(messageRef, msg -> msg, "Get message#" + messageRef.getUid());
-                IMAPFolder trashFolder = (IMAPFolder) store.getFolder(messageRef.getMailBox().getTrashFolderName());
+            if (mailBox.getTrashFolderName() != null) {
+                Message message = consumeMessage(messageRef, msg -> msg, "Get message#" + messageRef.getMsgUid());
+                IMAPFolder trashFolder = (IMAPFolder) store.getFolder(mailBox.getTrashFolderName());
                 imapHelper.doWithFolder(
-                        messageRef.getMailBox(),
+                        mailBox,
                         trashFolder,
                         new ImapHelper.FolderTask<>(
                                 "copy message to trash bin",
@@ -141,37 +142,36 @@ public class ImapServiceBean implements ImapService {
                                 true,
                                 f -> f.appendUIDMessages(new Message[] { message})
                         ));
-            } else {
-                consumeMessage(messageRef, msg -> {
-                    msg.setFlag(Flags.Flag.DELETED, true);
-                    return null;
-                }, "Mark message#" + messageRef.getUid() + " as DELETED");
             }
+            consumeMessage(messageRef, msg -> {
+                msg.setFlag(Flags.Flag.DELETED, true);
+                return null;
+            }, "Mark message#" + messageRef.getMsgUid() + " as DELETED");
         } finally {
             store.close();
         }
     }
 
     @Override
-    public void markAsRead(MessageRef messageRef) throws MessagingException {
+    public void markAsRead(ImapMessageRef messageRef) throws MessagingException {
         consumeMessage(messageRef, msg -> {
             msg.setFlag(Flags.Flag.SEEN, true);
             return null;
-        }, "Mark message#" + messageRef.getUid() + " as SEEN");
+        }, "Mark message#" + messageRef.getMsgUid() + " as SEEN");
     }
 
     @Override
-    public void markAsImportant(MessageRef messageRef) throws MessagingException {
+    public void markAsImportant(ImapMessageRef messageRef) throws MessagingException {
         consumeMessage(messageRef, msg -> {
             msg.setFlag(Flags.Flag.FLAGGED, true);
             return null;
-        }, "Mark message#" + messageRef.getUid() + " as FLAGGED");
+        }, "Mark message#" + messageRef.getMsgUid() + " as FLAGGED");
     }
 
-    private <T> T consumeMessage(MessageRef ref, ImapHelper.MessageFunction<Message, T> consumer, String actionDescription) throws MessagingException {
-        MailBox mailBox = ref.getMailBox();
-        String folderName = ref.getFolderName();
-        long uid = ref.getUid();
+    private <T> T consumeMessage(ImapMessageRef ref, ImapHelper.MessageFunction<Message, T> consumer, String actionDescription) throws MessagingException {
+        MailBox mailBox = ref.getFolder().getMailBox();
+        String folderName = ref.getFolder().getName();
+        long uid = ref.getMsgUid();
         Store store = imapHelper.getStore(mailBox);
         try {
 

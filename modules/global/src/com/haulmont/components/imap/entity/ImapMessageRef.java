@@ -16,25 +16,29 @@ import java.util.Date;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
-@NamePattern("%s/%s|folderName,msgUid")
-@Table(name = "MAILCOMPONENT_MAIL_MESSAGE_META")
-@Entity(name = "mailcomponent$MailMessageMeta")
-public class MailMessageMeta extends BaseUuidEntity {
+@NamePattern("/%s from |msgUid")
+@Table(name = "MAILCOMPONENT_IMAP_MESSAGE_REF")
+@Entity(name = "mailcomponent$ImapMessageRef")
+public class ImapMessageRef extends BaseUuidEntity {
     private static final long serialVersionUID = -295396787486211720L;
 
-    @NotNull
-    @OnDeleteInverse(DeletePolicy.CASCADE)
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "MAIL_BOX_ID")
-    protected MailBox mailBox;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "FOLDER_ID")
+    protected MailFolder folder;
 
     @NotNull
     @Column(name = "MSG_UID", nullable = false)
     protected Long msgUid;
 
+    @Column(name = "THREAD_ID")
+    protected Long threadId;
+
+    @Column(name = "REFERENCE_ID")
+    protected String referenceId;
+
     @NotNull
-    @Column(name = "FOLDER_NAME", nullable = false)
-    protected String folderName;
+    @Column(name = "CAPTION", nullable = false)
+    protected String caption;
 
     @NotNull
     @Column(name = "IS_DELETED", nullable = false)
@@ -57,6 +61,41 @@ public class MailMessageMeta extends BaseUuidEntity {
     @Column(name = "UPDATED_TS", nullable = false)
     protected Date updatedTs;
 
+    public String getReferenceId() {
+        return referenceId;
+    }
+
+    public void setReferenceId(String referenceId) {
+        this.referenceId = referenceId;
+    }
+
+
+    public void setThreadId(Long threadId) {
+        this.threadId = threadId;
+    }
+
+    public Long getThreadId() {
+        return threadId;
+    }
+
+    public void setCaption(String caption) {
+        this.caption = caption;
+    }
+
+    public String getCaption() {
+        return caption;
+    }
+
+
+    public void setFolder(MailFolder folder) {
+        this.folder = folder;
+    }
+
+    public MailFolder getFolder() {
+        return folder;
+    }
+
+
     public void setUpdatedTs(Date updatedTs) {
         this.updatedTs = updatedTs;
     }
@@ -66,28 +105,12 @@ public class MailMessageMeta extends BaseUuidEntity {
     }
 
 
-    public void setMailBox(MailBox mailBox) {
-        this.mailBox = mailBox;
-    }
-
-    public MailBox getMailBox() {
-        return mailBox;
-    }
-
     public void setMsgUid(Long msgUid) {
         this.msgUid = msgUid;
     }
 
     public Long getMsgUid() {
         return msgUid;
-    }
-
-    public void setFolderName(String folderName) {
-        this.folderName = folderName;
-    }
-
-    public String getFolderName() {
-        return folderName;
     }
 
     public void setDeleted(Boolean deleted) {

@@ -1,11 +1,9 @@
 package com.haulmont.components.imap.scheduling;
 
-import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.components.imap.config.ImapConfig;
 import com.haulmont.components.imap.core.ImapHelper;
-import com.haulmont.components.imap.dto.MessageRef;
+import com.haulmont.components.imap.entity.ImapMessageRef;
 import com.haulmont.components.imap.entity.MailBox;
-import com.haulmont.components.imap.entity.MailMessageMeta;
 import com.haulmont.components.imap.entity.PredefinedEventType;
 import com.haulmont.components.imap.entity.MailFolder;
 import com.haulmont.components.imap.events.*;
@@ -116,15 +114,14 @@ public class ImapScheduling implements ImapSchedulingAPI {
             Store store = null;
             try {
                 store = imapHelper.getStore(mailBox);
-                List<String> listenedFolders = mailBox.getFolders().stream()
+                List<MailFolder> listenedFolders = mailBox.getFolders().stream()
                         .filter(f -> f.hasEvent(PredefinedEventType.NEW_EMAIL))
-                        .map(MailFolder::getName)
                         .collect(Collectors.toList());
                 List<RecursiveAction> folderSubtasks = new ArrayList<>(listenedFolders.size() * 2);
-                for (String folderName : listenedFolders) {
-                    IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
-                    NewMessagesInFolderTask subtask = new NewMessagesInFolderTask(mailBox, folder);
-                    UpdateMessagesInFolderTask updateSubtask = new UpdateMessagesInFolderTask(mailBox, folder);
+                for (MailFolder cubaFolder : listenedFolders) {
+                    IMAPFolder imapFolder = (IMAPFolder) store.getFolder(cubaFolder.getName());
+                    NewMessagesInFolderTask subtask = new NewMessagesInFolderTask(mailBox, cubaFolder, imapFolder);
+                    UpdateMessagesInFolderTask updateSubtask = new UpdateMessagesInFolderTask(mailBox, cubaFolder, imapFolder);
                     folderSubtasks.add(subtask);
                     folderSubtasks.add(updateSubtask);
                     subtask.fork();
@@ -151,11 +148,13 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
     @SuppressWarnings("unchecked")
     private class UpdateMessagesInFolderTask extends RecursiveAction {
+        private final MailFolder cubaFolder;
         private final MailBox mailBox;
         private final IMAPFolder folder;
 
-        public UpdateMessagesInFolderTask(MailBox mailBox, IMAPFolder folder) {
+        public UpdateMessagesInFolderTask(MailBox mailBox, MailFolder cubaFolder, IMAPFolder folder) {
             this.mailBox = mailBox;
+            this.cubaFolder = cubaFolder;
             this.folder = folder;
         }
 
@@ -181,17 +180,6 @@ public class ImapScheduling implements ImapSchedulingAPI {
                                         modificationEvents.forEach(events::publish);
                                     }
                                 }
-                                if (imapHelper.canHoldFolders(folder)) {
-                                    List<UpdateMessagesInFolderTask> subTasks = new LinkedList<>();
-
-                                    for (Folder childFolder : folder.list()) {
-                                        UpdateMessagesInFolderTask childFolderTask = new UpdateMessagesInFolderTask(mailBox, (IMAPFolder) childFolder);
-                                        subTasks.add(childFolderTask);
-                                        childFolderTask.fork();
-                                    }
-
-                                    subTasks.forEach(ForkJoinTask::join);
-                                }
 
                                 return null;
                             })
@@ -202,8 +190,8 @@ public class ImapScheduling implements ImapSchedulingAPI {
             authentication.begin();
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
-                return ((Number) em.createQuery("select count(m.id) from mailcomponent$MailMessageMeta m where m.mailBox.id = :mailBoxId")
-                        .setParameter("mailBoxId", mailBox)
+                return ((Number) em.createQuery("select count(m.id) from mailcomponent$ImapMessageRef m where m.folder.id = :mailFolderId")
+                        .setParameter("mailFolderId", cubaFolder)
                         .getSingleResult()).longValue();
             } finally {
                 authentication.end();
@@ -215,20 +203,24 @@ public class ImapScheduling implements ImapSchedulingAPI {
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
 
-                List<MailMessageMeta> messages = em.createQuery(
-                        "select m from mailcomponent$MailMessageMeta m where m.mailBox.id = :mailBoxId order by m.updatedTs asc nulls first",
-                        MailMessageMeta.class
+                List<ImapMessageRef> messages = em.createQuery(
+                        "select m from mailcomponent$ImapMessageRef m where m.folder.id = :mailFolderId order by m.updatedTs asc nulls first",
+                        ImapMessageRef.class
                 )
-                        .setParameter("mailBoxId", mailBox)
+                        .setParameter("mailFolderId", cubaFolder)
                         .setMaxResults(count)
+                        .setViewName("msg-ref-full")
                         .getResultList();
 
-                List<Pair<Long, Flags>> imapMessages = (List<Pair<Long, Flags>>) folder.doCommand(
-                        imapHelper.uidFetchWithFlagsCommand( messages.stream().mapToLong(MailMessageMeta::getMsgUid).toArray() )
+                List<ImapHelper.MsgHeader> imapMessages = imapHelper.getAllByUids(
+                        folder, messages.stream().mapToLong(ImapMessageRef::getMsgUid).toArray()
                 );
-                Map<Long, Flags> flagsByUid = imapMessages.stream().collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+                Map<Long, ImapHelper.MsgHeader> headersByUid = new HashMap<>(imapMessages.size());
+                for (ImapHelper.MsgHeader msg : imapMessages) {
+                    headersByUid.put(msg.getUid(), msg);
+                }
 
-                List<BaseImapEvent> modificationEvents = messages.stream().flatMap(msg -> updateMessage(em, msg, flagsByUid).stream()).collect(Collectors.toList());
+                List<BaseImapEvent> modificationEvents = messages.stream().flatMap(msg -> updateMessage(em, msg, headersByUid).stream()).collect(Collectors.toList());
 
                 tx.commit();
                 return modificationEvents;
@@ -238,37 +230,39 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
         }
 
-        private List<BaseImapEvent> updateMessage(EntityManager em, MailMessageMeta msg, Map<Long, Flags> flagsByUid) {
-            MessageRef messageRef = new MessageRef(mailBox, folder.getFullName(), msg.getMsgUid());
-            Flags flags = flagsByUid.get(msg.getMsgUid());
-            if (flags == null) {
-                em.remove(msg);
-                return Collections.singletonList(new EmailDeletedEvent(messageRef));
+        private List<BaseImapEvent> updateMessage(EntityManager em, ImapMessageRef msgRef, Map<Long, ImapHelper.MsgHeader> msgsByUid) {
+            ImapHelper.MsgHeader newMsgHeader = msgsByUid.get(msgRef.getMsgUid());
+            if (newMsgHeader == null) {
+                em.remove(msgRef);
+                return Collections.singletonList(new EmailDeletedEvent(msgRef));
             }
+            Flags flags = newMsgHeader.getFlags();
 
             List<BaseImapEvent> modificationEvents = new ArrayList<>(3);
-            boolean oldSeen = Boolean.TRUE.equals(msg.getSeen());
+            boolean oldSeen = Boolean.TRUE.equals(msgRef.getSeen());
             boolean newSeen = flags.contains(Flags.Flag.SEEN);
-            boolean oldDeleted = Boolean.TRUE.equals(msg.getDeleted());
+            boolean oldDeleted = Boolean.TRUE.equals(msgRef.getDeleted());
             boolean newDeleted = flags.contains(Flags.Flag.DELETED);
-            boolean oldAnswered = Boolean.TRUE.equals(msg.getAnswered());
-            boolean newAnswered = flags.contains(Flags.Flag.ANSWERED);
-            boolean oldFlagged = Boolean.TRUE.equals(msg.getFlagged());
+            boolean oldFlagged = Boolean.TRUE.equals(msgRef.getFlagged());
             boolean newFlagged = flags.contains(Flags.Flag.FLAGGED);
+            boolean oldAnswered = Boolean.TRUE.equals(msgRef.getAnswered());
+            boolean newAnswered = flags.contains(Flags.Flag.ANSWERED);
+            String oldRefId = msgRef.getReferenceId();
+            String newRefId = newMsgHeader.getRefId();
 
-            if (oldSeen != newSeen || oldDeleted != newDeleted || oldAnswered != newAnswered || oldFlagged != newFlagged) {
+            if (oldSeen != newSeen || oldDeleted != newDeleted || oldAnswered != newAnswered || oldFlagged != newFlagged || !Objects.equals(oldRefId, newRefId)) {
                 HashMap<String, Boolean> changedFlagsWithNewValue = new HashMap<>();
                 if (oldSeen != newSeen) {
                     changedFlagsWithNewValue.put("SEEN", newSeen);
                     if (newSeen) {
-                        modificationEvents.add(new EmailSeenEvent(messageRef));
+                        modificationEvents.add(new EmailSeenEvent(msgRef));
                     }
                 }
 
-                if (oldAnswered != newAnswered) {
+                if (oldAnswered != newAnswered || !Objects.equals(oldRefId, newRefId)) {
                     changedFlagsWithNewValue.put("ANSWERED", newAnswered);
-                    if (newAnswered) {
-                        modificationEvents.add(new EmailAnsweredEvent(messageRef));
+                    if (newAnswered || newRefId != null) {
+                        modificationEvents.add(new EmailAnsweredEvent(msgRef));
                     }
                 }
 
@@ -278,14 +272,16 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 if (oldFlagged != newFlagged) {
                     changedFlagsWithNewValue.put("FLAGGED", newFlagged);
                 }
-                modificationEvents.add(new EmailFlagChangedEvent(messageRef, changedFlagsWithNewValue));
-                msg.setSeen(newSeen);
-                msg.setDeleted(newDeleted);
-                msg.setAnswered(newAnswered);
-                msg.setFlagged(newFlagged);
+                modificationEvents.add(new EmailFlagChangedEvent(msgRef, changedFlagsWithNewValue));
+                msgRef.setSeen(newSeen);
+                msgRef.setDeleted(newDeleted);
+                msgRef.setAnswered(newAnswered);
+                msgRef.setFlagged(newFlagged);
+                msgRef.setReferenceId(newRefId);
             }
-            msg.setUpdatedTs(new Date());
-            em.persist(msg);
+            msgRef.setThreadId(newMsgHeader.getThreadId());  // todo: fire thread event
+            msgRef.setUpdatedTs(new Date());
+            em.persist(msgRef);
 
             return modificationEvents;
         }
@@ -293,10 +289,12 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
     private class NewMessagesInFolderTask extends RecursiveAction {
 
+        private final MailFolder cubaFolder;
         private final MailBox mailBox;
         private final IMAPFolder folder;
 
-        public NewMessagesInFolderTask(MailBox mailBox, IMAPFolder folder) {
+        public NewMessagesInFolderTask(MailBox mailBox, MailFolder cubaFolder, IMAPFolder folder) {
+            this.cubaFolder = cubaFolder;
             this.mailBox = mailBox;
             this.folder = folder;
         }
@@ -312,26 +310,15 @@ public class ImapScheduling implements ImapSchedulingAPI {
                             true,
                             f -> {
                                 if (imapHelper.canHoldMessages(folder)) {
-                                    List<Pair<Long, Flags>> uidsAndFlags = imapHelper.searchUidAndFlags(
+                                    List<ImapHelper.MsgHeader> imapMessages = imapHelper.search(
                                             folder, new NotTerm(new FlagTerm(cubaFlags(mailBox), true))
                                     );
 
-                                    List<NewEmailEvent> newEmailEvents = saveNewMessages(uidsAndFlags);
+                                    List<NewEmailEvent> newEmailEvents = saveNewMessages(imapMessages);
 
-                                    Message[] messages = folder.getMessagesByUID(uidsAndFlags.stream().mapToLong(Pair::getFirst).toArray());
+                                    Message[] messages = folder.getMessagesByUID(imapMessages.stream().mapToLong(ImapHelper.MsgHeader::getUid).toArray());
                                     folder.setFlags(messages, cubaFlags(mailBox), true);
                                     newEmailEvents.forEach(events::publish);
-                                }
-                                if (imapHelper.canHoldFolders(folder)) {
-                                    List<NewMessagesInFolderTask> subTasks = new LinkedList<>();
-
-                                    for (Folder childFolder : folder.list()) {
-                                        NewMessagesInFolderTask childFolderTask = new NewMessagesInFolderTask(mailBox, (IMAPFolder) childFolder);
-                                        subTasks.add(childFolderTask);
-                                        childFolderTask.fork();
-                                    }
-
-                                    subTasks.forEach(ForkJoinTask::join);
                                 }
 
                                 return null;
@@ -340,20 +327,20 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
         }
 
-        private List<NewEmailEvent> saveNewMessages(List<Pair<Long, Flags>> uidsAndFlags) {
-            List<NewEmailEvent> newEmailEvents = new ArrayList<>(uidsAndFlags.size());
+        private List<NewEmailEvent> saveNewMessages(List<ImapHelper.MsgHeader> imapMessages) {
+            List<NewEmailEvent> newEmailEvents = new ArrayList<>(imapMessages.size());
             boolean toCommit = false;
             authentication.begin();
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
 
-                for (Pair<Long, Flags> uidAndFlag : uidsAndFlags) {
-                    long uid = uidAndFlag.getFirst();
-                    Flags flags = uidAndFlag.getSecond();
+                for (ImapHelper.MsgHeader msg : imapMessages) {
+                    ImapMessageRef newMessage = insertNewMessage(em, msg);
+                    toCommit |= (newMessage != null);
 
-                    toCommit |= insertNewMessage(em, uid, flags);
-
-                    newEmailEvents.add(new NewEmailEvent(mailBox, folder.getFullName(), uid));
+                    if (newMessage != null) {
+                        newEmailEvents.add(new NewEmailEvent(newMessage));
+                    }
                 }
                 if (toCommit) {
                     tx.commit();
@@ -365,28 +352,37 @@ public class ImapScheduling implements ImapSchedulingAPI {
             return newEmailEvents;
         }
 
-        private boolean insertNewMessage(EntityManager em, long uid, Flags flags) {
+        private ImapMessageRef insertNewMessage(EntityManager em, ImapHelper.MsgHeader msg) {
+            long uid = msg.getUid();
+            Flags flags = msg.getFlags();
+            String caption = msg.getCaption();
+            String refId = msg.getRefId();
+            Long threadId = msg.getThreadId();
+
             int sameUids = em.createQuery(
-                    "select m from mailcomponent$MailMessageMeta m where m.msgUid = :uid and m.mailBox.id = :mailBoxId"
+                    "select m from mailcomponent$ImapMessageRef m where m.msgUid = :uid and m.folder.id = :mailFolderId"
             )
                     .setParameter("uid", uid)
-                    .setParameter("mailBoxId", mailBox)
+                    .setParameter("mailFolderId", cubaFolder)
                     .setMaxResults(1)
                     .getResultList()
                     .size();
             if (sameUids == 0) {
-                MailMessageMeta entity = metadata.create(MailMessageMeta.class);
+                ImapMessageRef entity = metadata.create(ImapMessageRef.class);
                 entity.setMsgUid(uid);
-                entity.setFolderName(folder.getFullName());
-                entity.setMailBox(mailBox);
+                entity.setFolder(cubaFolder);
                 entity.setUpdatedTs(new Date());
                 entity.setAnswered(flags.contains(Flags.Flag.ANSWERED));
                 entity.setDeleted(flags.contains(Flags.Flag.DELETED));
                 entity.setFlagged(flags.contains(Flags.Flag.FLAGGED));
                 entity.setSeen(flags.contains(Flags.Flag.SEEN));
+                entity.setCaption(caption);
+                entity.setReferenceId(refId);
+                entity.setThreadId(threadId);
                 em.persist(entity);
+                return entity;
             }
-            return sameUids == 0;
+            return null;
         }
     }
 

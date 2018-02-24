@@ -1,18 +1,18 @@
 package com.haulmont.components.imap.events;
 
-import com.haulmont.components.imap.dto.MessageRef;
+import com.haulmont.components.imap.entity.ImapMessageRef;
 import org.springframework.context.ApplicationEvent;
 
 public abstract class BaseImapEvent extends ApplicationEvent {
 
-    protected final MessageRef messageRef;
+    protected final ImapMessageRef messageRef;
 
-    public BaseImapEvent(MessageRef messageRef) {
+    public BaseImapEvent(ImapMessageRef messageRef) {
         super(messageRef);
         this.messageRef = messageRef;
     }
 
-    public MessageRef getMessageRef() {
+    public ImapMessageRef getMessageRef() {
         return messageRef;
     }
 

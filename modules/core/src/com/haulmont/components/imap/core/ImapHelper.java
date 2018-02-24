@@ -1,6 +1,5 @@
 package com.haulmont.components.imap.core;
 
-import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.components.imap.config.ImapConfig;
 import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.components.imap.entity.MailSecureMode;
@@ -17,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
 import javax.mail.*;
+import javax.mail.internet.InternetHeaders;
 import javax.mail.search.SearchException;
 import javax.mail.search.SearchTerm;
 import javax.net.ssl.TrustManager;
@@ -35,15 +35,15 @@ import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
 public class ImapHelper {
 
     private final static Logger log = LoggerFactory.getLogger(ImapHelper.class);
-
-    private volatile Map<MailBox, Store> boxesStores = new ConcurrentHashMap<>();
+    public static final String REFERENCES_HEADER = "References";
+    public static final String IN_REPLY_TO_HEADER = "In-Reply-To";
+    public static final String SUBJECT_HEADER = "Subject";
 
     private volatile ConcurrentMap<String, Object> folderLocks = new ConcurrentHashMap<>();
 
@@ -93,6 +93,7 @@ public class ImapHelper {
 
         Properties props = System.getProperties();
         props.setProperty("mail.store.protocol", protocol);
+//        props.setProperty("mail.debug", "true");
 
         MailSSLSocketFactory socketFactory = getMailSSLSocketFactory(box);
         props.put("mail.imaps.ssl.socketFactory", socketFactory);
@@ -135,10 +136,13 @@ public class ImapHelper {
         }
     }
 
-    public List<Pair<Long, Flags>> searchUidAndFlags(IMAPFolder folder, SearchTerm searchTerm) throws MessagingException {
-        long[] uids = (long[]) folder.doCommand(uidSearchCommand(searchTerm));
+    public List<MsgHeader> search(IMAPFolder folder, SearchTerm searchTerm) throws MessagingException {
+        return getAllByUids( folder, (long[]) folder.doCommand(uidSearchCommand(searchTerm)) );
+    }
+
+    public List<MsgHeader> getAllByUids(IMAPFolder folder, long[] uids) throws MessagingException {
         if (uids != null && uids.length > 0) {
-            return (List<Pair<Long, Flags>>) folder.doCommand(uidFetchWithFlagsCommand(uids));
+            return (List<MsgHeader>) folder.doCommand(uidFetchWithFlagsCommand(uids));
         }
         return Collections.emptyList();
     }
@@ -189,41 +193,90 @@ public class ImapHelper {
         };
     }
 
-    public IMAPFolder.ProtocolCommand uidFetchWithFlagsCommand(long[] uids) {
+    private IMAPFolder.ProtocolCommand uidFetchWithFlagsCommand(long[] uids) {
         return protocol -> {
+            try {
+                String uidsString = Arrays.stream(uids).mapToObj(String::valueOf).collect(Collectors.joining(","));
+                boolean hasThreadingExtension = protocol.hasCapability("X-GM-EXT-1");
+                String fetchUnits = "UID FLAGS " + buildMsgHeadersUnit(protocol);
+                if (hasThreadingExtension) {
+                    fetchUnits += " " + ThreadExtension.ITEM_NAME;
+                }
 
-            String uidsString = Arrays.stream(uids).mapToObj(String::valueOf).collect(Collectors.joining(","));
-            Response[] responses = protocol.command(String.format("UID FETCH %s (UID FLAGS)", uidsString), null);
+                Response[] responses = protocol.command(String.format("UID FETCH %s (%s)", uidsString, fetchUnits), null);
 
-            List<Pair<Long, Flags>> result = new ArrayList<>();
-            for (Response response : responses) {
-                if (response == null || !(response instanceof FetchResponse))
-                    continue;
+                List<MsgHeader> result = new ArrayList<>();
+                for (Response response : responses) {
+                    if (response == null || !(response instanceof FetchResponse))
+                        continue;
 
-                FetchResponse fr = (FetchResponse) response;
-                if (fr.getItemCount() >= 2) {
-                    Flags flags = null;
-                    Long uid = null;
-                    for (int i = 0; i < fr.getItemCount(); i++) {
-                        Item item = fr.getItem(i);
-                        if (item instanceof Flags) {
-                            flags = (Flags) item;
-                        } else if (item instanceof UID) {
-                            uid = ((UID) item).uid;
+                    FetchResponse fr = (FetchResponse) response;
+                    if (fr.getItemCount() >= 2) {
+                        Flags flags = null;
+                        Long uid = null;
+                        Long threadId = null;
+                        String referenceId = null;
+                        String subject = null;
+
+                        for (int i = 0; i < fr.getItemCount(); i++) {
+                            Item item = fr.getItem(i);
+                            if (item instanceof Flags) {
+                                flags = (Flags) item;
+                            } else if (item instanceof UID) {
+                                uid = ((UID) item).uid;
+                            } else if (item instanceof ThreadExtension.X_GM_THRID) {
+                                threadId = ((ThreadExtension.X_GM_THRID) item).x_gm_thrid;
+                            } else if (item instanceof RFC822DATA || item instanceof BODY) {
+                                InputStream headerStream;
+                                boolean isHeader;
+                                if (item instanceof RFC822DATA) { // IMAP4
+                                    headerStream =
+                                            ((RFC822DATA) item).getByteArrayInputStream();
+                                    isHeader = ((RFC822DATA) item).isHeader();
+                                } else {    // IMAP4rev1
+                                    headerStream =
+                                            ((BODY) item).getByteArrayInputStream();
+                                    isHeader = ((BODY) item).isHeader();
+                                }
+                                if (isHeader) {
+                                    InternetHeaders h = new InternetHeaders();
+                                    h.load(headerStream);
+                                    String[] refHeaders = h.getHeader(REFERENCES_HEADER);
+                                    if (refHeaders == null) {
+                                        refHeaders = h.getHeader(IN_REPLY_TO_HEADER);
+                                    }
+                                    if (refHeaders != null && refHeaders.length > 0) {
+                                        referenceId = refHeaders[0];
+                                    }
+
+                                    String[] subjectHeaders = h.getHeader(SUBJECT_HEADER);
+                                    if (subjectHeaders != null && subjectHeaders.length > 0) {
+                                        subject = subjectHeaders[0];
+                                    }
+                                }
+                            }
+                        }
+                        if (flags != null && uid != null) {
+                            result.add(new MsgHeader(uid, flags, subject, referenceId, threadId));
                         }
                     }
-                    if (flags != null && uid != null) {
-                        result.add(new Pair<>(uid, flags));
-                    }
                 }
+
+                protocol.notifyResponseHandlers(responses);
+                protocol.handleResult(responses[responses.length - 1]);
+
+                return result;
+            } catch (MessagingException e) {
+                throw new RuntimeException("can't perform fetch", e);
             }
-
-            protocol.notifyResponseHandlers(responses);
-            protocol.handleResult(responses[responses.length-1]);
-
-            return result;
-
         };
+    }
+
+    private String buildMsgHeadersUnit(IMAPProtocol protocol) {
+        return
+                (protocol.isREV1() ? "BODY.PEEK[HEADER.FIELDS (" : "RFC822.HEADER.LINES (") +
+                REFERENCES_HEADER + " " + IN_REPLY_TO_HEADER + " " + SUBJECT_HEADER +
+                (protocol.isREV1() ? ")]" : ")");
     }
 
     protected MailSSLSocketFactory getMailSSLSocketFactory(MailBox box) throws MessagingException {
@@ -361,4 +414,70 @@ public class ImapHelper {
     public interface MessageFunction<INPUT, OUTPUT> {
         OUTPUT apply(INPUT input) throws MessagingException;
     }
+
+    public static class MsgHeader {
+        private Long uid;
+        private Flags flags;
+        private String caption;
+        private String refId;
+        private Long threadId;
+
+        public MsgHeader() {
+        }
+
+        public MsgHeader(Long uid, Flags flags, String caption) {
+            this.uid = uid;
+            this.flags = flags;
+            this.caption = caption;
+        }
+
+        public MsgHeader(Long uid, Flags flags, String caption, String refId, Long threadId) {
+            this.uid = uid;
+            this.flags = flags;
+            this.caption = caption;
+            this.refId = refId;
+            this.threadId = threadId;
+        }
+
+        public Long getUid() {
+            return uid;
+        }
+
+        public void setUid(Long uid) {
+            this.uid = uid;
+        }
+
+        public Flags getFlags() {
+            return flags;
+        }
+
+        public void setFlags(Flags flags) {
+            this.flags = flags;
+        }
+
+        public String getCaption() {
+            return caption;
+        }
+
+        public void setCaption(String caption) {
+            this.caption = caption;
+        }
+
+        public String getRefId() {
+            return refId;
+        }
+
+        public void setRefId(String refId) {
+            this.refId = refId;
+        }
+
+        public Long getThreadId() {
+            return threadId;
+        }
+
+        public void setThreadId(Long threadId) {
+            this.threadId = threadId;
+        }
+    }
+
 }

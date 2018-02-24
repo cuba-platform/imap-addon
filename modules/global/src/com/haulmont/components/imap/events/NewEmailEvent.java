@@ -1,27 +1,23 @@
 package com.haulmont.components.imap.events;
 
-import com.haulmont.components.imap.dto.MessageRef;
+import com.haulmont.components.imap.entity.ImapMessageRef;
 import com.haulmont.components.imap.entity.MailBox;
 
 public class NewEmailEvent extends BaseImapEvent {
 
-    public NewEmailEvent(MessageRef messageRef) {
+    public NewEmailEvent(ImapMessageRef messageRef) {
         super(messageRef);
     }
 
-    public NewEmailEvent(MailBox mailBox, String folderName, Long messageId) {
-        this(new MessageRef(mailBox, folderName, messageId));
-    }
-
     public MailBox getMailBox() {
-        return messageRef.getMailBox();
+        return messageRef.getFolder().getMailBox();
     }
 
     public String getFolderName() {
-        return messageRef.getFolderName();
+        return messageRef.getFolder().getName();
     }
 
     public Long getMessageId() {
-        return messageRef.getUid();
+        return messageRef.getMsgUid();
     }
 }

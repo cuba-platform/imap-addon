@@ -68,13 +68,15 @@ create table MAILCOMPONENT_MAIL_EVENT_TYPE (
     primary key (ID)
 )^
 -- end MAILCOMPONENT_MAIL_EVENT_TYPE
--- begin MAILCOMPONENT_MAIL_MESSAGE_META
-create table MAILCOMPONENT_MAIL_MESSAGE_META (
+-- begin MAILCOMPONENT_IMAP_MESSAGE_REF
+create table MAILCOMPONENT_IMAP_MESSAGE_REF (
     ID varchar(36) not null,
     --
-    MAIL_BOX_ID varchar(36) not null,
+    FOLDER_ID varchar(36),
     MSG_UID bigint not null,
-    FOLDER_NAME varchar(255) not null,
+    THREAD_ID bigint,
+    REFERENCE_ID bigint,
+    CAPTION varchar(255) not null,
     IS_DELETED boolean not null,
     IS_FLAGGED boolean not null,
     IS_ANSWERED boolean not null,
@@ -83,7 +85,7 @@ create table MAILCOMPONENT_MAIL_MESSAGE_META (
     --
     primary key (ID)
 )^
--- end MAILCOMPONENT_MAIL_MESSAGE_META
+-- end MAILCOMPONENT_IMAP_MESSAGE_REF
 -- begin MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK
 create table MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK (
     MAIL_FOLDER_ID varchar(36) not null,
