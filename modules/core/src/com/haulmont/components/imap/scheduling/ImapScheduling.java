@@ -116,17 +116,26 @@ public class ImapScheduling implements ImapSchedulingAPI {
             try {
                 store = imapHelper.getStore(mailBox);
                 List<MailFolder> listenedFolders = mailBox.getFolders().stream()
-                        .filter(f -> f.hasEvent(PredefinedEventType.NEW_EMAIL))
+                        .filter(f -> f.getEvents() != null && !f.getEvents().isEmpty())
                         .collect(Collectors.toList());
                 List<RecursiveAction> folderSubtasks = new ArrayList<>(listenedFolders.size() * 2);
-                for (MailFolder cubaFolder : listenedFolders) {
+                for (MailFolder cubaFolder : mailBox.getFolders()) {
                     IMAPFolder imapFolder = (IMAPFolder) store.getFolder(cubaFolder.getName());
-                    NewMessagesInFolderTask subtask = new NewMessagesInFolderTask(mailBox, cubaFolder, imapFolder);
-                    UpdateMessagesInFolderTask updateSubtask = new UpdateMessagesInFolderTask(mailBox, cubaFolder, imapFolder);
-                    folderSubtasks.add(subtask);
-                    folderSubtasks.add(updateSubtask);
-                    subtask.fork();
-                    updateSubtask.fork();
+                    if (cubaFolder.hasEvent(PredefinedEventType.NEW_EMAIL)) {
+                        NewMessagesInFolderTask subtask = new NewMessagesInFolderTask(mailBox, cubaFolder, imapFolder);
+                        folderSubtasks.add(subtask);
+                        subtask.fork();
+                    }
+                    if (cubaFolder.hasEvent(PredefinedEventType.EMAIL_DELETED) ||
+                            cubaFolder.hasEvent(PredefinedEventType.EMAIL_SEEN) ||
+                            cubaFolder.hasEvent(PredefinedEventType.FLAGS_UPDATED) ||
+                            cubaFolder.hasEvent(PredefinedEventType.NEW_ANSWER) ||
+                            cubaFolder.hasEvent(PredefinedEventType.NEW_THREAD)) {
+
+                        UpdateMessagesInFolderTask updateSubtask = new UpdateMessagesInFolderTask(mailBox, cubaFolder, imapFolder);
+                        folderSubtasks.add(updateSubtask);
+                        updateSubtask.fork();
+                    }
                 }
                 folderSubtasks.forEach(ForkJoinTask::join);
             } catch (Exception e) {
@@ -239,7 +248,8 @@ public class ImapScheduling implements ImapSchedulingAPI {
             ImapHelper.MsgHeader newMsgHeader = msgsByUid.get(msgRef.getMsgUid());
             if (newMsgHeader == null) {
                 em.remove(msgRef);
-                return Collections.singletonList(new EmailDeletedEvent(msgRef));
+                return cubaFolder.hasEvent(PredefinedEventType.EMAIL_DELETED)
+                        ? Collections.singletonList(new EmailDeletedEvent(msgRef)) : Collections.emptyList();
             }
             Flags flags = newMsgHeader.getFlags();
 
@@ -259,7 +269,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 HashMap<String, Boolean> changedFlagsWithNewValue = new HashMap<>();
                 if (oldSeen != newSeen) {
                     changedFlagsWithNewValue.put("SEEN", newSeen);
-                    if (newSeen) {
+                    if (newSeen && cubaFolder.hasEvent(PredefinedEventType.EMAIL_SEEN)) {
                         modificationEvents.add(new EmailSeenEvent(msgRef));
                     }
                 }
@@ -277,7 +287,9 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 if (oldFlagged != newFlagged) {
                     changedFlagsWithNewValue.put("FLAGGED", newFlagged);
                 }
-                modificationEvents.add(new EmailFlagChangedEvent(msgRef, changedFlagsWithNewValue));
+                if (cubaFolder.hasEvent(PredefinedEventType.FLAGS_UPDATED)) {
+                    modificationEvents.add(new EmailFlagChangedEvent(msgRef, changedFlagsWithNewValue));
+                }
                 msgRef.setSeen(newSeen);
                 msgRef.setDeleted(newDeleted);
                 msgRef.setAnswered(newAnswered);

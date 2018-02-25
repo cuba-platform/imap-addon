@@ -312,6 +312,45 @@ public class ImapHelper {
         return socketFactory;
     }
 
+    public Body getText(Part p) throws
+            MessagingException, IOException {
+        if (p.isMimeType("text/*")) {
+            return new Body((String) p.getContent(), p.isMimeType("text/html"));
+        }
+
+        if (p.isMimeType("multipart/alternative")) {
+            // prefer html text over plain text
+            Multipart mp = (Multipart) p.getContent();
+            Body body = null;
+            for (int i = 0; i < mp.getCount(); i++) {
+                Part bp = mp.getBodyPart(i);
+                if (bp.isMimeType("text/plain")) {
+                    if (body == null) {
+                        body = getText(bp);
+                    }
+                } else if (bp.isMimeType("text/html")) {
+                    Body b = getText(bp);
+                    if (b != null) {
+                        return b;
+                    }
+                } else {
+                    return getText(bp);
+                }
+            }
+            return body;
+        } else if (p.isMimeType("multipart/*")) {
+            Multipart mp = (Multipart) p.getContent();
+            for (int i = 0; i < mp.getCount(); i++) {
+                Body s = getText(mp.getBodyPart(i));
+                if (s != null) {
+                    return s;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public boolean canHoldFolders(IMAPFolder folder) throws MessagingException {
         return (folder.getType() & Folder.HOLDS_FOLDERS) != 0;
     }
@@ -375,6 +414,24 @@ public class ImapHelper {
             X509Certificate[] result = Arrays.copyOf(first, first.length + second.length);
             System.arraycopy(second, 0, result, first.length, second.length);
             return result;
+        }
+    }
+
+    public static class Body {
+        private String text;
+        private boolean html;
+
+        public Body(String text, boolean html) {
+            this.text = text;
+            this.html = html;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public boolean isHtml() {
+            return html;
         }
     }
 

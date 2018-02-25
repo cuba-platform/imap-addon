@@ -29,6 +29,8 @@ public class MailMessageDto extends AbstractNotPersistentEntity {
     @MetaProperty
     private String body;
     @MetaProperty
+    private Boolean html = false;
+    @MetaProperty
     private List<String> flags;
     @MetaProperty
     private Date date;
@@ -95,6 +97,14 @@ public class MailMessageDto extends AbstractNotPersistentEntity {
 
     public void setBody(String body) {
         this.body = body;
+    }
+
+    public Boolean getHtml() {
+        return html;
+    }
+
+    public void setHtml(Boolean html) {
+        this.html = html;
     }
 
     public List<String> getFlags() {

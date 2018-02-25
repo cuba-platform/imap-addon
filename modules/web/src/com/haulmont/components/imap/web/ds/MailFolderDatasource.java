@@ -23,7 +23,7 @@ public class MailFolderDatasource extends CustomHierarchicalDatasource<MailFolde
             throw new UnsupportedOperationException();
         }
         try {
-            List<MailFolderDto> rootFolders = service.fetchFolders(mailBox);
+            Collection<MailFolderDto> rootFolders = service.fetchFolders(mailBox);
 
             List<MailFolderDto> folders = new ArrayList<>(rootFolders);
 
