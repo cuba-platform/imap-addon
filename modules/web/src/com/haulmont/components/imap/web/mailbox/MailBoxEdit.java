@@ -1,7 +1,7 @@
 package com.haulmont.components.imap.web.mailbox;
 
 import com.haulmont.components.imap.entity.*;
-import com.haulmont.components.imap.service.ImapService;
+import com.haulmont.components.imap.service.ImapAPIService;
 import com.haulmont.bali.util.ParamsMap;
 import com.haulmont.components.imap.entity.MailAuthenticationMethod;
 import com.haulmont.components.imap.entity.MailSimpleAuthentication;
@@ -25,7 +25,7 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
     private FieldGroup mainParams;
 
     @Inject
-    private ImapService service;
+    private ImapAPIService service;
 
     @Inject
     private Metadata metadata;

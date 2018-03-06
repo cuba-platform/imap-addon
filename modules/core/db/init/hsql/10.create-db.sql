@@ -59,15 +59,6 @@ create table MAILCOMPONENT_MAIL_SIMPLE_AUTHENTICATION (
     primary key (ID)
 )^
 -- end MAILCOMPONENT_MAIL_SIMPLE_AUTHENTICATION
--- begin MAILCOMPONENT_MAIL_EVENT_TYPE
-create table MAILCOMPONENT_MAIL_EVENT_TYPE (
-    ID varchar(36) not null,
-    --
-    EVENT_TYPE varchar(50) not null,
-    --
-    primary key (ID)
-)^
--- end MAILCOMPONENT_MAIL_EVENT_TYPE
 -- begin MAILCOMPONENT_IMAP_MESSAGE_REF
 create table MAILCOMPONENT_IMAP_MESSAGE_REF (
     ID varchar(36) not null,
@@ -86,10 +77,22 @@ create table MAILCOMPONENT_IMAP_MESSAGE_REF (
     primary key (ID)
 )^
 -- end MAILCOMPONENT_IMAP_MESSAGE_REF
--- begin MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK
-create table MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK (
-    MAIL_FOLDER_ID varchar(36) not null,
-    MAIL_EVENT_TYPE_ID varchar(36) not null,
-    primary key (MAIL_FOLDER_ID, MAIL_EVENT_TYPE_ID)
+-- begin MAILCOMPONENT_IMAP_FOLDER_EVENT
+create table MAILCOMPONENT_IMAP_FOLDER_EVENT (
+    ID varchar(36) not null,
+    VERSION integer not null,
+    CREATE_TS timestamp,
+    CREATED_BY varchar(50),
+    UPDATE_TS timestamp,
+    UPDATED_BY varchar(50),
+    DELETE_TS timestamp,
+    DELETED_BY varchar(50),
+    --
+    FOLDER_ID varchar(36) not null,
+    EVENT varchar(50) not null,
+    BEAN_NAME varchar(255),
+    METHOD_NAME varchar(255),
+    --
+    primary key (ID)
 )^
--- end MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK
+-- end MAILCOMPONENT_IMAP_FOLDER_EVENT

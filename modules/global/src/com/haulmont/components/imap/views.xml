@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <views xmlns="http://schemas.haulmont.com/cuba/view.xsd">
+
+    <view class="com.haulmont.components.imap.entity.MailFolder"
+          extends="_local"
+          name="mailFolder-edit">
+        <property name="events"
+                  view="_local"/>
+        <property name="mailBox"
+                  view="_minimal"/>
+    </view>
     <view class="com.haulmont.components.imap.entity.MailBox"
           extends="_local"
           name="mailbox-edit">
         <property name="authentication"
                   view="_local"/>
         <property name="folders"
-                  view="_minimal"/>
+                  view="mailFolder-edit"/>
         <property name="rootCertificate"
-                  view="_minimal"/>
-    </view>
-    <view class="com.haulmont.components.imap.entity.MailFolder"
-          extends="_local"
-          name="mailFolder-edit">
-        <property name="events"
-                  view="_minimal"/>
-        <property name="mailBox"
                   view="_minimal"/>
     </view>
     <view class="com.haulmont.components.imap.entity.MailBox"
@@ -45,5 +46,7 @@
           name="mailFolder-with-box">
         <property name="mailBox"
                   view="mailBox-connect"/>
+        <property name="events"
+                  view="_local" />
     </view>
 </views>

@@ -63,6 +63,7 @@ public class MailBox extends StandardEntity {
     protected Integer updateSliceSize = 1000;
 
     @OnDelete(DeletePolicy.CASCADE)
+    @Composition
     @OneToMany(mappedBy = "mailBox", cascade = { CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     protected List<MailFolder> folders;
 

@@ -10,6 +10,7 @@ import com.haulmont.cuba.core.entity.annotation.OnDeleteInverse;
 
 import java.util.Collections;
 import java.util.List;
+import com.haulmont.cuba.core.entity.annotation.OnDelete;
 
 @NamePattern("%s|name")
 @Table(name = "MAILCOMPONENT_MAIL_FOLDER")
@@ -20,24 +21,23 @@ public class MailFolder extends StandardEntity {
     @Column(name = "NAME", nullable = false)
     protected String name;
 
-    @JoinTable(name = "MAILCOMPONENT_MAIL_FOLDER_MAIL_EVENT_TYPE_LINK",
-        joinColumns = @JoinColumn(name = "MAIL_FOLDER_ID"),
-        inverseJoinColumns = @JoinColumn(name = "MAIL_EVENT_TYPE_ID"))
-    @ManyToMany
-    protected List<MailEventType> events;
+    @OnDelete(DeletePolicy.CASCADE)
+    @OneToMany(mappedBy = "folder")
+    protected List<ImapFolderEvent> events;
 
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "MAIL_BOX_ID")
     protected MailBox mailBox;
 
-    public void setEvents(List<MailEventType> events) {
+    public List<ImapFolderEvent> getEvents() {
+        return events;
+    }
+
+    public void setEvents(List<ImapFolderEvent> events) {
         this.events = events;
     }
 
-    public List<MailEventType> getEvents() {
-        return events;
-    }
 
     public void setMailBox(MailBox mailBox) {
         this.mailBox = mailBox;
@@ -55,10 +55,14 @@ public class MailFolder extends StandardEntity {
         return name;
     }
 
-    public boolean hasEvent(PredefinedEventType eventType) {
-        List<MailEventType> safeEvents = events != null ? events : Collections.<MailEventType>emptyList();
+    public ImapFolderEvent getEvent(ImapEventType eventType) {
+        List<ImapFolderEvent> safeEvents = events != null ? events : Collections.emptyList();
 
-        return safeEvents.stream().anyMatch(e -> e.getEventType() == eventType);
+        return safeEvents.stream().filter(e -> e.getEvent() == eventType).findFirst().orElse(null);
+    }
+
+    public boolean hasEvent(ImapEventType eventType) {
+        return getEvent(eventType) != null;
     }
 
 }

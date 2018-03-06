@@ -30,16 +30,20 @@
                    height="200px"
                    width="100%">
                 <actions>
-                    <action id="add"/>
-                    <action id="exclude"/>
+                    <action id="create"/>
+                    <action id="edit"/>
+                    <action id="remove"/>
                 </actions>
                 <columns>
-                    <column id="eventType"/>
+                    <column id="event"/>
+                    <column id="beanName"/>
+                    <column id="methodName"/>
                 </columns>
                 <rows datasource="eventsDs"/>
                 <buttonsPanel>
-                    <button action="eventsTable.add"/>
-                    <button action="eventsTable.exclude"/>
+                    <button action="eventsTable.create"/>
+                    <button action="eventsTable.edit"/>
+                    <button action="eventsTable.remove"/>
                 </buttonsPanel>
             </table>
         </groupBox>

@@ -1,10 +1,10 @@
 package com.haulmont.components.imap.web.mailbox;
 
 import com.haulmont.components.imap.dto.MailFolderDto;
+import com.haulmont.components.imap.entity.ImapFolderEvent;
 import com.haulmont.components.imap.entity.MailBox;
-import com.haulmont.components.imap.entity.MailEventType;
 import com.haulmont.components.imap.entity.MailFolder;
-import com.haulmont.components.imap.entity.PredefinedEventType;
+import com.haulmont.components.imap.entity.ImapEventType;
 import com.haulmont.components.imap.web.ds.MailFolderDatasource;
 import com.haulmont.bali.util.ParamsMap;
 import com.haulmont.cuba.core.global.*;
@@ -19,9 +19,6 @@ public class MailBoxFolders extends AbstractEditor<MailBox> {
 
     @Inject
     private MailFolderDatasource mailFolderDs;
-
-    @Inject
-    private DataManager dm;
 
     @Inject
     private Metadata metadata;
@@ -56,18 +53,18 @@ public class MailBoxFolders extends AbstractEditor<MailBox> {
                 }
             }
 
-            MailEventType newEmailEvent = dm.load(LoadContext.create(MailEventType.class).setQuery(
-                    LoadContext.createQuery(
-                            String.format("select e from mailcomponent$MailEventType e where e.eventType = '%s'", PredefinedEventType.NEW_EMAIL.getId())
-                    )
-            ));
 
             mailBox.getFolders().addAll(selected.values().stream().map(dto -> {
-                        MailFolder mailFolder = metadata.create(MailFolder.class);
-                        mailFolder.setMailBox(mailBox);
-                        mailFolder.setName(dto.getFullName());
-                        mailFolder.setEvents(Collections.singletonList(newEmailEvent));
-                        return mailFolder;
+                        MailFolder imapFolder = metadata.create(MailFolder.class);
+                        imapFolder.setMailBox(mailBox);
+                        imapFolder.setName(dto.getFullName());
+
+                        ImapFolderEvent newEmailEvent = metadata.create(ImapFolderEvent.class);
+                        newEmailEvent.setEvent(ImapEventType.NEW_EMAIL);
+                        newEmailEvent.setFolder(imapFolder);
+
+                        imapFolder.setEvents(Collections.singletonList(newEmailEvent));
+                        return imapFolder;
                     }).collect(Collectors.toList())
             );
 

@@ -2,15 +2,13 @@ package com.haulmont.components.imap.scheduling;
 
 import com.haulmont.components.imap.config.ImapConfig;
 import com.haulmont.components.imap.core.ImapHelper;
-import com.haulmont.components.imap.entity.ImapMessageRef;
-import com.haulmont.components.imap.entity.MailBox;
-import com.haulmont.components.imap.entity.PredefinedEventType;
-import com.haulmont.components.imap.entity.MailFolder;
+import com.haulmont.components.imap.entity.*;
 import com.haulmont.components.imap.events.*;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.TypedQuery;
+import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.Events;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.TimeSource;
@@ -23,6 +21,8 @@ import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 import javax.mail.*;
 import javax.mail.search.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -121,16 +121,16 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 List<RecursiveAction> folderSubtasks = new ArrayList<>(listenedFolders.size() * 2);
                 for (MailFolder cubaFolder : mailBox.getFolders()) {
                     IMAPFolder imapFolder = (IMAPFolder) store.getFolder(cubaFolder.getName());
-                    if (cubaFolder.hasEvent(PredefinedEventType.NEW_EMAIL)) {
+                    if (cubaFolder.hasEvent(ImapEventType.NEW_EMAIL)) {
                         NewMessagesInFolderTask subtask = new NewMessagesInFolderTask(mailBox, cubaFolder, imapFolder);
                         folderSubtasks.add(subtask);
                         subtask.fork();
                     }
-                    if (cubaFolder.hasEvent(PredefinedEventType.EMAIL_DELETED) ||
-                            cubaFolder.hasEvent(PredefinedEventType.EMAIL_SEEN) ||
-                            cubaFolder.hasEvent(PredefinedEventType.FLAGS_UPDATED) ||
-                            cubaFolder.hasEvent(PredefinedEventType.NEW_ANSWER) ||
-                            cubaFolder.hasEvent(PredefinedEventType.NEW_THREAD)) {
+                    if (cubaFolder.hasEvent(ImapEventType.EMAIL_DELETED) ||
+                            cubaFolder.hasEvent(ImapEventType.EMAIL_SEEN) ||
+                            cubaFolder.hasEvent(ImapEventType.FLAGS_UPDATED) ||
+                            cubaFolder.hasEvent(ImapEventType.NEW_ANSWER) ||
+                            cubaFolder.hasEvent(ImapEventType.NEW_THREAD)) {
 
                         UpdateMessagesInFolderTask updateSubtask = new UpdateMessagesInFolderTask(mailBox, cubaFolder, imapFolder);
                         folderSubtasks.add(updateSubtask);
@@ -196,8 +196,8 @@ public class ImapScheduling implements ImapSchedulingAPI {
                                 return Collections.emptyList();
                             })
             );
-            imapEvents.forEach(events::publish);
 
+            fireEvents(cubaFolder, imapEvents);
         }
 
         private long getCount() {
@@ -248,7 +248,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             ImapHelper.MsgHeader newMsgHeader = msgsByUid.get(msgRef.getMsgUid());
             if (newMsgHeader == null) {
                 em.remove(msgRef);
-                return cubaFolder.hasEvent(PredefinedEventType.EMAIL_DELETED)
+                return cubaFolder.hasEvent(ImapEventType.EMAIL_DELETED)
                         ? Collections.singletonList(new EmailDeletedEvent(msgRef)) : Collections.emptyList();
             }
             Flags flags = newMsgHeader.getFlags();
@@ -265,11 +265,13 @@ public class ImapScheduling implements ImapSchedulingAPI {
             String oldRefId = msgRef.getReferenceId();
             String newRefId = newMsgHeader.getRefId();
 
+            //todo: handle custom flags
+
             if (oldSeen != newSeen || oldDeleted != newDeleted || oldAnswered != newAnswered || oldFlagged != newFlagged || !Objects.equals(oldRefId, newRefId)) {
                 HashMap<String, Boolean> changedFlagsWithNewValue = new HashMap<>();
                 if (oldSeen != newSeen) {
                     changedFlagsWithNewValue.put("SEEN", newSeen);
-                    if (newSeen && cubaFolder.hasEvent(PredefinedEventType.EMAIL_SEEN)) {
+                    if (newSeen && cubaFolder.hasEvent(ImapEventType.EMAIL_SEEN)) {
                         modificationEvents.add(new EmailSeenEvent(msgRef));
                     }
                 }
@@ -287,7 +289,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 if (oldFlagged != newFlagged) {
                     changedFlagsWithNewValue.put("FLAGGED", newFlagged);
                 }
-                if (cubaFolder.hasEvent(PredefinedEventType.FLAGS_UPDATED)) {
+                if (cubaFolder.hasEvent(ImapEventType.FLAGS_UPDATED)) {
                     modificationEvents.add(new EmailFlagChangedEvent(msgRef, changedFlagsWithNewValue));
                 }
                 msgRef.setSeen(newSeen);
@@ -341,9 +343,8 @@ public class ImapScheduling implements ImapSchedulingAPI {
                                 return Collections.emptyList();
                             })
             );
-            imapEvents.forEach(events::publish);
 
-
+            fireEvents(cubaFolder, imapEvents);
         }
 
         private List<NewEmailEvent> saveNewMessages(List<ImapHelper.MsgHeader> imapMessages) {
@@ -402,6 +403,35 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 return entity;
             }
             return null;
+        }
+    }
+
+    private void fireEvents(MailFolder folder, Collection<? extends BaseImapEvent> imapEvents) {
+        imapEvents.forEach(event -> {
+            ImapEventType.getByEventType(event.getClass()).stream()
+                    .map(folder::getEvent)
+                    .filter(Objects::nonNull)
+                    .filter(folderEvent -> folderEvent.getMethodName() != null)
+                    .forEach(folderEvent -> invokeAttachedHandler(event, folderEvent));
+
+            events.publish(event);
+        });
+    }
+
+    private void invokeAttachedHandler(BaseImapEvent event, ImapFolderEvent folderEvent) {
+        log.trace("{}: invoking bean", folderEvent);
+        Object bean = AppBeans.get(folderEvent.getBeanName());
+        Class<? extends BaseImapEvent> eventClass = folderEvent.getEvent().getEventClass();
+        try {
+            List<Method> methods = Arrays.stream(bean.getClass().getMethods())
+                    .filter(m -> m.getName().equals(folderEvent.getMethodName()))
+                    .filter(m -> m.getParameterTypes().length == 1 && m.getParameterTypes()[0].isAssignableFrom(eventClass))
+                    .collect(Collectors.toList());
+            for (Method method : methods) {
+                method.invoke(bean, event);
+            }
+        } catch (InvocationTargetException | IllegalAccessException e) {
+            throw new RuntimeException("Can't invoke bean for imap folder event", e);
         }
     }
 

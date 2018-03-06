@@ -3,7 +3,7 @@ package com.haulmont.components.imap.web.ds;
 import com.haulmont.components.imap.dto.MailFolderDto;
 import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.components.imap.entity.MailFolder;
-import com.haulmont.components.imap.service.ImapService;
+import com.haulmont.components.imap.service.ImapAPIService;
 import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.gui.data.impl.CustomHierarchicalDatasource;
 
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 public class MailFolderDatasource extends CustomHierarchicalDatasource<MailFolderDto, UUID> {
 
     public static final String FOLDER_DS_MAILBOX_PARAM = "mailBox";
-    private ImapService service = AppBeans.get(ImapService.class);
+    private ImapAPIService service = AppBeans.get(ImapAPIService.class);
 
     @Override
     protected Collection<MailFolderDto> getEntities(Map<String, Object> params) {
