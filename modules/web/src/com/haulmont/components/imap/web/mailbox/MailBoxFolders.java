@@ -1,5 +1,6 @@
 package com.haulmont.components.imap.web.mailbox;
 
+import com.google.common.collect.Lists;
 import com.haulmont.components.imap.dto.MailFolderDto;
 import com.haulmont.components.imap.entity.ImapFolderEvent;
 import com.haulmont.components.imap.entity.MailBox;
@@ -63,7 +64,7 @@ public class MailBoxFolders extends AbstractEditor<MailBox> {
                         newEmailEvent.setEvent(ImapEventType.NEW_EMAIL);
                         newEmailEvent.setFolder(imapFolder);
 
-                        imapFolder.setEvents(Collections.singletonList(newEmailEvent));
+                        imapFolder.setEvents(Lists.newArrayList(newEmailEvent));
                         return imapFolder;
                     }).collect(Collectors.toList())
             );

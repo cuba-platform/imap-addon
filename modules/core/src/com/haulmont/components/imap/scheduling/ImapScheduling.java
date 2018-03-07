@@ -423,6 +423,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
         Object bean = AppBeans.get(folderEvent.getBeanName());
         Class<? extends BaseImapEvent> eventClass = folderEvent.getEvent().getEventClass();
         try {
+            authentication.begin();
             List<Method> methods = Arrays.stream(bean.getClass().getMethods())
                     .filter(m -> m.getName().equals(folderEvent.getMethodName()))
                     .filter(m -> m.getParameterTypes().length == 1 && m.getParameterTypes()[0].isAssignableFrom(eventClass))
@@ -432,6 +433,8 @@ public class ImapScheduling implements ImapSchedulingAPI {
             }
         } catch (InvocationTargetException | IllegalAccessException e) {
             throw new RuntimeException("Can't invoke bean for imap folder event", e);
+        } finally {
+            authentication.end();
         }
     }
 
