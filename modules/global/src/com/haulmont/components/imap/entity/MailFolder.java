@@ -2,6 +2,7 @@ package com.haulmont.components.imap.entity;
 
 import javax.persistence.*;
 
+import com.haulmont.chile.core.annotations.Composition;
 import com.haulmont.cuba.core.global.DeletePolicy;
 
 import com.haulmont.cuba.core.entity.StandardEntity;
@@ -23,6 +24,7 @@ public class MailFolder extends StandardEntity {
 
     @OnDelete(DeletePolicy.CASCADE)
     @OneToMany(mappedBy = "folder")
+    @Composition
     protected List<ImapFolderEvent> events;
 
     @OnDeleteInverse(DeletePolicy.CASCADE)
