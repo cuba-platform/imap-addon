@@ -10,43 +10,38 @@
                     class="com.haulmont.components.imap.entity.ImapFolderEvent"
                     view="_local"/>
     </dsContext>
-    <dialogMode height="600"
-                width="800"/>
-    <layout expand="windowActions"
-            spacing="true">
-        <lookupField datasource="imapFolderEventDs"
-                     property="event"/>
-        <scrollBox id="gridScroll"
-                   scrollBars="both">
-            <grid id="grid"
-                  spacing="true">
-                <columns count="2"/>
-                <rows>
-                    <row>
-                        <label id="beanNameLabel"
-                               align="MIDDLE_LEFT"
-                               value="msg://com.haulmont.cuba.core.entity/ScheduledTask.beanName"/>
-                        <hbox id="beanNameBox">
-                            <lookupField id="beanNameField"
-                                         datasource="imapFolderEventDs"
-                                         property="beanName" />
-                        </hbox>
-                    </row>
-                    <row>
-                        <label id="methodNameLabel"
-                               align="MIDDLE_LEFT"
-                               value="msg://com.haulmont.cuba.core.entity/ScheduledTask.methodName"/>
-                        <hbox id="methodNameHbox"
-                              spacing="true">
-                            <lookupField id="methodNameField"
-                                         align="MIDDLE_LEFT"
-                                         captionProperty="methodSignature"
-                                         requiredMessage="msg://validation.methodNameMissing" />
-                        </hbox>
-                    </row>
-                </rows>
-            </grid>
-        </scrollBox>
+
+    <dialogMode height="600" width="800"/>
+
+    <layout expand="windowActions" spacing="true">
+        <lookupField datasource="imapFolderEventDs" property="event"/>
+        <grid id="grid" spacing="true">
+            <columns count="2"/>
+            <rows>
+                <row>
+                    <label id="beanNameLabel"
+                           align="MIDDLE_LEFT"
+                           value="msg://com.haulmont.cuba.core.entity/ScheduledTask.beanName"/>
+                    <hbox id="beanNameBox">
+                        <lookupField id="beanNameField"
+                                     datasource="imapFolderEventDs"
+                                     property="beanName" />
+                    </hbox>
+                </row>
+                <row>
+                    <label id="methodNameLabel"
+                           align="MIDDLE_LEFT"
+                           value="msg://com.haulmont.cuba.core.entity/ScheduledTask.methodName"/>
+                    <hbox id="methodNameHbox"
+                          spacing="true">
+                        <lookupField id="methodNameField"
+                                     align="MIDDLE_LEFT"
+                                     captionProperty="methodSignature"
+                                     requiredMessage="msg://validation.methodNameMissing" />
+                    </hbox>
+                </row>
+            </rows>
+        </grid>
         <frame id="windowActions"
                screen="editWindowActions"/>
     </layout>

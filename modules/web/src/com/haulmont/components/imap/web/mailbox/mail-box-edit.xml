@@ -13,97 +13,91 @@
                         property="authentication"/>
             <collectionDatasource id="foldersDs"
                                   property="folders">
-                <collectionDatasource id="eventsDs" property="events" />
+                <collectionDatasource id="eventsDs" property="events"/>
             </collectionDatasource>
         </datasource>
     </dsContext>
-    <dialogMode height="600"
-                width="800"/>
-    <layout expand="windowActions"
-            spacing="true">
 
-        <groupBox caption="Connection configuration">
-            <fieldGroup id="mainParams"
-                        datasource="mailBoxDs" >
-                <column width="250px">
-                    <field property="host"/>
-                    <field property="port"/>
-                    <field property="secureMode"/>
-                    <field id="mailBoxRootCertificateField"
-                           property="rootCertificate"/>
-                    <field datasource="authenticationDs"
-                           property="username"/>
-                    <field id="authenticationPasswordId">
-                        <passwordField caption="Password"
-                                       datasource="authenticationDs"
-                                       property="password"
-                                       required="true"/>
-                    </field>
-                </column>
-            </fieldGroup>
-            <button caption="msg://checkConnectionCaption"
-                    invoke="checkTheConnection"/>
-        </groupBox>
+    <layout expand="gridScroll" spacing="true">
+        <scrollBox id="gridScroll" width="100%" spacing="true">
+            <groupBox caption="Connection configuration" spacing="true" width="AUTO">
+                <fieldGroup id="mainParams"
+                            datasource="mailBoxDs">
+                    <column width="250px">
+                        <field property="host"/>
+                        <field property="port"/>
+                        <field property="secureMode"/>
+                        <field id="mailBoxRootCertificateField"
+                               property="rootCertificate"/>
+                        <field datasource="authenticationDs"
+                               property="username"/>
+                        <field id="authenticationPasswordId">
+                            <passwordField caption="Password"
+                                           datasource="authenticationDs"
+                                           property="password"
+                                           required="true"/>
+                        </field>
+                    </column>
+                </fieldGroup>
+                <button caption="msg://checkConnectionCaption"
+                        invoke="checkTheConnection"/>
+            </groupBox>
 
-        <groupBox caption="Polling configuration">
-            <fieldGroup id="pollingParams"
-                        datasource="mailBoxDs">
-                <column width="250px">
-                    <field property="pollInterval"/>
-                    <field property="processingTimeout"/>
-                    <field property="cubaFlag"/>
-                    <field property="updateSliceSize"/>
-                    <field editable="false"
-                           property="trashFolderName"/>
-                </column>
-            </fieldGroup>
-            <button caption="msg://selectTrashFolderCaption"
-                    invoke="selectTrashFolder"/>
-        </groupBox>
-        <groupBox caption="Folders configuration">
-            <split orientation="horizontal" width="100%" height="100%">
-                <vbox id="foldersBox" margin="false,false,false,true" height="100%" spacing="true"
-                          caption="msg://com.haulmont.components.imap.entity/MailBox.folders">
-                    <table id="foldersTable"
-                           height="200px"
-                           width="100%">
-                        <columns>
-                            <column id="name"/>
-                        </columns>
-                        <rows datasource="foldersDs"/>
-                        <buttonsPanel>
-                            <button caption="msg://selectFoldersCaption"
-                                    invoke="selectFolders"/>
-                        </buttonsPanel>
-                    </table>
-                </vbox>
-                <vbox id="eventsBox" margin="false,false,false,true" height="100%" spacing="true"
-                          caption="msg://com.haulmont.components.imap.entity/MailFolder.events">
-                    <table id="eventsTable"
-                           height="200px"
-                           width="100%">
-                        <actions>
-                            <action id="create"/>
-                            <action id="edit"/>
-                            <action id="remove"/>
-                        </actions>
-                        <columns>
-                            <column id="event"/>
-                            <column id="beanName"/>
-                            <column id="methodName"/>
-                        </columns>
-                        <rows datasource="eventsDs"/>
-                        <buttonsPanel>
-                            <button action="eventsTable.create"/>
-                            <button action="eventsTable.edit"/>
-                            <button action="eventsTable.remove"/>
-                        </buttonsPanel>
-                    </table>
-                </vbox>
-            </split>
-        </groupBox>
+            <groupBox caption="Polling configuration" spacing="true" width="AUTO">
+                <fieldGroup id="pollingParams"
+                            datasource="mailBoxDs">
+                    <column width="250px">
+                        <field property="pollInterval"/>
+                        <field property="processingTimeout"/>
+                        <field property="cubaFlag"/>
+                        <field property="updateSliceSize"/>
+                        <field editable="false"
+                               property="trashFolderName"/>
+                    </column>
+                </fieldGroup>
+                <button caption="msg://selectTrashFolderCaption"
+                        invoke="selectTrashFolder"/>
+            </groupBox>
+            <groupBox caption="Folders configuration" spacing="true" width="100%">
+                <split orientation="horizontal" width="100%" height="100%" pos="50">
+                    <vbox id="foldersBox" margin="false, true, false, false" expand="foldersTable" width="100%"
+                          height="100%" spacing="true">
+                        <table id="foldersTable" width="100%">
+                            <columns>
+                                <column id="name"/>
+                            </columns>
+                            <rows datasource="foldersDs"/>
+                            <buttonsPanel>
+                                <button caption="msg://selectFoldersCaption"
+                                        invoke="selectFolders"/>
+                            </buttonsPanel>
+                        </table>
+                    </vbox>
+                    <vbox id="eventsBox" margin="false, false, false, true" height="100%" width="100%"
+                          expand="eventsTable" spacing="true">
+                        <table id="eventsTable" width="100%">
+                            <actions>
+                                <action id="create" openType="DIALOG"/>
+                                <action id="edit" openType="DIALOG"/>
+                                <action id="remove"/>
+                            </actions>
+                            <columns>
+                                <column id="event"/>
+                                <column id="beanName"/>
+                                <column id="methodName"/>
+                            </columns>
+                            <rows datasource="eventsDs"/>
+                            <buttonsPanel>
+                                <button action="eventsTable.create"/>
+                                <button action="eventsTable.edit"/>
+                                <button action="eventsTable.remove"/>
+                            </buttonsPanel>
+                        </table>
+                    </vbox>
+                </split>
+            </groupBox>
+        </scrollBox>
 
-        <frame id="windowActions"
-               screen="editWindowActions"/>
+        <frame id="windowActions" screen="editWindowActions"/>
     </layout>
 </window>

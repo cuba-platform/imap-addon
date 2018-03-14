@@ -1,7 +1,7 @@
 package com.haulmont.components.imap.web.imapfolderevent;
 
+import com.haulmont.components.imap.entity.ImapEventType;
 import com.haulmont.components.imap.service.ImapService;
-import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.gui.components.*;
 import com.haulmont.components.imap.entity.ImapFolderEvent;
 import com.haulmont.cuba.gui.data.Datasource;
@@ -38,15 +38,27 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
     protected List<String> availableMethods = new ArrayList<>();
 
     @Override
-    public void init(Map<String, Object> params) {
+    protected void postInit() {
+        super.postInit();
+
+        ImapFolderEvent folderEvent = getItem();
+
+        initBeans(folderEvent.getEvent());
+
+        String beanName = folderEvent.getBeanName();
+        if (StringUtils.isNotEmpty(beanName)) {
+            initMethods(beanName);
+        }
+
+        if (StringUtils.isNotEmpty(folderEvent.getMethodName())) {
+            setInitialMethodNameValue(folderEvent);
+        }
 
         imapFolderEventDs.addItemPropertyChangeListener(event -> {
             if (Objects.equals("event", event.getProperty())) {
-                availableBeans = service.getAvailableBeans(event.getItem().getEvent().getEventClass());
-                beanNameField.setOptionsList(new ArrayList<>(availableBeans.keySet()));
+                initBeans(event.getItem().getEvent());
             }
         });
-
 
         beanNameField.addValueChangeListener(e -> {
             methodNameField.setValue(null);
@@ -54,15 +66,7 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
                 methodNameField.setOptionsList(Collections.emptyList());
                 methodNameField.setRequired(false);
             } else {
-                availableMethods = availableBeans.get(e.getValue().toString());
-
-                if (availableMethods != null) {
-                    HashMap<String, Object> optionsMap = new HashMap<>();
-                    for (String availableMethod : availableMethods) {
-                        optionsMap.put(availableMethod, availableMethod);
-                    }
-                    methodNameField.setOptionsMap(optionsMap);
-                }
+                initMethods(e.getValue().toString());
                 methodNameField.setRequired(true);
             }
         });
@@ -71,19 +75,27 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
             String methodName = (e.getValue() != null) ? e.getValue().toString() : null;
             imapFolderEventDs.getItem().setMethodName(methodName);
         });
-
     }
 
-    @Override
-    public void setItem(Entity item) {
-        super.setItem(item);
+    private void initBeans(ImapEventType eventType) {
+        availableBeans = eventType != null
+                ? service.getAvailableBeans(eventType.getEventClass()) : Collections.emptyMap();
+        beanNameField.setOptionsList(new ArrayList<>(availableBeans.keySet()));
+    }
 
-        if (StringUtils.isNotEmpty(getItem().getMethodName())) {
-            setInitialMethodNameValue(getItem());
+    private void initMethods(String beanName) {
+        availableMethods = availableBeans.get(beanName);
+
+        if (availableMethods != null) {
+            HashMap<String, Object> optionsMap = new HashMap<>();
+            for (String availableMethod : availableMethods) {
+                optionsMap.put(availableMethod, availableMethod);
+            }
+            methodNameField.setOptionsMap(optionsMap);
         }
     }
 
-    protected void setInitialMethodNameValue(ImapFolderEvent event) {
+    private void setInitialMethodNameValue(ImapFolderEvent event) {
         if (availableMethods == null) {
             return;
         }
