@@ -52,7 +52,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         ImapMailBox mailBox = getItem();
         Boolean newEntity = mailBox.getNewEntity();
         AbstractEditor selectFolders = openEditor(
-                "mailcomponent$ImapMailBox.trashFolder",
+                "imapcomponent$ImapMailBox.trashFolder",
                 mailBox,
                 WindowManager.OpenType.THIS_TAB,
                 ParamsMap.of("mailBox", mailBox),
@@ -65,7 +65,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         ImapMailBox mailBox = getItem();
         Boolean newEntity = mailBox.getNewEntity();
         AbstractEditor selectFolders = openEditor(
-                "mailcomponent$ImapMailBox.folders",
+                "imapcomponent$ImapMailBox.folders",
                 mailBox,
                 WindowManager.OpenType.THIS_TAB,
                 ParamsMap.of("mailBox", mailBox),
@@ -101,7 +101,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             List<ImapFolder> toCommit = mailBox.getFolders().stream().filter(PersistenceHelper::isNew).collect(Collectors.toList());
             List<ImapFolder> toDelete = dm.loadList(LoadContext.create(ImapFolder.class).setQuery(
                     LoadContext.createQuery(
-                            "select f from mailcomponent$ImapFolder f where f.mailBox.id = :boxId"
+                            "select f from imapcomponent$ImapFolder f where f.mailBox.id = :boxId"
                     ).setParameter("boxId", mailBox))).stream()
                     .filter(f -> !mailBox.getFolders().contains(f))
                     .collect(Collectors.toList());

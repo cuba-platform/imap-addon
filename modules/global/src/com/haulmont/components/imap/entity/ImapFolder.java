@@ -14,8 +14,8 @@ import java.util.List;
 import com.haulmont.cuba.core.entity.annotation.OnDelete;
 
 @NamePattern("%s|name")
-@Table(name = "MAILCOMPONENT_IMAP_FOLDER")
-@Entity(name = "mailcomponent$ImapFolder")
+@Table(name = "IMAPCOMPONENT_IMAP_FOLDER")
+@Entity(name = "imapcomponent$ImapFolder")
 public class ImapFolder extends StandardEntity {
     private static final long serialVersionUID = -5878471272097557535L;
 

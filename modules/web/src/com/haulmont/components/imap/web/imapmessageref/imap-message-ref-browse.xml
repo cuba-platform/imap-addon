@@ -10,7 +10,7 @@
                          class="com.haulmont.components.imap.entity.ImapMessageRef"
                          view="msg-ref-full">
             <query>
-                <![CDATA[select e from mailcomponent$ImapMessageRef e]]>
+                <![CDATA[select e from imapcomponent$ImapMessageRef e]]>
             </query>
         </groupDatasource>
     </dsContext>

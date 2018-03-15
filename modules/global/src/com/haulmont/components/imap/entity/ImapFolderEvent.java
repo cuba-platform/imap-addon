@@ -11,8 +11,8 @@ import com.haulmont.cuba.core.entity.StandardEntity;
 import com.haulmont.chile.core.annotations.NamePattern;
 
 @NamePattern("%s|event")
-@Table(name = "MAILCOMPONENT_IMAP_FOLDER_EVENT")
-@Entity(name = "mailcomponent$ImapFolderEvent")
+@Table(name = "IMAPCOMPONENT_IMAP_FOLDER_EVENT")
+@Entity(name = "imapcomponent$ImapFolderEvent")
 public class ImapFolderEvent extends StandardEntity {
     private static final long serialVersionUID = 8743170352789661514L;
 

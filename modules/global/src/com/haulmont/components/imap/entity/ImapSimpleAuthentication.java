@@ -4,8 +4,8 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.persistence.Column;
 
-@Table(name = "MAILCOMPONENT_IMAP_SIMPLE_AUTHENTICATION")
-@Entity(name = "mailcomponent$ImapSimpleAuthentication")
+@Table(name = "IMAPCOMPONENT_IMAP_SIMPLE_AUTHENTICATION")
+@Entity(name = "imapcomponent$ImapSimpleAuthentication")
 public class ImapSimpleAuthentication extends ImapAuthentication {
     private static final long serialVersionUID = 2736929814357214863L;
 

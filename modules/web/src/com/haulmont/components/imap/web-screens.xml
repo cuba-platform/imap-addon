@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <screen-config xmlns="http://schemas.haulmont.com/cuba/screens.xsd">
-    <screen id="mailcomponent$ImapMailBox.folders"
+    <screen id="imapcomponent$ImapMailBox.folders"
             template="/com/haulmont/components/imap/web/imapmailbox/imap-mail-box-folders.xml"/>
-    <screen id="mailcomponent$ImapMailBox.trashFolder"
+    <screen id="imapcomponent$ImapMailBox.trashFolder"
             template="/com/haulmont/components/imap/web/imapmailbox/imap-mail-box-trash-folder.xml"/>
-    <screen id="mailcomponent$ImapMailBox.edit"
+    <screen id="imapcomponent$ImapMailBox.edit"
             template="com/haulmont/components/imap/web/imapmailbox/imap-mail-box-edit.xml"/>
-    <screen id="mailcomponent$ImapMailBox.browse"
+    <screen id="imapcomponent$ImapMailBox.browse"
             template="com/haulmont/components/imap/web/imapmailbox/imap-mail-box-browse.xml"/>
-    <screen id="mailcomponent$ImapMessageRef.browse"
+    <screen id="imapcomponent$ImapMessageRef.browse"
             template="com/haulmont/components/imap/web/imapmessageref/imap-message-ref-browse.xml"/>
-    <screen id="mailcomponent$ImapMessageRef.edit"
+    <screen id="imapcomponent$ImapMessageRef.edit"
             template="com/haulmont/components/imap/web/imapmessageref/imap-message-ref-edit.xml"/>
-    <screen id="mailcomponent$ImapFolderEvent.edit"
+    <screen id="imapcomponent$ImapFolderEvent.edit"
             template="com/haulmont/components/imap/web/imapfolderevent/imap-folder-event-edit.xml"/>
 </screen-config>

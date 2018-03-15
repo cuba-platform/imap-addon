@@ -67,7 +67,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             TypedQuery<ImapMailBox> query = em.createQuery(
-                    "select distinct b from mailcomponent$ImapMailBox b " +
+                    "select distinct b from imapcomponent$ImapMailBox b " +
                             "left join fetch b.rootCertificate " +
                             "join fetch b.authentication " +
                             "left join fetch b.folders",
@@ -204,7 +204,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             authentication.begin();
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
-                return ((Number) em.createQuery("select count(m.id) from mailcomponent$ImapMessageRef m where m.folder.id = :mailFolderId")
+                return ((Number) em.createQuery("select count(m.id) from imapcomponent$ImapMessageRef m where m.folder.id = :mailFolderId")
                         .setParameter("mailFolderId", cubaFolder)
                         .getSingleResult()).longValue();
             } finally {
@@ -218,7 +218,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 EntityManager em = persistence.getEntityManager();
 
                 List<ImapMessageRef> messages = em.createQuery(
-                        "select m from mailcomponent$ImapMessageRef m where m.folder.id = :mailFolderId order by m.updatedTs asc nulls first",
+                        "select m from imapcomponent$ImapMessageRef m where m.folder.id = :mailFolderId order by m.updatedTs asc nulls first",
                         ImapMessageRef.class
                 )
                         .setParameter("mailFolderId", cubaFolder)
@@ -380,7 +380,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             Long threadId = msg.getThreadId();
 
             int sameUids = em.createQuery(
-                    "select m from mailcomponent$ImapMessageRef m where m.msgUid = :uid and m.folder.id = :mailFolderId"
+                    "select m from imapcomponent$ImapMessageRef m where m.msgUid = :uid and m.folder.id = :mailFolderId"
             )
                     .setParameter("uid", uid)
                     .setParameter("mailFolderId", cubaFolder)

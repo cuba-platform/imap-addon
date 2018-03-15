@@ -17,8 +17,8 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 @NamePattern("/%s from |msgUid")
-@Table(name = "MAILCOMPONENT_IMAP_MESSAGE_REF")
-@Entity(name = "mailcomponent$ImapMessageRef")
+@Table(name = "IMAPCOMPONENT_IMAP_MESSAGE_REF")
+@Entity(name = "imapcomponent$ImapMessageRef")
 public class ImapMessageRef extends BaseUuidEntity {
     private static final long serialVersionUID = -295396787486211720L;
 

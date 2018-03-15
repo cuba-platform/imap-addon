@@ -10,9 +10,9 @@
                   ref="cuba_ServerSelector"/>
         <property name="remoteServices">
             <map>
-                <entry key="mailcomponent_ImapAPIService"
+                <entry key="imapcomponent_ImapAPIService"
                        value="com.haulmont.components.imap.service.ImapAPIService"/>
-                <entry key="mailcomponent_ImapService"
+                <entry key="imapcomponent_ImapService"
                        value="com.haulmont.components.imap.service.ImapService"/>
 
             </map>

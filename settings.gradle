@@ -1,4 +1,4 @@
-rootProject.name = 'mail-component'
+rootProject.name = 'imap-component'
 include(':imap-global', ':imap-core', ':imap-gui', ':imap-web')
 project(':imap-global').projectDir = new File(settingsDir, 'modules/global')
 project(':imap-core').projectDir = new File(settingsDir, 'modules/core')

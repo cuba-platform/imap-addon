@@ -10,7 +10,7 @@
                          class="com.haulmont.components.imap.entity.ImapMailBox"
                          view="_local">
             <query>
-                <![CDATA[select e from mailcomponent$ImapMailBox e]]>
+                <![CDATA[select e from imapcomponent$ImapMailBox e]]>
             </query>
         </groupDatasource>
     </dsContext>

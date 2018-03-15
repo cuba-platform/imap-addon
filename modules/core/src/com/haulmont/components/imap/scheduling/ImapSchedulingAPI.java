@@ -1,7 +1,7 @@
 package com.haulmont.components.imap.scheduling;
 
 public interface ImapSchedulingAPI {
-    String NAME = "mailcomponent_ImapScheduling";
+    String NAME = "imapcomponent_ImapScheduling";
 
     void processMailBoxes();
 }

@@ -8,7 +8,7 @@ import com.haulmont.cuba.core.entity.AbstractNotPersistentEntity;
 import java.util.List;
 
 @NamePattern("%s |fullName")
-@MetaClass(name = "mailcomponent$ImapFolderDto")
+@MetaClass(name = "imapcomponent$ImapFolderDto")
 public class ImapFolderDto extends AbstractNotPersistentEntity {
 
     @MetaProperty(mandatory = true)

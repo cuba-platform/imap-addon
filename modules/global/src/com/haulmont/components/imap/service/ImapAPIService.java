@@ -10,7 +10,7 @@ import javax.mail.MessagingException;
 import java.util.Collection;
 
 public interface ImapAPIService {
-    String NAME = "mailcomponent_ImapAPIService";
+    String NAME = "imapcomponent_ImapAPIService";
 
     void testConnection(ImapMailBox box) throws MessagingException;
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box) throws MessagingException;

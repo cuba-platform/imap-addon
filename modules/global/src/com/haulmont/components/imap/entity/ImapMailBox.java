@@ -13,8 +13,8 @@ import com.haulmont.cuba.core.entity.FileDescriptor;
 import javax.validation.constraints.NotNull;
 
 @NamePattern("%s:%s|host,port")
-@Table(name = "MAILCOMPONENT_IMAP_MAIL_BOX")
-@Entity(name = "mailcomponent$ImapMailBox")
+@Table(name = "IMAPCOMPONENT_IMAP_MAIL_BOX")
+@Entity(name = "imapcomponent$ImapMailBox")
 public class ImapMailBox extends StandardEntity {
     private static final long serialVersionUID = -1001337267552497620L;
 

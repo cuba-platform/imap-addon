@@ -1,6 +1,6 @@
 package com.haulmont.components.imap.core;
 
-import com.haulmont.components.imap.MailcomponentTestContainer;
+import com.haulmont.components.imap.ImapcomponentTestContainer;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
@@ -21,7 +21,7 @@ import static org.junit.Assert.assertEquals;
 public class SampleIntegrationTest {
 
     @ClassRule
-    public static MailcomponentTestContainer cont = MailcomponentTestContainer.Common.INSTANCE;
+    public static ImapcomponentTestContainer cont = ImapcomponentTestContainer.Common.INSTANCE;
 
     private Metadata metadata;
     private Persistence persistence;
