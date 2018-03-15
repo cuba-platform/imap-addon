@@ -2,7 +2,7 @@
 <menu-config xmlns="http://schemas.haulmont.com/cuba/menu.xsd">
     <menu id="imap-component"
           insertBefore="administration">
-        <item screen="mailcomponent$MailBox.browse"/>
+        <item screen="mailcomponent$ImapMailBox.browse"/>
         <item screen="mailcomponent$ImapMessageRef.browse"/>
     </menu>
 </menu-config>

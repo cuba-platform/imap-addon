@@ -3,10 +3,10 @@
              version="2.0">
     <persistence-unit name="mail-component"
                       transaction-type="RESOURCE_LOCAL">
-        <class>com.haulmont.components.imap.entity.MailFolder</class>
-        <class>com.haulmont.components.imap.entity.MailBox</class>
-        <class>com.haulmont.components.imap.entity.MailAuthentication</class>
-        <class>com.haulmont.components.imap.entity.MailSimpleAuthentication</class>
+        <class>com.haulmont.components.imap.entity.ImapFolder</class>
+        <class>com.haulmont.components.imap.entity.ImapMailBox</class>
+        <class>com.haulmont.components.imap.entity.ImapAuthentication</class>
+        <class>com.haulmont.components.imap.entity.ImapSimpleAuthentication</class>
         <class>com.haulmont.components.imap.entity.ImapMessageRef</class>
         <class>com.haulmont.components.imap.entity.ImapFolderEvent</class>
     </persistence-unit>

@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <screen-config xmlns="http://schemas.haulmont.com/cuba/screens.xsd">
-    <screen id="mailcomponent$MailFolder.edit"
-            template="com/haulmont/components/imap/web/mailfolder/mail-folder-edit.xml"/>
-    <screen id="mailcomponent$MailBox.folders"
-            template="/com/haulmont/components/imap/web/mailbox/mail-box-folders.xml"/>
-    <screen id="mailcomponent$MailBox.trashFolder"
-            template="/com/haulmont/components/imap/web/mailbox/mail-box-trash-folder.xml"/>
-    <screen id="mailcomponent$MailBox.edit"
-            template="com/haulmont/components/imap/web/mailbox/mail-box-edit.xml"/>
-    <screen id="mailcomponent$MailBox.browse"
-            template="com/haulmont/components/imap/web/mailbox/mail-box-browse.xml"/>
+    <screen id="mailcomponent$ImapMailBox.folders"
+            template="/com/haulmont/components/imap/web/imapmailbox/imap-mail-box-folders.xml"/>
+    <screen id="mailcomponent$ImapMailBox.trashFolder"
+            template="/com/haulmont/components/imap/web/imapmailbox/imap-mail-box-trash-folder.xml"/>
+    <screen id="mailcomponent$ImapMailBox.edit"
+            template="com/haulmont/components/imap/web/imapmailbox/imap-mail-box-edit.xml"/>
+    <screen id="mailcomponent$ImapMailBox.browse"
+            template="com/haulmont/components/imap/web/imapmailbox/imap-mail-box-browse.xml"/>
     <screen id="mailcomponent$ImapMessageRef.browse"
             template="com/haulmont/components/imap/web/imapmessageref/imap-message-ref-browse.xml"/>
     <screen id="mailcomponent$ImapMessageRef.edit"

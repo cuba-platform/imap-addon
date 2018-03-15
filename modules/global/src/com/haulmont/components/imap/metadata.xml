@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <metadata xmlns="http://schemas.haulmont.com/cuba/metadata.xsd">
-
-    <metadata-model root-package="com.haulmont.components.imap" namespace="mailcomponent">
-        <class>com.haulmont.components.imap.dto.MailFolderDto</class>
-        <class>com.haulmont.components.imap.dto.MailMessageDto</class>
+    <metadata-model namespace="mailcomponent"
+                    root-package="com.haulmont.components.imap">
+        <class>com.haulmont.components.imap.dto.ImapFolderDto</class>
+        <class>com.haulmont.components.imap.dto.ImapMessageDto</class>
     </metadata-model>
-
 </metadata>

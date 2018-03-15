@@ -1,27 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <views xmlns="http://schemas.haulmont.com/cuba/view.xsd">
-
-    <view class="com.haulmont.components.imap.entity.MailFolder"
+    <view class="com.haulmont.components.imap.entity.ImapFolder"
           extends="_local"
-          name="mailFolder-edit">
+          name="imap-folder-edit">
         <property name="events"
                   view="_local"/>
         <property name="mailBox"
                   view="_minimal"/>
     </view>
-    <view class="com.haulmont.components.imap.entity.MailBox"
+    <view class="com.haulmont.components.imap.entity.ImapMailBox"
           extends="_local"
-          name="mailbox-edit">
+          name="imap-mailbox-edit">
         <property name="authentication"
                   view="_local"/>
         <property name="folders"
-                  view="mailFolder-edit"/>
+                  view="imap-folder-edit"/>
         <property name="rootCertificate"
                   view="_minimal"/>
     </view>
-    <view class="com.haulmont.components.imap.entity.MailBox"
+    <view class="com.haulmont.components.imap.entity.ImapMailBox"
           extends="_local"
-          name="mailBox-connect">
+          name="imap-mailBox-connect">
         <property name="rootCertificate"
                   view="_minimal"/>
         <property name="clientCertificate"
@@ -38,15 +37,7 @@
         <property name="folder"
                   view="_minimal">
             <property name="mailBox"
-                      view="mailBox-connect"/>
+                      view="imap-mailBox-connect"/>
         </property>
-    </view>
-    <view class="com.haulmont.components.imap.entity.MailFolder"
-          extends="_local"
-          name="mailFolder-with-box">
-        <property name="mailBox"
-                  view="mailBox-connect"/>
-        <property name="events"
-                  view="_local" />
     </view>
 </views>

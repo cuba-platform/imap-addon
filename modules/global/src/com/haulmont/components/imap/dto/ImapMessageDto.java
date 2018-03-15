@@ -3,7 +3,6 @@ package com.haulmont.components.imap.dto;
 import com.haulmont.chile.core.annotations.MetaClass;
 import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.chile.core.annotations.NamePattern;
-import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.cuba.core.entity.AbstractNotPersistentEntity;
 
 import java.util.Date;
@@ -11,8 +10,8 @@ import java.util.List;
 import java.util.UUID;
 
 @NamePattern("%s | subject")
-@MetaClass(name = "mailcomponent$MailMessageDto")
-public class MailMessageDto extends AbstractNotPersistentEntity {
+@MetaClass(name = "mailcomponent$ImapMessageDto")
+public class ImapMessageDto extends AbstractNotPersistentEntity {
 
     @MetaProperty(mandatory = true)
     private Long uid;

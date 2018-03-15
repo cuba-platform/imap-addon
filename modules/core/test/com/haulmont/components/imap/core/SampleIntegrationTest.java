@@ -1,7 +1,6 @@
 package com.haulmont.components.imap.core;
 
 import com.haulmont.components.imap.MailcomponentTestContainer;
-import com.haulmont.components.imap.MailcomponentTestContainer;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;

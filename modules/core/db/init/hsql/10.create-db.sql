@@ -1,5 +1,5 @@
--- begin MAILCOMPONENT_MAIL_FOLDER
-create table MAILCOMPONENT_MAIL_FOLDER (
+-- begin MAILCOMPONENT_IMAP_FOLDER
+create table MAILCOMPONENT_IMAP_FOLDER (
     ID varchar(36) not null,
     VERSION integer not null,
     CREATE_TS timestamp,
@@ -14,9 +14,9 @@ create table MAILCOMPONENT_MAIL_FOLDER (
     --
     primary key (ID)
 )^
--- end MAILCOMPONENT_MAIL_FOLDER
--- begin MAILCOMPONENT_MAIL_BOX
-create table MAILCOMPONENT_MAIL_BOX (
+-- end MAILCOMPONENT_IMAP_FOLDER
+-- begin MAILCOMPONENT_IMAP_MAIL_BOX
+create table MAILCOMPONENT_IMAP_MAIL_BOX (
     ID varchar(36) not null,
     VERSION integer not null,
     CREATE_TS timestamp,
@@ -41,9 +41,9 @@ create table MAILCOMPONENT_MAIL_BOX (
     --
     primary key (ID)
 )^
--- end MAILCOMPONENT_MAIL_BOX
--- begin MAILCOMPONENT_MAIL_SIMPLE_AUTHENTICATION
-create table MAILCOMPONENT_MAIL_SIMPLE_AUTHENTICATION (
+-- end MAILCOMPONENT_IMAP_MAIL_BOX
+-- begin MAILCOMPONENT_IMAP_SIMPLE_AUTHENTICATION
+create table MAILCOMPONENT_IMAP_SIMPLE_AUTHENTICATION (
     ID varchar(36) not null,
     VERSION integer not null,
     CREATE_TS timestamp,
@@ -58,7 +58,7 @@ create table MAILCOMPONENT_MAIL_SIMPLE_AUTHENTICATION (
     --
     primary key (ID)
 )^
--- end MAILCOMPONENT_MAIL_SIMPLE_AUTHENTICATION
+-- end MAILCOMPONENT_IMAP_SIMPLE_AUTHENTICATION
 -- begin MAILCOMPONENT_IMAP_MESSAGE_REF
 create table MAILCOMPONENT_IMAP_MESSAGE_REF (
     ID varchar(36) not null,

@@ -1,8 +1,8 @@
 package com.haulmont.components.imap.core;
 
 import com.haulmont.components.imap.config.ImapConfig;
-import com.haulmont.components.imap.entity.MailBox;
-import com.haulmont.components.imap.entity.MailSecureMode;
+import com.haulmont.components.imap.entity.ImapMailBox;
+import com.haulmont.components.imap.entity.ImapSecureMode;
 import com.haulmont.cuba.core.global.FileLoader;
 import com.haulmont.cuba.core.global.FileStorageException;
 import com.sun.mail.iap.Argument;
@@ -57,7 +57,7 @@ public class ImapHelper {
     @Inject
     private ImapConfig config;
 
-    public Store getStore(MailBox box) throws MessagingException {
+    public Store getStore(ImapMailBox box) throws MessagingException {
         /*Store store = boxesStores.get(box);
         if (store != null) {
             return store;
@@ -91,7 +91,7 @@ public class ImapHelper {
         }
 
         return store;*/
-        String protocol = box.getSecureMode() == MailSecureMode.TLS ? "imaps" : "imap";
+        String protocol = box.getSecureMode() == ImapSecureMode.TLS ? "imaps" : "imap";
 
         Properties props = System.getProperties();
         props.setProperty("mail.store.protocol", protocol);
@@ -108,7 +108,7 @@ public class ImapHelper {
         return store;
     }
 
-    public <T> T doWithFolder(MailBox mailBox, IMAPFolder folder, FolderTask<T> task) {
+    public <T> T doWithFolder(ImapMailBox mailBox, IMAPFolder folder, FolderTask<T> task) {
         String key = String.format("%s:%d[%s]", mailBox.getHost(), mailBox.getPort(), folder.getFullName());
         folderLocks.putIfAbsent(key, new Object());
         Object lock = folderLocks.get(key);
@@ -293,11 +293,11 @@ public class ImapHelper {
                 (protocol.isREV1() ? ")]" : ")");
     }
 
-    protected MailSSLSocketFactory getMailSSLSocketFactory(MailBox box) throws MessagingException {
+    protected MailSSLSocketFactory getMailSSLSocketFactory(ImapMailBox box) throws MessagingException {
         MailSSLSocketFactory socketFactory = null;
         try {
             socketFactory = new MailSSLSocketFactory();
-            if (config.getTrusAllCertificates()) {
+            if (config.getTrustAllCertificates()) {
                 socketFactory.setTrustAllHosts(true);
             } else if (box.getRootCertificate() != null) {
                 try ( InputStream rootCert = fileLoader.openStream(box.getRootCertificate()) ) {

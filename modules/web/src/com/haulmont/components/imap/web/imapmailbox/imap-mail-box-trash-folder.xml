@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://selectTrashFolderCaption"
+        class="com.haulmont.components.imap.web.imapmailbox.ImapMailBoxTrashFolder"
+        datasource="mailBoxDs"
+        messagesPack="com.haulmont.components.imap.web.imapmailbox">
+    <dsContext>
+        <datasource id="mailBoxDs"
+                    class="com.haulmont.components.imap.entity.ImapMailBox"
+                    view="imap-mailbox-edit"/>
+        <hierarchicalDatasource id="imapFolderDs"
+                                allowCommit="false"
+                                class="com.haulmont.components.imap.dto.ImapFolderDto"
+                                datasourceClass="com.haulmont.components.imap.web.ds.ImapFolderDatasource"
+                                hierarchyProperty="parent"/>
+    </dsContext>
+    <layout>
+        <treeTable id="mailFoldersTable"
+                   editable="true"
+                   height="100%"
+                   width="100%">
+            <columns>
+                <column id="name"/>
+            </columns>
+            <rows datasource="imapFolderDs"/>
+        </treeTable>
+        <frame id="windowActions"
+               screen="editWindowActions"/>
+    </layout>
+</window>

@@ -4,11 +4,11 @@ import com.haulmont.components.imap.entity.ImapMessageRef;
 
 import java.util.Map;
 
-public class EmailFlagChangedEvent extends BaseImapEvent {
+public class EmailFlagChangedImapEvent extends BaseImapEvent {
 
     private final Map<String, Boolean> changedFlagsWithNewValue;
 
-    public EmailFlagChangedEvent(ImapMessageRef messageRef, Map<String, Boolean> changedFlagsWithNewValue) {
+    public EmailFlagChangedImapEvent(ImapMessageRef messageRef, Map<String, Boolean> changedFlagsWithNewValue) {
         super(messageRef);
 
         this.changedFlagsWithNewValue = changedFlagsWithNewValue;
@@ -20,7 +20,7 @@ public class EmailFlagChangedEvent extends BaseImapEvent {
 
     @Override
     public String toString() {
-        return "EmailFlagChangedEvent{" +
+        return "EmailFlagChangedImapEvent{" +
                 "changedFlagsWithNewValue=" + changedFlagsWithNewValue +
                 ", messageRef=" + messageRef +
                 '}';

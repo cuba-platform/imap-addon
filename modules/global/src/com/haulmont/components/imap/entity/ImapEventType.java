@@ -11,13 +11,13 @@ import java.util.stream.Collectors;
 
 public enum ImapEventType implements EnumClass<String> {
 
-    NEW_EMAIL("new_email", NewEmailEvent.class),
-    EMAIL_SEEN("seen", EmailSeenEvent.class),
-    NEW_ANSWER("new_answer", EmailAnsweredEvent.class),
-    EMAIL_MOVED("moved", EmailMovedEvent.class),
-    FLAGS_UPDATED("flags_updated", EmailFlagChangedEvent.class),
-    EMAIL_DELETED("deleted", EmailDeletedEvent.class),
-    NEW_THREAD("new_thread", NewThreadEvent.class);
+    NEW_EMAIL("new_email", NewEmailImapEvent.class),
+    EMAIL_SEEN("seen", EmailSeenImapEvent.class),
+    NEW_ANSWER("new_answer", EmailAnsweredImapEvent.class),
+    EMAIL_MOVED("moved", EmailMovedImapEvent.class),
+    FLAGS_UPDATED("flags_updated", EmailFlagChangedImapEvent.class),
+    EMAIL_DELETED("deleted", EmailDeletedImapEvent.class),
+    NEW_THREAD("new_thread", NewThreadImapEvent.class);
 
     private final String id;
     private final Class<? extends BaseImapEvent> eventClass;

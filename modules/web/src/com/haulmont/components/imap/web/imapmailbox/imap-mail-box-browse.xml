@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
         caption="msg://browseCaption"
-        class="com.haulmont.components.imap.web.mailbox.MailBoxBrowse"
+        class="com.haulmont.components.imap.web.imapmailbox.ImapMailBoxBrowse"
         focusComponent="mailBoxesTable"
         lookupComponent="mailBoxesTable"
-        messagesPack="com.haulmont.components.imap.web.mailbox">
+        messagesPack="com.haulmont.components.imap.web.imapmailbox">
     <dsContext>
         <groupDatasource id="mailBoxesDs"
-                         class="com.haulmont.components.imap.entity.MailBox"
+                         class="com.haulmont.components.imap.entity.ImapMailBox"
                          view="_local">
             <query>
-                <![CDATA[select e from mailcomponent$MailBox e]]>
+                <![CDATA[select e from mailcomponent$ImapMailBox e]]>
             </query>
         </groupDatasource>
     </dsContext>

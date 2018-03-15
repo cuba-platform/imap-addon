@@ -8,8 +8,8 @@ import com.haulmont.cuba.core.entity.AbstractNotPersistentEntity;
 import java.util.List;
 
 @NamePattern("%s |fullName")
-@MetaClass(name = "mailcomponent$MailFolderDto")
-public class MailFolderDto extends AbstractNotPersistentEntity {
+@MetaClass(name = "mailcomponent$ImapFolderDto")
+public class ImapFolderDto extends AbstractNotPersistentEntity {
 
     @MetaProperty(mandatory = true)
     private String name;
@@ -18,18 +18,36 @@ public class MailFolderDto extends AbstractNotPersistentEntity {
     private String fullName;
 
     @MetaProperty(mandatory = true)
-    private Boolean canHoldMessages;
+    private Boolean canHoldMessages = false;
 
     @MetaProperty
-    private List<MailFolderDto> children;
+    private List<ImapFolderDto> children;
 
     @MetaProperty
-    private MailFolderDto parent;
+    private ImapFolderDto parent;
 
     @MetaProperty
     private Boolean selected;
 
-    public MailFolderDto(String name, String fullName, boolean canHoldMessages, List<MailFolderDto> children) {
+    public List<ImapFolderDto> getChildren() {
+        return children;
+    }
+
+    public void setChildren(List<ImapFolderDto> children) {
+        this.children = children;
+    }
+
+
+    public ImapFolderDto getParent() {
+        return parent;
+    }
+
+    public void setParent(ImapFolderDto parent) {
+        this.parent = parent;
+    }
+
+
+    public ImapFolderDto(String name, String fullName, boolean canHoldMessages, List<ImapFolderDto> children) {
         this.name = name;
         this.fullName = fullName;
         this.canHoldMessages = canHoldMessages;
@@ -58,22 +76,6 @@ public class MailFolderDto extends AbstractNotPersistentEntity {
 
     public void setCanHoldMessages(Boolean canHoldMessages) {
         this.canHoldMessages = canHoldMessages;
-    }
-
-    public List<MailFolderDto> getChildren() {
-        return children;
-    }
-
-    public void setChildren(List<MailFolderDto> children) {
-        this.children = children;
-    }
-
-    public MailFolderDto getParent() {
-        return parent;
-    }
-
-    public void setParent(MailFolderDto parent) {
-        this.parent = parent;
     }
 
     public Boolean getSelected() {

@@ -1,9 +1,9 @@
-package com.haulmont.components.imap.web.mailbox;
+package com.haulmont.components.imap.web.imapmailbox;
 
 import com.haulmont.bali.util.ParamsMap;
-import com.haulmont.components.imap.dto.MailFolderDto;
-import com.haulmont.components.imap.entity.MailBox;
-import com.haulmont.components.imap.web.ds.MailFolderDatasource;
+import com.haulmont.components.imap.dto.ImapFolderDto;
+import com.haulmont.components.imap.entity.ImapMailBox;
+import com.haulmont.components.imap.web.ds.ImapFolderDatasource;
 import com.haulmont.cuba.gui.components.AbstractEditor;
 import com.haulmont.cuba.gui.components.TreeTable;
 
@@ -11,27 +11,27 @@ import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class MailBoxTrashFolder extends AbstractEditor<MailBox> {
+public class ImapMailBoxTrashFolder extends AbstractEditor<ImapMailBox> {
 
     @Inject
-    private MailFolderDatasource mailFolderDs;
+    private ImapFolderDatasource imapFolderDs;
 
     @Inject
-    private TreeTable<MailFolderDto> mailFoldersTable;
+    private TreeTable<ImapFolderDto> mailFoldersTable;
 
     @Override
     public void init(Map<String, Object> params) {
-        mailFolderDs.refresh(ParamsMap.of(MailFolderDatasource.FOLDER_DS_MAILBOX_PARAM, params.get("mailBox")));
+        imapFolderDs.refresh(ParamsMap.of(ImapFolderDatasource.FOLDER_DS_MAILBOX_PARAM, params.get("mailBox")));
     }
 
     @Override
     protected void postInit() {
-        MailBox mailBox = getItem();
+        ImapMailBox mailBox = getItem();
 
         String trashFolderName = mailBox.getTrashFolderName();
         if (trashFolderName != null) {
-            Collection<MailFolderDto> items = new ArrayList<>(mailFolderDs.getItems());
-            MailFolderDto trashFolder = null;
+            Collection<ImapFolderDto> items = new ArrayList<>(imapFolderDs.getItems());
+            ImapFolderDto trashFolder = null;
             while (!items.isEmpty() && (trashFolder = findByName(items, trashFolderName)) == null) {
                 items = items.stream()
                         .flatMap(folder -> Optional.ofNullable(folder.getChildren()).orElse(Collections.emptyList()).stream())
@@ -43,14 +43,14 @@ public class MailBoxTrashFolder extends AbstractEditor<MailBox> {
         }
 
         addCloseWithCommitListener(() -> {
-            Set<MailFolderDto> selected = mailFoldersTable.getSelected();
+            Set<ImapFolderDto> selected = mailFoldersTable.getSelected();
             if (selected != null && !selected.isEmpty()) {
                 mailBox.setTrashFolderName(selected.iterator().next().getFullName());
             }
         });
     }
 
-    private MailFolderDto findByName(Collection<MailFolderDto> items, String fullName) {
+    private ImapFolderDto findByName(Collection<ImapFolderDto> items, String fullName) {
         return items.stream().filter(folder -> folder.getFullName().equals(fullName)).findFirst().orElse(null);
     }
 

@@ -20,7 +20,7 @@ public class ImapFolderEvent extends StandardEntity {
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "FOLDER_ID")
-    protected MailFolder folder;
+    protected ImapFolder folder;
 
     @Column(name = "EVENT", nullable = false)
     @NotNull
@@ -33,6 +33,15 @@ public class ImapFolderEvent extends StandardEntity {
     @Column(name = "METHOD_NAME")
     protected String methodName;
 
+    public ImapFolder getFolder() {
+        return folder;
+    }
+
+    public void setFolder(ImapFolder folder) {
+        this.folder = folder;
+    }
+
+
     public ImapEventType getEvent() {
         return event == null ? null : ImapEventType.fromId(event);
     }
@@ -41,14 +50,6 @@ public class ImapFolderEvent extends StandardEntity {
         this.event = event == null ? null : event.getId();
     }
 
-
-    public void setFolder(MailFolder folder) {
-        this.folder = folder;
-    }
-
-    public MailFolder getFolder() {
-        return folder;
-    }
 
     public String getBeanName() {
         return beanName;

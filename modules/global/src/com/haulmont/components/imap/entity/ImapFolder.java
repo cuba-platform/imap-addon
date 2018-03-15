@@ -14,9 +14,9 @@ import java.util.List;
 import com.haulmont.cuba.core.entity.annotation.OnDelete;
 
 @NamePattern("%s|name")
-@Table(name = "MAILCOMPONENT_MAIL_FOLDER")
-@Entity(name = "mailcomponent$MailFolder")
-public class MailFolder extends StandardEntity {
+@Table(name = "MAILCOMPONENT_IMAP_FOLDER")
+@Entity(name = "mailcomponent$ImapFolder")
+public class ImapFolder extends StandardEntity {
     private static final long serialVersionUID = -5878471272097557535L;
 
     @Column(name = "NAME", nullable = false)
@@ -30,7 +30,16 @@ public class MailFolder extends StandardEntity {
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "MAIL_BOX_ID")
-    protected MailBox mailBox;
+    protected ImapMailBox mailBox;
+
+    public ImapMailBox getMailBox() {
+        return mailBox;
+    }
+
+    public void setMailBox(ImapMailBox mailBox) {
+        this.mailBox = mailBox;
+    }
+
 
     public List<ImapFolderEvent> getEvents() {
         return events;
@@ -40,14 +49,6 @@ public class MailFolder extends StandardEntity {
         this.events = events;
     }
 
-
-    public void setMailBox(MailBox mailBox) {
-        this.mailBox = mailBox;
-    }
-
-    public MailBox getMailBox() {
-        return mailBox;
-    }
 
     public void setName(String name) {
         this.name = name;

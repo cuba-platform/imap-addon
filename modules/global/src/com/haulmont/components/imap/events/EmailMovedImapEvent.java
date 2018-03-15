@@ -2,11 +2,11 @@ package com.haulmont.components.imap.events;
 
 import com.haulmont.components.imap.entity.ImapMessageRef;
 
-public class EmailMovedEvent extends BaseImapEvent {
+public class EmailMovedImapEvent extends BaseImapEvent {
 
     private final String oldFolderName;
 
-    public EmailMovedEvent(ImapMessageRef messageRef, String oldFodlerName) {
+    public EmailMovedImapEvent(ImapMessageRef messageRef, String oldFodlerName) {
         super(messageRef);
 
         this.oldFolderName = oldFodlerName;
@@ -22,7 +22,7 @@ public class EmailMovedEvent extends BaseImapEvent {
 
     @Override
     public String toString() {
-        return "EmailMovedEvent{" +
+        return "EmailMovedImapEvent{" +
                 "oldFolderName='" + oldFolderName + '\'' +
                 ", messageRef=" + messageRef +
                 '}';

@@ -55,23 +55,23 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
     protected ForkJoinPool forkJoinPool = new ForkJoinPool();
 
-    protected ConcurrentMap<MailBox, Long> runningTasks = new ConcurrentHashMap<>();
+    protected ConcurrentMap<ImapMailBox, Long> runningTasks = new ConcurrentHashMap<>();
 
-    protected Map<MailBox, Long> lastStartCache = new ConcurrentHashMap<>();
+    protected Map<ImapMailBox, Long> lastStartCache = new ConcurrentHashMap<>();
 
-    protected Map<MailBox, Long> lastFinishCache = new ConcurrentHashMap<>();
+    protected Map<ImapMailBox, Long> lastFinishCache = new ConcurrentHashMap<>();
 
     @Override
     public void processMailBoxes() {
         authentication.begin();
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
-            TypedQuery<MailBox> query = em.createQuery(
-                    "select distinct b from mailcomponent$MailBox b " +
+            TypedQuery<ImapMailBox> query = em.createQuery(
+                    "select distinct b from mailcomponent$ImapMailBox b " +
                             "left join fetch b.rootCertificate " +
                             "join fetch b.authentication " +
                             "left join fetch b.folders",
-                    MailBox.class
+                    ImapMailBox.class
             );
             query.getResultList().stream().flatMap(mb -> mb.getFolders().stream()).forEach(f -> f.getEvents().size());
             query.getResultList().stream().flatMap(mb -> mb.getFolders().stream()).forEach(f -> f.getMailBox().getPollInterval());
@@ -81,7 +81,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
         }
     }
 
-    private void processMailBox(MailBox mailBox) {
+    private void processMailBox(ImapMailBox mailBox) {
         if (isRunning(mailBox)) {
             log.trace("{} is running", mailBox);
             return;
@@ -103,9 +103,9 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
     private class MailBoxProcessingTask extends RecursiveAction {
 
-        private final MailBox mailBox;
+        private final ImapMailBox mailBox;
 
-        MailBoxProcessingTask(MailBox mailBox) {
+        MailBoxProcessingTask(ImapMailBox mailBox) {
             this.mailBox = mailBox;
         }
 
@@ -115,11 +115,11 @@ public class ImapScheduling implements ImapSchedulingAPI {
             Store store = null;
             try {
                 store = imapHelper.getStore(mailBox);
-                List<MailFolder> listenedFolders = mailBox.getFolders().stream()
+                List<ImapFolder> listenedFolders = mailBox.getFolders().stream()
                         .filter(f -> f.getEvents() != null && !f.getEvents().isEmpty())
                         .collect(Collectors.toList());
                 List<RecursiveAction> folderSubtasks = new ArrayList<>(listenedFolders.size() * 2);
-                for (MailFolder cubaFolder : mailBox.getFolders()) {
+                for (ImapFolder cubaFolder : mailBox.getFolders()) {
                     IMAPFolder imapFolder = (IMAPFolder) store.getFolder(cubaFolder.getName());
                     if (cubaFolder.hasEvent(ImapEventType.NEW_EMAIL)) {
                         NewMessagesInFolderTask subtask = new NewMessagesInFolderTask(mailBox, cubaFolder, imapFolder);
@@ -158,11 +158,11 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
     @SuppressWarnings("unchecked")
     private class UpdateMessagesInFolderTask extends RecursiveAction {
-        private final MailFolder cubaFolder;
-        private final MailBox mailBox;
+        private final ImapFolder cubaFolder;
+        private final ImapMailBox mailBox;
         private final IMAPFolder folder;
 
-        public UpdateMessagesInFolderTask(MailBox mailBox, MailFolder cubaFolder, IMAPFolder folder) {
+        public UpdateMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder, IMAPFolder folder) {
             this.mailBox = mailBox;
             this.cubaFolder = cubaFolder;
             this.folder = folder;
@@ -249,7 +249,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             if (newMsgHeader == null) {
                 em.remove(msgRef);
                 return cubaFolder.hasEvent(ImapEventType.EMAIL_DELETED)
-                        ? Collections.singletonList(new EmailDeletedEvent(msgRef)) : Collections.emptyList();
+                        ? Collections.singletonList(new EmailDeletedImapEvent(msgRef)) : Collections.emptyList();
             }
             Flags flags = newMsgHeader.getFlags();
 
@@ -272,14 +272,14 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 if (oldSeen != newSeen) {
                     changedFlagsWithNewValue.put("SEEN", newSeen);
                     if (newSeen && cubaFolder.hasEvent(ImapEventType.EMAIL_SEEN)) {
-                        modificationEvents.add(new EmailSeenEvent(msgRef));
+                        modificationEvents.add(new EmailSeenImapEvent(msgRef));
                     }
                 }
 
                 if (oldAnswered != newAnswered || !Objects.equals(oldRefId, newRefId)) {
                     changedFlagsWithNewValue.put("ANSWERED", newAnswered);
                     if (newAnswered || newRefId != null) {
-                        modificationEvents.add(new EmailAnsweredEvent(msgRef));
+                        modificationEvents.add(new EmailAnsweredImapEvent(msgRef));
                     }
                 }
 
@@ -290,7 +290,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     changedFlagsWithNewValue.put("FLAGGED", newFlagged);
                 }
                 if (cubaFolder.hasEvent(ImapEventType.FLAGS_UPDATED)) {
-                    modificationEvents.add(new EmailFlagChangedEvent(msgRef, changedFlagsWithNewValue));
+                    modificationEvents.add(new EmailFlagChangedImapEvent(msgRef, changedFlagsWithNewValue));
                 }
                 msgRef.setSeen(newSeen);
                 msgRef.setDeleted(newDeleted);
@@ -308,11 +308,11 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
     private class NewMessagesInFolderTask extends RecursiveAction {
 
-        private final MailFolder cubaFolder;
-        private final MailBox mailBox;
+        private final ImapFolder cubaFolder;
+        private final ImapMailBox mailBox;
         private final IMAPFolder folder;
 
-        public NewMessagesInFolderTask(MailBox mailBox, MailFolder cubaFolder, IMAPFolder folder) {
+        public NewMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder, IMAPFolder folder) {
             this.cubaFolder = cubaFolder;
             this.mailBox = mailBox;
             this.folder = folder;
@@ -320,7 +320,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
         @Override
         protected void compute() {
-            List<NewEmailEvent> imapEvents = imapHelper.doWithFolder(
+            List<NewEmailImapEvent> imapEvents = imapHelper.doWithFolder(
                     mailBox,
                     folder,
                     new ImapHelper.FolderTask<>(
@@ -333,11 +333,11 @@ public class ImapScheduling implements ImapSchedulingAPI {
                                             folder, new NotTerm(new FlagTerm(cubaFlags(mailBox), true))
                                     );
 
-                                    List<NewEmailEvent> newEmailEvents = saveNewMessages(imapMessages);
+                                    List<NewEmailImapEvent> newEmailImapEvents = saveNewMessages(imapMessages);
 
-                                    Message[] messages = folder.getMessagesByUID(newEmailEvents.stream().mapToLong(NewEmailEvent::getMessageId).toArray());
+                                    Message[] messages = folder.getMessagesByUID(newEmailImapEvents.stream().mapToLong(NewEmailImapEvent::getMessageId).toArray());
                                     folder.setFlags(messages, cubaFlags(mailBox), true);
-                                    return newEmailEvents;
+                                    return newEmailImapEvents;
                                 }
 
                                 return Collections.emptyList();
@@ -347,8 +347,8 @@ public class ImapScheduling implements ImapSchedulingAPI {
             fireEvents(cubaFolder, imapEvents);
         }
 
-        private List<NewEmailEvent> saveNewMessages(List<ImapHelper.MsgHeader> imapMessages) {
-            List<NewEmailEvent> newEmailEvents = new ArrayList<>(imapMessages.size());
+        private List<NewEmailImapEvent> saveNewMessages(List<ImapHelper.MsgHeader> imapMessages) {
+            List<NewEmailImapEvent> newEmailImapEvents = new ArrayList<>(imapMessages.size());
             boolean toCommit = false;
             authentication.begin();
             try (Transaction tx = persistence.createTransaction()) {
@@ -359,7 +359,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     toCommit |= (newMessage != null);
 
                     if (newMessage != null) {
-                        newEmailEvents.add(new NewEmailEvent(newMessage));
+                        newEmailImapEvents.add(new NewEmailImapEvent(newMessage));
                     }
                 }
                 if (toCommit) {
@@ -369,7 +369,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             } finally {
                 authentication.end();
             }
-            return newEmailEvents;
+            return newEmailImapEvents;
         }
 
         private ImapMessageRef insertNewMessage(EntityManager em, ImapHelper.MsgHeader msg) {
@@ -406,7 +406,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
         }
     }
 
-    private void fireEvents(MailFolder folder, Collection<? extends BaseImapEvent> imapEvents) {
+    private void fireEvents(ImapFolder folder, Collection<? extends BaseImapEvent> imapEvents) {
         imapEvents.forEach(event -> {
             ImapEventType.getByEventType(event.getClass()).stream()
                     .map(folder::getEvent)
@@ -438,13 +438,13 @@ public class ImapScheduling implements ImapSchedulingAPI {
         }
     }
 
-    private Flags cubaFlags(MailBox mailBox) {
+    private Flags cubaFlags(ImapMailBox mailBox) {
         Flags cubaFlags = new Flags();
         cubaFlags.add(mailBox.getCubaFlag());
         return cubaFlags;
     }
 
-    private boolean isRunning(MailBox mailBox) {
+    private boolean isRunning(ImapMailBox mailBox) {
         Long startTime = runningTasks.get(mailBox);
         if (startTime != null) {
             boolean timedOut = startTime + mailBox.getProcessingTimeout() * 1000 > timeSource.currentTimeMillis();

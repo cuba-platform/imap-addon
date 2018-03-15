@@ -12,8 +12,8 @@ public interface ImapConfig extends Config {
 
     @Property("cuba.email.imap.server.trustAllCertificates")
     @DefaultBoolean(false)
-    boolean getTrusAllCertificates();
-    void setTrusAllCertificates(boolean value);
+    boolean getTrustAllCertificates();
+    void setTrustAllCertificates(boolean value);
 
     @Property("cuba.email.imap.server.updateBatchSize")
     @DefaultInt(100)

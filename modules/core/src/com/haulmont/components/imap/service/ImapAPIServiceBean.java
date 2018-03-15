@@ -1,10 +1,10 @@
 package com.haulmont.components.imap.service;
 
 import com.haulmont.components.imap.core.ImapHelper;
-import com.haulmont.components.imap.dto.MailFolderDto;
-import com.haulmont.components.imap.dto.MailMessageDto;
+import com.haulmont.components.imap.dto.ImapFolderDto;
+import com.haulmont.components.imap.dto.ImapMessageDto;
+import com.haulmont.components.imap.entity.ImapMailBox;
 import com.haulmont.components.imap.entity.ImapMessageRef;
-import com.haulmont.components.imap.entity.MailBox;
 import com.haulmont.cuba.core.app.FileStorageAPI;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.global.FileStorageException;
@@ -13,10 +13,10 @@ import com.haulmont.cuba.core.global.TimeSource;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
@@ -47,15 +47,15 @@ public class ImapAPIServiceBean implements ImapAPIService {
     private TimeSource timeSource;
 
     @Override
-    public void testConnection(MailBox box) throws MessagingException {
+    public void testConnection(ImapMailBox box) throws MessagingException {
         imapHelper.getStore(box);
     }
 
     @Override
-    public Collection<MailFolderDto> fetchFolders(MailBox box) throws MessagingException {
+    public Collection<ImapFolderDto> fetchFolders(ImapMailBox box) throws MessagingException {
         Store store = imapHelper.getStore(box);
 
-        List<MailFolderDto> result = new ArrayList<>();
+        List<ImapFolderDto> result = new ArrayList<>();
 
         Folder defaultFolder = store.getDefaultFolder();
 
@@ -69,9 +69,25 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     @Override
-    public MailMessageDto fetchMessage(ImapMessageRef messageRef) throws MessagingException {
+    public Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) throws MessagingException {
+        //todo: this method can be optimised to hit IMAP server only when necessary
+
+        Collection<ImapFolderDto> allFolders = fetchFolders(box);
+        if (ArrayUtils.isEmpty(folderNames)) {
+            return allFolders;
+        }
+
+        Arrays.sort(folderNames);
+
+        return allFolders.stream()
+                .filter(f -> Arrays.binarySearch(folderNames, f.getFullName()) >= 0)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ImapMessageDto fetchMessage(ImapMessageRef messageRef) throws MessagingException {
         return consumeMessage(messageRef, nativeMessage -> {
-            MailBox mailBox = messageRef.getFolder().getMailBox();
+            ImapMailBox mailBox = messageRef.getFolder().getMailBox();
 
             return toDto(mailBox, messageRef.getFolder().getName(), messageRef.getMsgUid(), nativeMessage);
 
@@ -81,12 +97,12 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     @Override
-    public Collection<MailMessageDto> fetchMessages(Collection<ImapMessageRef> messageRefs) throws MessagingException {
-        List<MailMessageDto> mailMessageDtos = new ArrayList<>(messageRefs.size());
-        Map<MailBox, List<ImapMessageRef>> byMailBox = messageRefs.stream().collect(Collectors.groupingBy(msg -> msg.getFolder().getMailBox()));
+    public Collection<ImapMessageDto> fetchMessages(Collection<ImapMessageRef> messageRefs) throws MessagingException {
+        List<ImapMessageDto> mailMessageDtos = new ArrayList<>(messageRefs.size());
+        Map<ImapMailBox, List<ImapMessageRef>> byMailBox = messageRefs.stream().collect(Collectors.groupingBy(msg -> msg.getFolder().getMailBox()));
         byMailBox.entrySet().parallelStream().forEach(mailBoxGroup -> {
             try {
-                MailBox mailBox = mailBoxGroup.getKey();
+                ImapMailBox mailBox = mailBoxGroup.getKey();
                 Map<String, List<ImapMessageRef>> byFolder = mailBoxGroup.getValue().stream().collect(Collectors.groupingBy(msg -> msg.getFolder().getName()));
 
                 Store store = imapHelper.getStore(mailBox);
@@ -164,8 +180,8 @@ public class ImapAPIServiceBean implements ImapAPIService {
         }, "extracting attachments");
     }
 
-    private MailMessageDto toDto(MailBox mailBox, String folderName, long uid, IMAPMessage nativeMessage) throws MessagingException {
-        MailMessageDto dto = new MailMessageDto();
+    private ImapMessageDto toDto(ImapMailBox mailBox, String folderName, long uid, IMAPMessage nativeMessage) throws MessagingException {
+        ImapMessageDto dto = new ImapMessageDto();
         dto.setUid(uid);
         dto.setFrom(getAddressList(nativeMessage.getFrom()).toString());
         dto.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
@@ -191,7 +207,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
 
     @Override
     public void deleteMessage(ImapMessageRef messageRef) throws MessagingException {
-        MailBox mailBox = messageRef.getFolder().getMailBox();
+        ImapMailBox mailBox = messageRef.getFolder().getMailBox();
         Store store = imapHelper.getStore(mailBox);
         try {
 
@@ -210,7 +226,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
 
     @Override
     public void moveMessage(ImapMessageRef ref, String folderName) throws MessagingException {
-        MailBox mailBox = ref.getFolder().getMailBox();
+        ImapMailBox mailBox = ref.getFolder().getMailBox();
         Store store = imapHelper.getStore(mailBox);
         try {
             doMove(ref, folderName, mailBox, store);
@@ -220,7 +236,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
 
     }
 
-    private void doMove(ImapMessageRef ref, String newFolderName, MailBox mailBox, Store store) throws MessagingException {
+    private void doMove(ImapMessageRef ref, String newFolderName, ImapMailBox mailBox, Store store) throws MessagingException {
         Message message = consumeMessage(ref, msg -> msg, "Get message#" + ref.getMsgUid());
         IMAPFolder newFolder = (IMAPFolder) store.getFolder(newFolderName);
         imapHelper.doWithFolder(
@@ -261,7 +277,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     @Override
-    public void setFlag(ImapMessageRef messageRef, Flag flag, boolean set) throws MessagingException {
+    public void setFlag(ImapMessageRef messageRef, ImapFlag flag, boolean set) throws MessagingException {
         consumeMessage(messageRef, msg -> {
             msg.setFlags(flag.getFlags(), set);
             return null;
@@ -269,7 +285,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     private <T> T consumeMessage(ImapMessageRef ref, ImapHelper.MessageFunction<IMAPMessage, T> consumer, String actionDescription) throws MessagingException {
-        MailBox mailBox = ref.getFolder().getMailBox();
+        ImapMailBox mailBox = ref.getFolder().getMailBox();
         String folderName = ref.getFolder().getName();
         long uid = ref.getMsgUid();
         Store store = imapHelper.getStore(mailBox);
@@ -338,15 +354,15 @@ public class ImapAPIServiceBean implements ImapAPIService {
         return flagNames;
     }
 
-    private MailFolderDto map(IMAPFolder folder) throws MessagingException {
-        List<MailFolderDto> subFolders = new ArrayList<>();
+    private ImapFolderDto map(IMAPFolder folder) throws MessagingException {
+        List<ImapFolderDto> subFolders = new ArrayList<>();
 
         if (imapHelper.canHoldFolders(folder)) {
             for (Folder childFolder : folder.list()) {
                 subFolders.add(map((IMAPFolder) childFolder));
             }
         }
-        MailFolderDto result = new MailFolderDto(
+        ImapFolderDto result = new ImapFolderDto(
                 folder.getName(),
                 folder.getFullName(),
                 imapHelper.canHoldMessages(folder),

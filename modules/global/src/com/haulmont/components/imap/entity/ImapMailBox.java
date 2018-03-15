@@ -13,9 +13,9 @@ import com.haulmont.cuba.core.entity.FileDescriptor;
 import javax.validation.constraints.NotNull;
 
 @NamePattern("%s:%s|host,port")
-@Table(name = "MAILCOMPONENT_MAIL_BOX")
-@Entity(name = "mailcomponent$MailBox")
-public class MailBox extends StandardEntity {
+@Table(name = "MAILCOMPONENT_IMAP_MAIL_BOX")
+@Entity(name = "mailcomponent$ImapMailBox")
+public class ImapMailBox extends StandardEntity {
     private static final long serialVersionUID = -1001337267552497620L;
 
     @Column(name = "HOST", nullable = false)
@@ -44,7 +44,7 @@ public class MailBox extends StandardEntity {
     @OnDelete(DeletePolicy.CASCADE)
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "AUTHENTICATION_ID")
-    protected MailSimpleAuthentication authentication;
+    protected ImapSimpleAuthentication authentication;
 
     @Column(name = "POLL_INTERVAL", nullable = false)
     protected Integer pollInterval;
@@ -65,10 +65,28 @@ public class MailBox extends StandardEntity {
     @OnDelete(DeletePolicy.CASCADE)
     @Composition
     @OneToMany(mappedBy = "mailBox", cascade = { CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
-    protected List<MailFolder> folders;
+    protected List<ImapFolder> folders;
 
     @Transient
     private Boolean newEntity = false;
+
+    public List<ImapFolder> getFolders() {
+        return folders;
+    }
+
+    public void setFolders(List<ImapFolder> folders) {
+        this.folders = folders;
+    }
+
+
+    public ImapSimpleAuthentication getAuthentication() {
+        return authentication;
+    }
+
+    public void setAuthentication(ImapSimpleAuthentication authentication) {
+        this.authentication = authentication;
+    }
+
 
     public void setUpdateSliceSize(Integer updateSliceSize) {
         this.updateSliceSize = updateSliceSize;
@@ -104,20 +122,20 @@ public class MailBox extends StandardEntity {
     }
 
 
-    public MailAuthenticationMethod getAuthenticationMethod() {
-        return authenticationMethod == null ? null : MailAuthenticationMethod.fromId(authenticationMethod);
+    public ImapAuthenticationMethod getAuthenticationMethod() {
+        return authenticationMethod == null ? null : ImapAuthenticationMethod.fromId(authenticationMethod);
     }
 
-    public void setAuthenticationMethod(MailAuthenticationMethod authenticationMethod) {
+    public void setAuthenticationMethod(ImapAuthenticationMethod authenticationMethod) {
         this.authenticationMethod = authenticationMethod == null ? null : authenticationMethod.getId();
     }
 
 
-    public MailSecureMode getSecureMode() {
-        return secureMode == null ? null : MailSecureMode.fromId(secureMode);
+    public ImapSecureMode getSecureMode() {
+        return secureMode == null ? null : ImapSecureMode.fromId(secureMode);
     }
 
-    public void setSecureMode(MailSecureMode secureMode) {
+    public void setSecureMode(ImapSecureMode secureMode) {
         this.secureMode = secureMode == null ? null : secureMode.getId();
     }
 
@@ -148,14 +166,6 @@ public class MailBox extends StandardEntity {
     }
 
 
-    public void setAuthentication(MailSimpleAuthentication authentication) {
-        this.authentication = authentication;
-    }
-
-    public MailSimpleAuthentication getAuthentication() {
-        return authentication;
-    }
-
 
 
 
@@ -173,14 +183,6 @@ public class MailBox extends StandardEntity {
 
     public Integer getPollInterval() {
         return pollInterval;
-    }
-
-    public void setFolders(List<MailFolder> folders) {
-        this.folders = folders;
-    }
-
-    public List<MailFolder> getFolders() {
-        return folders;
     }
 
     public Boolean getNewEntity() {

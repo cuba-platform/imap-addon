@@ -1,14 +1,14 @@
-package com.haulmont.components.imap.web.mailbox;
+package com.haulmont.components.imap.web.imapmailbox;
 
 import com.haulmont.components.imap.entity.*;
 import com.haulmont.components.imap.service.ImapAPIService;
 import com.haulmont.bali.util.ParamsMap;
-import com.haulmont.components.imap.entity.MailAuthenticationMethod;
-import com.haulmont.components.imap.entity.MailSimpleAuthentication;
+import com.haulmont.components.imap.entity.ImapAuthenticationMethod;
+import com.haulmont.components.imap.entity.ImapSimpleAuthentication;
 import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.AbstractEditor;
-import com.haulmont.components.imap.entity.MailBox;
+import com.haulmont.components.imap.entity.ImapMailBox;
 import com.haulmont.cuba.gui.components.FieldGroup;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
@@ -19,7 +19,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class MailBoxEdit extends AbstractEditor<MailBox> {
+public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     @Inject
     private FieldGroup mainParams;
@@ -31,10 +31,10 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
     private Metadata metadata;
 
     @Inject
-    private Datasource<MailBox> mailBoxDs;
+    private Datasource<ImapMailBox> mailBoxDs;
 
     @Inject
-    private CollectionDatasource<MailFolder, UUID> foldersDs;
+    private CollectionDatasource<ImapFolder, UUID> foldersDs;
 
     @Inject
     private DataManager dm;
@@ -49,10 +49,10 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
     }
 
     public void selectTrashFolder() {
-        MailBox mailBox = getItem();
+        ImapMailBox mailBox = getItem();
         Boolean newEntity = mailBox.getNewEntity();
         AbstractEditor selectFolders = openEditor(
-                "mailcomponent$MailBox.trashFolder",
+                "mailcomponent$ImapMailBox.trashFolder",
                 mailBox,
                 WindowManager.OpenType.THIS_TAB,
                 ParamsMap.of("mailBox", mailBox),
@@ -62,10 +62,10 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
     }
 
     public void selectFolders() {
-        MailBox mailBox = getItem();
+        ImapMailBox mailBox = getItem();
         Boolean newEntity = mailBox.getNewEntity();
         AbstractEditor selectFolders = openEditor(
-                "mailcomponent$MailBox.folders",
+                "mailcomponent$ImapMailBox.folders",
                 mailBox,
                 WindowManager.OpenType.THIS_TAB,
                 ParamsMap.of("mailBox", mailBox),
@@ -78,10 +78,10 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
     }
 
     @Override
-    protected void initNewItem(MailBox item) {
-        item.setAuthenticationMethod(MailAuthenticationMethod.SIMPLE);
+    protected void initNewItem(ImapMailBox item) {
+        item.setAuthenticationMethod(ImapAuthenticationMethod.SIMPLE);
         item.setPollInterval(10 * 60);
-        item.setAuthentication(metadata.create(MailSimpleAuthentication.class));
+        item.setAuthentication(metadata.create(ImapSimpleAuthentication.class));
         item.setNewEntity(true);
     }
 
@@ -96,13 +96,12 @@ public class MailBoxEdit extends AbstractEditor<MailBox> {
         });
 
         addCloseWithCommitListener(() -> {
-            MailBox mailBox = getItem();
+            ImapMailBox mailBox = getItem();
 
-
-            List<MailFolder> toCommit = mailBox.getFolders().stream().filter(PersistenceHelper::isNew).collect(Collectors.toList());
-            List<MailFolder> toDelete = dm.loadList(LoadContext.create(MailFolder.class).setQuery(
+            List<ImapFolder> toCommit = mailBox.getFolders().stream().filter(PersistenceHelper::isNew).collect(Collectors.toList());
+            List<ImapFolder> toDelete = dm.loadList(LoadContext.create(ImapFolder.class).setQuery(
                     LoadContext.createQuery(
-                            "select f from mailcomponent$MailFolder f where f.mailBox.id = :boxId"
+                            "select f from mailcomponent$ImapFolder f where f.mailBox.id = :boxId"
                     ).setParameter("boxId", mailBox))).stream()
                     .filter(f -> !mailBox.getFolders().contains(f))
                     .collect(Collectors.toList());

@@ -25,7 +25,7 @@ public class ImapMessageRef extends BaseUuidEntity {
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "FOLDER_ID")
-    protected MailFolder folder;
+    protected ImapFolder folder;
 
     @NotNull
     @Column(name = "MSG_UID", nullable = false)
@@ -62,6 +62,15 @@ public class ImapMessageRef extends BaseUuidEntity {
     @Column(name = "UPDATED_TS", nullable = false)
     protected Date updatedTs;
 
+    public ImapFolder getFolder() {
+        return folder;
+    }
+
+    public void setFolder(ImapFolder folder) {
+        this.folder = folder;
+    }
+
+
     public String getReferenceId() {
         return referenceId;
     }
@@ -87,14 +96,6 @@ public class ImapMessageRef extends BaseUuidEntity {
         return caption;
     }
 
-
-    public void setFolder(MailFolder folder) {
-        this.folder = folder;
-    }
-
-    public MailFolder getFolder() {
-        return folder;
-    }
 
 
     public void setUpdatedTs(Date updatedTs) {
