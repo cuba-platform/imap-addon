@@ -1,7 +1,9 @@
 package com.haulmont.components.imap.api.scheduling;
 
 import com.haulmont.components.imap.config.ImapConfig;
+import com.haulmont.components.imap.core.FolderTask;
 import com.haulmont.components.imap.core.ImapHelper;
+import com.haulmont.components.imap.core.MsgHeader;
 import com.haulmont.components.imap.entity.*;
 import com.haulmont.components.imap.events.*;
 import com.haulmont.cuba.core.EntityManager;
@@ -179,7 +181,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             List<BaseImapEvent> imapEvents = imapHelper.doWithFolder(
                     mailBox,
                     folder,
-                    new ImapHelper.FolderTask<>(
+                    new FolderTask<>(
                             "updating messages",
                             true,
                             true,
@@ -226,11 +228,11 @@ public class ImapScheduling implements ImapSchedulingAPI {
                         .setViewName("msg-ref-full")
                         .getResultList();
 
-                List<ImapHelper.MsgHeader> imapMessages = imapHelper.getAllByUids(
+                List<MsgHeader> imapMessages = imapHelper.getAllByUids(
                         folder, messages.stream().mapToLong(ImapMessageRef::getMsgUid).toArray()
                 );
-                Map<Long, ImapHelper.MsgHeader> headersByUid = new HashMap<>(imapMessages.size());
-                for (ImapHelper.MsgHeader msg : imapMessages) {
+                Map<Long, MsgHeader> headersByUid = new HashMap<>(imapMessages.size());
+                for (MsgHeader msg : imapMessages) {
                     headersByUid.put(msg.getUid(), msg);
                 }
 
@@ -244,8 +246,8 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
         }
 
-        private List<BaseImapEvent> updateMessage(EntityManager em, ImapMessageRef msgRef, Map<Long, ImapHelper.MsgHeader> msgsByUid) {
-            ImapHelper.MsgHeader newMsgHeader = msgsByUid.get(msgRef.getMsgUid());
+        private List<BaseImapEvent> updateMessage(EntityManager em, ImapMessageRef msgRef, Map<Long, MsgHeader> msgsByUid) {
+            MsgHeader newMsgHeader = msgsByUid.get(msgRef.getMsgUid());
             if (newMsgHeader == null) {
                 em.remove(msgRef);
                 return cubaFolder.hasEvent(ImapEventType.EMAIL_DELETED)
@@ -323,13 +325,13 @@ public class ImapScheduling implements ImapSchedulingAPI {
             List<NewEmailImapEvent> imapEvents = imapHelper.doWithFolder(
                     mailBox,
                     folder,
-                    new ImapHelper.FolderTask<>(
+                    new FolderTask<>(
                             "get new messages",
                             true,
                             true,
                             f -> {
                                 if (imapHelper.canHoldMessages(folder)) {
-                                    List<ImapHelper.MsgHeader> imapMessages = imapHelper.search(
+                                    List<MsgHeader> imapMessages = imapHelper.search(
                                             folder, new NotTerm(new FlagTerm(cubaFlags(mailBox), true))
                                     );
 
@@ -347,14 +349,14 @@ public class ImapScheduling implements ImapSchedulingAPI {
             fireEvents(cubaFolder, imapEvents);
         }
 
-        private List<NewEmailImapEvent> saveNewMessages(List<ImapHelper.MsgHeader> imapMessages) {
+        private List<NewEmailImapEvent> saveNewMessages(List<MsgHeader> imapMessages) {
             List<NewEmailImapEvent> newEmailImapEvents = new ArrayList<>(imapMessages.size());
             boolean toCommit = false;
             authentication.begin();
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
 
-                for (ImapHelper.MsgHeader msg : imapMessages) {
+                for (MsgHeader msg : imapMessages) {
                     ImapMessageRef newMessage = insertNewMessage(em, msg);
                     toCommit |= (newMessage != null);
 
@@ -372,7 +374,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             return newEmailImapEvents;
         }
 
-        private ImapMessageRef insertNewMessage(EntityManager em, ImapHelper.MsgHeader msg) {
+        private ImapMessageRef insertNewMessage(EntityManager em, MsgHeader msg) {
             long uid = msg.getUid();
             Flags flags = msg.getFlags();
             String caption = msg.getCaption();

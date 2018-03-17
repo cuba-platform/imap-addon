@@ -1,21 +1,23 @@
 package com.haulmont.components.imap.api;
 
-import com.haulmont.components.imap.api.ImapAPI;
+import com.haulmont.components.imap.core.FolderTask;
 import com.haulmont.components.imap.core.ImapHelper;
+import com.haulmont.components.imap.core.MessageFunction;
+import com.haulmont.components.imap.core.Task;
 import com.haulmont.components.imap.dto.ImapFolderDto;
 import com.haulmont.components.imap.dto.ImapMessageDto;
 import com.haulmont.components.imap.entity.ImapMailBox;
+import com.haulmont.components.imap.entity.ImapMessageAttachmentRef;
 import com.haulmont.components.imap.entity.ImapMessageRef;
 import com.haulmont.components.imap.service.ImapAPIService;
-import com.haulmont.components.imap.api.ImapFlag;
-import com.haulmont.cuba.core.app.FileStorageAPI;
-import com.haulmont.cuba.core.entity.FileDescriptor;
-import com.haulmont.cuba.core.global.FileStorageException;
+import com.haulmont.cuba.core.EntityManager;
+import com.haulmont.cuba.core.Persistence;
+import com.haulmont.cuba.core.Transaction;
+import com.haulmont.cuba.core.TypedQuery;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.TimeSource;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -26,7 +28,6 @@ import javax.inject.Inject;
 import javax.mail.*;
 import javax.mail.internet.MimeUtility;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -40,7 +41,7 @@ public class Imap implements ImapAPI {
     private ImapHelper imapHelper;
 
     @Inject
-    private FileStorageAPI fileStorageAPI;
+    private Persistence persistence;
 
     @Inject
     private Metadata metadata;
@@ -109,7 +110,7 @@ public class Imap implements ImapAPI {
                     imapHelper.doWithFolder(
                             mailBox,
                             folder,
-                            new ImapHelper.FolderTask<>(
+                            new FolderTask<>(
                                     "fetch messages",
                                     false,
                                     true,
@@ -137,44 +138,83 @@ public class Imap implements ImapAPI {
     }
 
     @Override
-    public Collection<FileDescriptor> fetchAttachments(ImapMessageRef ref) throws MessagingException {
-        return consumeMessage(ref, msg -> {
-            if (!msg.getContentType().contains("multipart")) {
-                return Collections.emptyList();
+    public Collection<ImapMessageAttachmentRef> fetchAttachments(ImapMessageRef ref) throws MessagingException {
+        if (Boolean.TRUE.equals(ref.getAttachmentsLoaded())) {
+            try (Transaction tx = persistence.createTransaction()) {
+                EntityManager em = persistence.getEntityManager();
+                TypedQuery<ImapMessageAttachmentRef> query = em.createQuery(
+                        "select a from imapcomponent$ImapMessageAttachmentRef a where a.imapMessageRef.id = :msg",
+                        ImapMessageAttachmentRef.class
+                );
+                return query.getResultList();
             }
+        }
 
-            Multipart multipart;
-            try {
-                msg.setPeek(true);
-                multipart = (Multipart) msg.getContent();
-            } catch (IOException e) {
-                log.warn("can't extract attachments:", e);
+        ImapMailBox mailBox = ref.getFolder().getMailBox();
+        String folderName = ref.getFolder().getName();
+        Store store = imapHelper.getStore(mailBox);
+        try {
+            IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
+            Task<ImapMessageRef, Collection<ImapMessageAttachmentRef>> task = new Task<>(
+                    "extracting attachments", true, msgRef -> {
+                    IMAPMessage msg = (IMAPMessage) folder.getMessageByUID(msgRef.getMsgUid());
 
-                return Collections.emptyList();
-            }
+                Collection<ImapMessageAttachmentRef> attachmentRefs = makeAttachmentRefs(msg);
 
-            List<FileDescriptor> result = new ArrayList<>();
-            for (int i = 0; i < multipart.getCount(); i++) {
-                BodyPart bodyPart = multipart.getBodyPart(i);
-                if (!Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) &&
-                        StringUtils.isBlank(bodyPart.getFileName())) {
-                    continue; // dealing with attachments only
+                msgRef.setAttachmentsLoaded(true);
+
+
+                try (Transaction tx = persistence.createTransaction()) {
+                    EntityManager em = persistence.getEntityManager();
+                    attachmentRefs.forEach(it -> {
+                        it.setImapMessageRef(msgRef);
+                        em.persist(it);
+                    });
+                    em.persist(msgRef);
+                    tx.commit();
                 }
-                try (InputStream is = bodyPart.getInputStream()) {
-                    FileDescriptor fileDescriptor = metadata.create(FileDescriptor.class);
-                    fileDescriptor.setName(bodyPart.getFileName());
-                    fileDescriptor.setSize((long) bodyPart.getSize());
-                    fileDescriptor.setExtension(FilenameUtils.getExtension(bodyPart.getFileName()));
-                    fileDescriptor.setCreateDate(timeSource.currentTimestamp());
-                    fileStorageAPI.saveStream(fileDescriptor, is);
-                    result.add(fileDescriptor);
-                } catch (IOException | FileStorageException e) {
-                    log.warn("can't extract attachment#" + i, e);
-                }
-            }
 
-            return result;
-        }, "extracting attachments");
+                return attachmentRefs;
+
+            });
+            return imapHelper.doWithMsg(ref, folder, task);
+        } finally {
+            store.close();
+        }
+    }
+
+    private Collection<ImapMessageAttachmentRef> makeAttachmentRefs(IMAPMessage msg) throws MessagingException {
+
+        if (!msg.getContentType().contains("multipart")) {
+            return Collections.emptyList();
+        }
+
+        Multipart multipart;
+        try {
+            msg.setPeek(true);
+            multipart = (Multipart) msg.getContent();
+        } catch (IOException e) {
+            log.warn("can't extract attachments:", e);
+
+            return Collections.emptyList();
+        }
+
+        List<ImapMessageAttachmentRef> result = new ArrayList<>();
+        for (int i = 0; i < multipart.getCount(); i++) {
+            BodyPart bodyPart = multipart.getBodyPart(i);
+            if (!Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) &&
+                    StringUtils.isBlank(bodyPart.getFileName())) {
+                continue; // dealing with attachments only
+            }
+            ImapMessageAttachmentRef attachmentRef = metadata.create(ImapMessageAttachmentRef.class);
+            attachmentRef.setName(bodyPart.getFileName());
+            attachmentRef.setFileSize((long) bodyPart.getSize());
+            attachmentRef.setCreatedTs(timeSource.currentTimestamp());
+            attachmentRef.setOrderNumber(i);
+            result.add(attachmentRef);
+        }
+
+        return result;
     }
 
     private ImapMessageDto toDto(ImapMailBox mailBox, String folderName, long uid, IMAPMessage nativeMessage) throws MessagingException {
@@ -239,7 +279,7 @@ public class Imap implements ImapAPI {
         imapHelper.doWithFolder(
                 mailBox,
                 newFolder,
-                new ImapHelper.FolderTask<>(
+                new FolderTask<>(
                         "move message to folder " + newFolderName,
                         false,
                         true,
@@ -281,7 +321,7 @@ public class Imap implements ImapAPI {
         }, "Set flag " + flag + " of message " + messageRef.getMsgUid() + " to " + set);
     }
 
-    private <T> T consumeMessage(ImapMessageRef ref, ImapHelper.MessageFunction<IMAPMessage, T> consumer, String actionDescription) throws MessagingException {
+    private <T> T consumeMessage(ImapMessageRef ref, MessageFunction<IMAPMessage, T> consumer, String actionDescription) throws MessagingException {
         ImapMailBox mailBox = ref.getFolder().getMailBox();
         String folderName = ref.getFolder().getName();
         long uid = ref.getMsgUid();
@@ -292,7 +332,7 @@ public class Imap implements ImapAPI {
             return imapHelper.doWithFolder(
                     mailBox,
                     folder,
-                    new ImapHelper.FolderTask<>(
+                    new FolderTask<>(
                             actionDescription,
                             true,
                             true,

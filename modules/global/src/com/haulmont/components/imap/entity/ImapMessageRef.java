@@ -28,6 +28,10 @@ public class ImapMessageRef extends BaseUuidEntity {
     protected ImapFolder folder;
 
     @NotNull
+    @Column(name = "ATTACHMENTS_LOADED", nullable = false)
+    protected Boolean attachmentsLoaded = false;
+
+    @NotNull
     @Column(name = "MSG_UID", nullable = false)
     protected Long msgUid;
 
@@ -61,6 +65,15 @@ public class ImapMessageRef extends BaseUuidEntity {
     @Temporal(TemporalType.TIME)
     @Column(name = "UPDATED_TS", nullable = false)
     protected Date updatedTs;
+
+    public void setAttachmentsLoaded(Boolean attachmentsLoaded) {
+        this.attachmentsLoaded = attachmentsLoaded;
+    }
+
+    public Boolean getAttachmentsLoaded() {
+        return attachmentsLoaded;
+    }
+
 
     public ImapFolder getFolder() {
         return folder;

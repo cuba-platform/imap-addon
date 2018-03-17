@@ -6,8 +6,8 @@ import com.haulmont.components.imap.core.ImapHelper;
 import com.haulmont.components.imap.dto.ImapFolderDto;
 import com.haulmont.components.imap.dto.ImapMessageDto;
 import com.haulmont.components.imap.entity.ImapMailBox;
+import com.haulmont.components.imap.entity.ImapMessageAttachmentRef;
 import com.haulmont.components.imap.entity.ImapMessageRef;
-import com.haulmont.cuba.core.entity.FileDescriptor;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
@@ -50,7 +50,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     @Override
-    public Collection<FileDescriptor> fetchAttachments(ImapMessageRef ref) throws MessagingException {
+    public Collection<ImapMessageAttachmentRef> fetchAttachments(ImapMessageRef ref) throws MessagingException {
         return imapAPI.fetchAttachments(ref);
     }
 

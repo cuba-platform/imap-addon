@@ -9,5 +9,6 @@
         <class>com.haulmont.components.imap.entity.ImapSimpleAuthentication</class>
         <class>com.haulmont.components.imap.entity.ImapMessageRef</class>
         <class>com.haulmont.components.imap.entity.ImapFolderEvent</class>
+        <class>com.haulmont.components.imap.entity.ImapMessageAttachmentRef</class>
     </persistence-unit>
 </persistence>

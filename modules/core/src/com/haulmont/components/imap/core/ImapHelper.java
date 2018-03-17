@@ -1,7 +1,9 @@
 package com.haulmont.components.imap.core;
 
 import com.haulmont.components.imap.config.ImapConfig;
+import com.haulmont.components.imap.entity.ImapFolder;
 import com.haulmont.components.imap.entity.ImapMailBox;
+import com.haulmont.components.imap.entity.ImapMessageRef;
 import com.haulmont.components.imap.entity.ImapSecureMode;
 import com.haulmont.cuba.core.global.FileLoader;
 import com.haulmont.cuba.core.global.FileStorageException;
@@ -47,9 +49,9 @@ public class ImapHelper {
     public static final String IN_REPLY_TO_HEADER = "In-Reply-To";
     public static final String SUBJECT_HEADER = "Subject";
 
-    private volatile ConcurrentMap<String, Object> folderLocks = new ConcurrentHashMap<>();
-
-    private static final Object lock = new Object();
+    private volatile ConcurrentMap<MailboxKey, Object> mailBoxLocks = new ConcurrentHashMap<>();
+    private volatile ConcurrentMap<FolderKey, Object> folderLocks = new ConcurrentHashMap<>();
+    private volatile ConcurrentMap<MessageKey, Object> msgLocks = new ConcurrentHashMap<>();
 
     @Inject
     private FileLoader fileLoader;
@@ -109,7 +111,7 @@ public class ImapHelper {
     }
 
     public <T> T doWithFolder(ImapMailBox mailBox, IMAPFolder folder, FolderTask<T> task) {
-        String key = String.format("%s:%d[%s]", mailBox.getHost(), mailBox.getPort(), folder.getFullName());
+        FolderKey key = new FolderKey(new MailboxKey(mailBox.getHost(), mailBox.getPort()), folder.getFullName());
         folderLocks.putIfAbsent(key, new Object());
         Object lock = folderLocks.get(key);
         synchronized (lock) {
@@ -117,13 +119,12 @@ public class ImapHelper {
                 if (!folder.isOpen()) {
                     folder.open(Folder.READ_WRITE);
                 }
-                T result = task.action.apply(folder);
+                T result = task.getAction().apply(folder);
                 return task.isHasResult() ? result : null;
             } catch (MessagingException e) {
                 throw new RuntimeException(
-                        String.format("error performing task '%s' for folder '%s' in mailbox '%s:%d'",
-                                task.getDescription(), folder.getFullName(), mailBox.getHost(), mailBox.getPort()
-                        ), e
+                        String.format("error performing task '%s' for folder with key '%s'", task.getDescription(), key),
+                        e
                 );
             } finally {
                 if (task.isCloseFolder()) {
@@ -133,6 +134,31 @@ public class ImapHelper {
                         log.warn("Can't close folder {} for mailBox {}:{}", folder.getFullName(), mailBox.getHost(), mailBox.getPort());
                     }
                 }
+            }
+
+        }
+    }
+
+    public <T> T doWithMsg(ImapMessageRef messageRef, IMAPFolder imapFolder, Task<ImapMessageRef, T> task) {
+        ImapFolder folder = messageRef.getFolder();
+        ImapMailBox mailBox = folder.getMailBox();
+        MessageKey key = new MessageKey(
+                new FolderKey(new MailboxKey(mailBox.getHost(), mailBox.getPort()), folder.getName()),
+                messageRef.getMsgUid()
+        );
+        msgLocks.putIfAbsent(key, new Object());
+        Object lock = msgLocks.get(key);
+        synchronized (lock) {
+            try {
+                if (!imapFolder.isOpen()) {
+                    imapFolder.open(Folder.READ_WRITE);
+                }
+                T result = task.getAction().apply(messageRef);
+                return task.isHasResult() ? result : null;
+            } catch (MessagingException e) {
+                throw new RuntimeException(
+                        String.format("error performing task '%s' for msg with key '%s'", task.getDescription(), key), e
+                );
             }
 
         }
@@ -432,122 +458,6 @@ public class ImapHelper {
 
         public boolean isHtml() {
             return html;
-        }
-    }
-
-    public static class FolderTask<T> {
-        private String description;
-        private MessageFunction<IMAPFolder, T> action;
-        private boolean hasResult;
-        private boolean closeFolder;
-
-        public FolderTask(String description, boolean hasResult, boolean closeFolder, MessageFunction<IMAPFolder, T> action) {
-            this.description = description;
-            this.action = action;
-            this.hasResult = hasResult;
-            this.closeFolder = closeFolder;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        public MessageFunction<IMAPFolder, T> getAction() {
-            return action;
-        }
-
-        public void setAction(MessageFunction<IMAPFolder, T> action) {
-            this.action = action;
-        }
-
-        public boolean isHasResult() {
-            return hasResult;
-        }
-
-        public void setHasResult(boolean hasResult) {
-            this.hasResult = hasResult;
-        }
-
-        public boolean isCloseFolder() {
-            return closeFolder;
-        }
-
-        public void setCloseFolder(boolean closeFolder) {
-            this.closeFolder = closeFolder;
-        }
-    }
-
-    @FunctionalInterface
-    public interface MessageFunction<INPUT, OUTPUT> {
-        OUTPUT apply(INPUT input) throws MessagingException;
-    }
-
-    public static class MsgHeader {
-        private Long uid;
-        private Flags flags;
-        private String caption;
-        private String refId;
-        private Long threadId;
-
-        public MsgHeader() {
-        }
-
-        public MsgHeader(Long uid, Flags flags, String caption) {
-            this.uid = uid;
-            this.flags = flags;
-            this.caption = caption;
-        }
-
-        public MsgHeader(Long uid, Flags flags, String caption, String refId, Long threadId) {
-            this.uid = uid;
-            this.flags = flags;
-            this.caption = caption;
-            this.refId = refId;
-            this.threadId = threadId;
-        }
-
-        public Long getUid() {
-            return uid;
-        }
-
-        public void setUid(Long uid) {
-            this.uid = uid;
-        }
-
-        public Flags getFlags() {
-            return flags;
-        }
-
-        public void setFlags(Flags flags) {
-            this.flags = flags;
-        }
-
-        public String getCaption() {
-            return caption;
-        }
-
-        public void setCaption(String caption) {
-            this.caption = caption;
-        }
-
-        public String getRefId() {
-            return refId;
-        }
-
-        public void setRefId(String refId) {
-            this.refId = refId;
-        }
-
-        public Long getThreadId() {
-            return threadId;
-        }
-
-        public void setThreadId(Long threadId) {
-            this.threadId = threadId;
         }
     }
 

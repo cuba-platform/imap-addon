@@ -64,6 +64,7 @@ create table IMAPCOMPONENT_IMAP_MESSAGE_REF (
     ID varchar(36) not null,
     --
     FOLDER_ID varchar(36),
+    ATTACHMENTS_LOADED boolean not null,
     MSG_UID bigint not null,
     THREAD_ID bigint,
     REFERENCE_ID varchar(255),
@@ -96,3 +97,16 @@ create table IMAPCOMPONENT_IMAP_FOLDER_EVENT (
     primary key (ID)
 )^
 -- end IMAPCOMPONENT_IMAP_FOLDER_EVENT
+-- begin IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT_REF
+create table IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT_REF (
+    ID varchar(36) not null,
+    --
+    IMAP_MESSAGE_REF_ID varchar(36) not null,
+    CREATED_TS time not null,
+    ORDER_NUMBER integer not null,
+    NAME varchar(255) not null,
+    FILE_SIZE bigint not null,
+    --
+    primary key (ID)
+)^
+-- end IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT_REF
