@@ -1,4 +1,4 @@
-package com.haulmont.components.imap.scheduling;
+package com.haulmont.components.imap.api.scheduling;
 
 import com.haulmont.components.imap.config.ImapConfig;
 import com.haulmont.components.imap.core.ImapHelper;

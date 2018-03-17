@@ -1,4 +1,4 @@
-package com.haulmont.components.imap.scheduling;
+package com.haulmont.components.imap.api.scheduling;
 
 public interface ImapSchedulingAPI {
     String NAME = "imapcomponent_ImapScheduling";

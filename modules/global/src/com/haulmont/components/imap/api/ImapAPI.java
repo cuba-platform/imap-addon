@@ -1,19 +1,17 @@
-package com.haulmont.components.imap.service;
+package com.haulmont.components.imap.api;
 
-import com.haulmont.components.imap.api.ImapFlag;
 import com.haulmont.components.imap.dto.ImapFolderDto;
 import com.haulmont.components.imap.dto.ImapMessageDto;
-import com.haulmont.components.imap.entity.ImapMessageRef;
 import com.haulmont.components.imap.entity.ImapMailBox;
+import com.haulmont.components.imap.entity.ImapMessageRef;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 
 import javax.mail.MessagingException;
 import java.util.Collection;
 
-public interface ImapAPIService {
-    String NAME = "imapcomponent_ImapAPIService";
+public interface ImapAPI {
+    String NAME = "imapcomponent_ImapAPI";
 
-    void testConnection(ImapMailBox box) throws MessagingException;
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box) throws MessagingException;
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) throws MessagingException;
 
@@ -26,5 +24,4 @@ public interface ImapAPIService {
     void markAsRead(ImapMessageRef messageRef) throws MessagingException;
     void markAsImportant(ImapMessageRef messageRef) throws MessagingException;
     void setFlag(ImapMessageRef messageRef, ImapFlag flag, boolean set) throws MessagingException;
-
 }

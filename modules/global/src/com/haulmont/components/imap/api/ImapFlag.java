@@ -1,4 +1,4 @@
-package com.haulmont.components.imap.service;
+package com.haulmont.components.imap.api;
 
 import javax.mail.Flags;
 import java.io.Serializable;
