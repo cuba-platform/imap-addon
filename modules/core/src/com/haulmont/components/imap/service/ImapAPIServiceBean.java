@@ -39,44 +39,6 @@ public class ImapAPIServiceBean implements ImapAPIService {
         return imapAPI.fetchFolders(box, folderNames);
     }
 
-    @Override
-    public ImapMessageDto fetchMessage(ImapMessageRef messageRef) throws MessagingException {
-        return imapAPI.fetchMessage(messageRef);
-    }
 
-    @Override
-    public Collection<ImapMessageDto> fetchMessages(Collection<ImapMessageRef> messageRefs) throws MessagingException {
-        return imapAPI.fetchMessages(messageRefs);
-    }
-
-    @Override
-    public Collection<ImapMessageAttachmentRef> fetchAttachments(ImapMessageRef ref) throws MessagingException {
-        return imapAPI.fetchAttachments(ref);
-    }
-
-    @Override
-    public void deleteMessage(ImapMessageRef messageRef) throws MessagingException {
-        imapAPI.deleteMessage(messageRef);
-    }
-
-    @Override
-    public void moveMessage(ImapMessageRef ref, String folderName) throws MessagingException {
-        imapAPI.moveMessage(ref, folderName);
-    }
-
-    @Override
-    public void markAsRead(ImapMessageRef messageRef) throws MessagingException {
-        imapAPI.markAsRead(messageRef);
-    }
-
-    @Override
-    public void markAsImportant(ImapMessageRef messageRef) throws MessagingException {
-        imapAPI.markAsImportant(messageRef);
-    }
-
-    @Override
-    public void setFlag(ImapMessageRef messageRef, ImapFlag flag, boolean set) throws MessagingException {
-        imapAPI.setFlag(messageRef, flag, set);
-    }
 
 }

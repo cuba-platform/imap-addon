@@ -138,14 +138,23 @@ public class Imap implements ImapAPI {
     }
 
     @Override
-    public Collection<ImapMessageAttachmentRef> fetchAttachments(ImapMessageRef ref) throws MessagingException {
+    public Collection<ImapMessageAttachmentRef> fetchAttachments(UUID messageRefId) throws MessagingException {
+        ImapMessageRef ref = null;
+        try (Transaction tx = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            ref = em.find(ImapMessageRef.class, messageRefId, "imap-msg-ref-full");
+            if (ref == null) {
+                throw new RuntimeException("Can't find msg#" + messageRefId);
+            }
+        }
+
         if (Boolean.TRUE.equals(ref.getAttachmentsLoaded())) {
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
                 TypedQuery<ImapMessageAttachmentRef> query = em.createQuery(
                         "select a from imapcomponent$ImapMessageAttachmentRef a where a.imapMessageRef.id = :msg",
                         ImapMessageAttachmentRef.class
-                );
+                ).setViewName("imap-msg-attachment-full");
                 return query.getResultList();
             }
         }

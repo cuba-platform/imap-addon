@@ -8,7 +8,7 @@
     <dsContext>
         <groupDatasource id="imapMessageRefsDs"
                          class="com.haulmont.components.imap.entity.ImapMessageRef"
-                         view="msg-ref-full">
+                         view="imap-msg-ref-full">
             <query>
                 <![CDATA[select e from imapcomponent$ImapMessageRef e]]>
             </query>

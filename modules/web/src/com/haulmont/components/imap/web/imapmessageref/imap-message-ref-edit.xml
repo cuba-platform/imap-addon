@@ -8,7 +8,7 @@
     <dsContext>
         <datasource id="imapMessageRefDs"
                     class="com.haulmont.components.imap.entity.ImapMessageRef"
-                    view="msg-ref-full"/>
+                    view="imap-msg-ref-full"/>
     </dsContext>
     <dialogMode height="600"
                 width="800"/>

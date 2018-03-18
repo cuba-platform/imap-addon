@@ -33,11 +33,16 @@
     </view>
     <view class="com.haulmont.components.imap.entity.ImapMessageRef"
           extends="_local"
-          name="msg-ref-full">
+          name="imap-msg-ref-full">
         <property name="folder"
                   view="_minimal">
             <property name="mailBox"
                       view="imap-mailBox-connect"/>
         </property>
+    </view>
+    <view class="com.haulmont.components.imap.entity.ImapMessageAttachmentRef"
+          extends="_local"
+          name="imap-msg-attachment-full">
+        <property name="imapMessageRef" view="imap-msg-ref-full" />
     </view>
 </views>

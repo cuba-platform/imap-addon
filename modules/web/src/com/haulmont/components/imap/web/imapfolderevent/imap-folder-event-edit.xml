@@ -3,7 +3,6 @@
         caption="msg://editorCaption"
         class="com.haulmont.components.imap.web.imapfolderevent.ImapFolderEventEdit"
         datasource="imapFolderEventDs"
-        focusComponent="gridScroll"
         messagesPack="com.haulmont.components.imap.web.imapfolderevent">
     <dsContext>
         <datasource id="imapFolderEventDs"

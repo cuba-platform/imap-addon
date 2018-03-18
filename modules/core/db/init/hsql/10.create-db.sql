@@ -64,7 +64,7 @@ create table IMAPCOMPONENT_IMAP_MESSAGE_REF (
     ID varchar(36) not null,
     --
     FOLDER_ID varchar(36),
-    ATTACHMENTS_LOADED boolean not null,
+    IS_ATL boolean not null,
     MSG_UID bigint not null,
     THREAD_ID bigint,
     REFERENCE_ID varchar(255),

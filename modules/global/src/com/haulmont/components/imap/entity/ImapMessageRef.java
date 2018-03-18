@@ -28,7 +28,7 @@ public class ImapMessageRef extends BaseUuidEntity {
     protected ImapFolder folder;
 
     @NotNull
-    @Column(name = "ATTACHMENTS_LOADED", nullable = false)
+    @Column(name = "IS_ATL", nullable = false)
     protected Boolean attachmentsLoaded = false;
 
     @NotNull

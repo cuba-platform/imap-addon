@@ -225,7 +225,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 )
                         .setParameter("mailFolderId", cubaFolder)
                         .setMaxResults(count)
-                        .setViewName("msg-ref-full")
+                        .setViewName("imap-msg-ref-full")
                         .getResultList();
 
                 List<MsgHeader> imapMessages = imapHelper.getAllByUids(

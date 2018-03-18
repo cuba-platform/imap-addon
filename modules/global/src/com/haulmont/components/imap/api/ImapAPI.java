@@ -8,6 +8,7 @@ import com.haulmont.components.imap.entity.ImapMessageRef;
 
 import javax.mail.MessagingException;
 import java.util.Collection;
+import java.util.UUID;
 
 public interface ImapAPI {
     String NAME = "imapcomponent_ImapAPI";
@@ -17,7 +18,7 @@ public interface ImapAPI {
 
     ImapMessageDto fetchMessage(ImapMessageRef messageRef) throws MessagingException;
     Collection<ImapMessageDto> fetchMessages(Collection<ImapMessageRef> messageRefs) throws MessagingException;
-    Collection<ImapMessageAttachmentRef> fetchAttachments(ImapMessageRef msg) throws MessagingException;
+    Collection<ImapMessageAttachmentRef> fetchAttachments(UUID msgRefId) throws MessagingException;
 
     void moveMessage(ImapMessageRef msg, String folderName) throws MessagingException;
     void deleteMessage(ImapMessageRef messageRef) throws MessagingException;
