@@ -154,7 +154,7 @@ public class Imap implements ImapAPI {
                 TypedQuery<ImapMessageAttachmentRef> query = em.createQuery(
                         "select a from imapcomponent$ImapMessageAttachmentRef a where a.imapMessageRef.id = :msg",
                         ImapMessageAttachmentRef.class
-                ).setViewName("imap-msg-attachment-full");
+                ).setParameter("msg", messageRefId).setViewName("imap-msg-attachment-full");
                 return query.getResultList();
             }
         }
@@ -170,7 +170,7 @@ public class Imap implements ImapAPI {
 
                 Collection<ImapMessageAttachmentRef> attachmentRefs = makeAttachmentRefs(msg);
 
-                msgRef.setAttachmentsLoaded(true);
+//                msgRef.setAttachmentsLoaded(true);
 
 
                 try (Transaction tx = persistence.createTransaction()) {
@@ -179,7 +179,8 @@ public class Imap implements ImapAPI {
                         it.setImapMessageRef(msgRef);
                         em.persist(it);
                     });
-                    em.persist(msgRef);
+                    em.createQuery("update imapcomponent$ImapMessageRef m set m.attachmentsLoaded = true where m.id = :msg")
+                    .setParameter("msg", messageRefId).executeUpdate();
                     tx.commit();
                 }
 
@@ -216,7 +217,13 @@ public class Imap implements ImapAPI {
                 continue; // dealing with attachments only
             }
             ImapMessageAttachmentRef attachmentRef = metadata.create(ImapMessageAttachmentRef.class);
-            attachmentRef.setName(bodyPart.getFileName());
+            String name = bodyPart.getFileName();
+            try {
+                name = MimeUtility.decodeText(name);
+            } catch (UnsupportedEncodingException e) {
+                log.warn("Can't decode name of attachment", e);
+            }
+            attachmentRef.setName(name);
             attachmentRef.setFileSize((long) bodyPart.getSize());
             attachmentRef.setCreatedTs(timeSource.currentTimestamp());
             attachmentRef.setOrderNumber(i);

@@ -338,6 +338,10 @@ public class ImapScheduling implements ImapSchedulingAPI {
                                     List<NewEmailImapEvent> newEmailImapEvents = saveNewMessages(imapMessages);
 
                                     Message[] messages = folder.getMessagesByUID(newEmailImapEvents.stream().mapToLong(NewEmailImapEvent::getMessageId).toArray());
+                                    //todo: remove this code for unsetting custom flags
+                                    for (NewEmailImapEvent event : newEmailImapEvents) {
+                                        unsetCustomFlags(event);
+                                    }
                                     folder.setFlags(messages, cubaFlags(mailBox), true);
                                     return newEmailImapEvents;
                                 }
@@ -347,6 +351,18 @@ public class ImapScheduling implements ImapSchedulingAPI {
             );
 
             fireEvents(cubaFolder, imapEvents);
+        }
+
+        private void unsetCustomFlags(NewEmailImapEvent event) throws MessagingException {
+            Message msg = folder.getMessageByUID(event.getMessageId());
+            Flags flags = new Flags();
+            String[] userFlags = msg.getFlags().getUserFlags();
+            for (String flag : userFlags) {
+                flags.add(flag);
+            }
+            if (userFlags.length > 0) {
+                msg.setFlags(flags, false);
+            }
         }
 
         private List<NewEmailImapEvent> saveNewMessages(List<MsgHeader> imapMessages) {
