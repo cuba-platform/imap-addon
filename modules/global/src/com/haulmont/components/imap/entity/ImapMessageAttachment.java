@@ -15,15 +15,15 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 @NamePattern("№%s: %s|orderNumber,name")
-@Table(name = "IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT_REF")
-@Entity(name = "imapcomponent$ImapMessageAttachmentRef")
-public class ImapMessageAttachmentRef extends BaseUuidEntity {
+@Table(name = "IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT")
+@Entity(name = "imapcomponent$ImapMessageAttachment")
+public class ImapMessageAttachment extends StandardEntity {
     private static final long serialVersionUID = -1046407519479636529L;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "IMAP_MESSAGE_REF_ID")
-    protected ImapMessageRef imapMessageRef;
+    @JoinColumn(name = "IMAP_MESSAGE_ID")
+    protected ImapMessage imapMessage;
 
     @Temporal(TemporalType.TIME)
     @NotNull
@@ -42,6 +42,16 @@ public class ImapMessageAttachmentRef extends BaseUuidEntity {
     @Column(name = "FILE_SIZE", nullable = false)
     protected Long fileSize;
 
+
+    public void setImapMessage(ImapMessage imapMessage) {
+        this.imapMessage = imapMessage;
+    }
+
+    public ImapMessage getImapMessage() {
+        return imapMessage;
+    }
+
+
     public void setCreatedTs(Date createdTs) {
         this.createdTs = createdTs;
     }
@@ -50,14 +60,6 @@ public class ImapMessageAttachmentRef extends BaseUuidEntity {
         return createdTs;
     }
 
-
-    public void setImapMessageRef(ImapMessageRef imapMessageRef) {
-        this.imapMessageRef = imapMessageRef;
-    }
-
-    public ImapMessageRef getImapMessageRef() {
-        return imapMessageRef;
-    }
 
     public void setOrderNumber(Integer orderNumber) {
         this.orderNumber = orderNumber;

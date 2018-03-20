@@ -59,25 +59,7 @@ create table IMAPCOMPONENT_IMAP_SIMPLE_AUTHENTICATION (
     primary key (ID)
 )^
 -- end IMAPCOMPONENT_IMAP_SIMPLE_AUTHENTICATION
--- begin IMAPCOMPONENT_IMAP_MESSAGE_REF
-create table IMAPCOMPONENT_IMAP_MESSAGE_REF (
-    ID uuid,
-    --
-    FOLDER_ID uuid,
-    IS_ATL boolean not null,
-    MSG_UID bigint not null,
-    THREAD_ID bigint,
-    REFERENCE_ID varchar(255),
-    CAPTION varchar(255) not null,
-    IS_DELETED boolean not null,
-    IS_FLAGGED boolean not null,
-    IS_ANSWERED boolean not null,
-    IS_SEEN boolean not null,
-    UPDATED_TS time not null,
-    --
-    primary key (ID)
-)^
--- end IMAPCOMPONENT_IMAP_MESSAGE_REF
+
 -- begin IMAPCOMPONENT_IMAP_FOLDER_EVENT
 create table IMAPCOMPONENT_IMAP_FOLDER_EVENT (
     ID uuid,
@@ -97,11 +79,41 @@ create table IMAPCOMPONENT_IMAP_FOLDER_EVENT (
     primary key (ID)
 )^
 -- end IMAPCOMPONENT_IMAP_FOLDER_EVENT
--- begin IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT_REF
-create table IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT_REF (
+
+-- begin IMAPCOMPONENT_IMAP_MESSAGE
+create table IMAPCOMPONENT_IMAP_MESSAGE (
     ID uuid,
+    VERSION integer not null,
+    CREATE_TS timestamp,
+    CREATED_BY varchar(50),
+    UPDATE_TS timestamp,
+    UPDATED_BY varchar(50),
+    DELETE_TS timestamp,
+    DELETED_BY varchar(50),
     --
-    IMAP_MESSAGE_REF_ID uuid not null,
+    FOLDER_ID uuid,
+    FLAGS text,
+    IS_ATL boolean not null,
+    MSG_UID bigint not null,
+    THREAD_ID bigint,
+    REFERENCE_ID varchar(255),
+    CAPTION varchar(255) not null,
+    --
+    primary key (ID)
+)^
+-- end IMAPCOMPONENT_IMAP_MESSAGE
+-- begin IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT
+create table IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT (
+    ID uuid,
+    VERSION integer not null,
+    CREATE_TS timestamp,
+    CREATED_BY varchar(50),
+    UPDATE_TS timestamp,
+    UPDATED_BY varchar(50),
+    DELETE_TS timestamp,
+    DELETED_BY varchar(50),
+    --
+    IMAP_MESSAGE_ID uuid not null,
     CREATED_TS time not null,
     ORDER_NUMBER integer not null,
     NAME varchar(255) not null,
@@ -109,4 +121,4 @@ create table IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT_REF (
     --
     primary key (ID)
 )^
--- end IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT_REF
+-- end IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT

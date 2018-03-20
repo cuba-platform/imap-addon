@@ -7,8 +7,8 @@
         <class>com.haulmont.components.imap.entity.ImapMailBox</class>
         <class>com.haulmont.components.imap.entity.ImapAuthentication</class>
         <class>com.haulmont.components.imap.entity.ImapSimpleAuthentication</class>
-        <class>com.haulmont.components.imap.entity.ImapMessageRef</class>
+        <class>com.haulmont.components.imap.entity.ImapMessage</class>
         <class>com.haulmont.components.imap.entity.ImapFolderEvent</class>
-        <class>com.haulmont.components.imap.entity.ImapMessageAttachmentRef</class>
+        <class>com.haulmont.components.imap.entity.ImapMessageAttachment</class>
     </persistence-unit>
 </persistence>

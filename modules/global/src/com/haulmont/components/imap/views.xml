@@ -31,18 +31,19 @@
             <property name="password"/>
         </property>
     </view>
-    <view class="com.haulmont.components.imap.entity.ImapMessageRef"
+    <view class="com.haulmont.components.imap.entity.ImapMessage"
           extends="_local"
-          name="imap-msg-ref-full">
+          name="imap-msg-full">
         <property name="folder"
                   view="_minimal">
             <property name="mailBox"
                       view="imap-mailBox-connect"/>
         </property>
     </view>
-    <view class="com.haulmont.components.imap.entity.ImapMessageAttachmentRef"
+    <view class="com.haulmont.components.imap.entity.ImapMessageAttachment"
           extends="_local"
           name="imap-msg-attachment-full">
-        <property name="imapMessageRef" view="imap-msg-ref-full" />
+        <property name="imapMessage"
+                  view="imap-msg-full"/>
     </view>
 </views>

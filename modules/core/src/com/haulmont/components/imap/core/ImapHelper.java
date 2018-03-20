@@ -3,7 +3,7 @@ package com.haulmont.components.imap.core;
 import com.haulmont.components.imap.config.ImapConfig;
 import com.haulmont.components.imap.entity.ImapFolder;
 import com.haulmont.components.imap.entity.ImapMailBox;
-import com.haulmont.components.imap.entity.ImapMessageRef;
+import com.haulmont.components.imap.entity.ImapMessage;
 import com.haulmont.components.imap.entity.ImapSecureMode;
 import com.haulmont.cuba.core.global.FileLoader;
 import com.haulmont.cuba.core.global.FileStorageException;
@@ -139,12 +139,12 @@ public class ImapHelper {
         }
     }
 
-    public <T> T doWithMsg(ImapMessageRef messageRef, IMAPFolder imapFolder, Task<ImapMessageRef, T> task) {
-        ImapFolder folder = messageRef.getFolder();
+    public <T> T doWithMsg(ImapMessage message, IMAPFolder imapFolder, Task<ImapMessage, T> task) {
+        ImapFolder folder = message.getFolder();
         ImapMailBox mailBox = folder.getMailBox();
         MessageKey key = new MessageKey(
                 new FolderKey(new MailboxKey(mailBox.getHost(), mailBox.getPort()), folder.getName()),
-                messageRef.getMsgUid()
+                message.getMsgUid()
         );
         msgLocks.putIfAbsent(key, new Object());
         Object lock = msgLocks.get(key);
@@ -153,7 +153,7 @@ public class ImapHelper {
                 if (!imapFolder.isOpen()) {
                     imapFolder.open(Folder.READ_WRITE);
                 }
-                T result = task.getAction().apply(messageRef);
+                T result = task.getAction().apply(message);
                 return task.isHasResult() ? result : null;
             } catch (MessagingException e) {
                 throw new RuntimeException(

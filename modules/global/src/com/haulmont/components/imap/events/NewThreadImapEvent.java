@@ -1,17 +1,17 @@
 package com.haulmont.components.imap.events;
 
-import com.haulmont.components.imap.entity.ImapMessageRef;
+import com.haulmont.components.imap.entity.ImapMessage;
 
 public class NewThreadImapEvent extends BaseImapEvent {
 
-    public NewThreadImapEvent(ImapMessageRef messageRef) {
-        super(messageRef);
+    public NewThreadImapEvent(ImapMessage message) {
+        super(message);
     }
 
     @Override
     public String toString() {
         return "NewThreadImapEvent{" +
-                "messageRef=" + messageRef +
+                "message=" + message +
                 '}';
     }
 }

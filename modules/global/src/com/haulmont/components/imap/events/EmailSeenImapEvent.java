@@ -1,17 +1,17 @@
 package com.haulmont.components.imap.events;
 
-import com.haulmont.components.imap.entity.ImapMessageRef;
+import com.haulmont.components.imap.entity.ImapMessage;
 
 public class EmailSeenImapEvent extends BaseImapEvent {
 
-    public EmailSeenImapEvent(ImapMessageRef messageRef) {
-        super(messageRef);
+    public EmailSeenImapEvent(ImapMessage message) {
+        super(message);
     }
 
     @Override
     public String toString() {
         return "EmailSeenImapEvent{" +
-                "messageRef=" + messageRef +
+                "message=" + message +
                 '}';
     }
 }

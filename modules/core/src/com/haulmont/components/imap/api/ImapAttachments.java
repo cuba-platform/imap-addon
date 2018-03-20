@@ -3,8 +3,8 @@ package com.haulmont.components.imap.api;
 import com.haulmont.components.imap.core.ImapHelper;
 import com.haulmont.components.imap.core.Task;
 import com.haulmont.components.imap.entity.ImapMailBox;
-import com.haulmont.components.imap.entity.ImapMessageAttachmentRef;
-import com.haulmont.components.imap.entity.ImapMessageRef;
+import com.haulmont.components.imap.entity.ImapMessageAttachment;
+import com.haulmont.components.imap.entity.ImapMessage;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import org.apache.commons.io.IOUtils;
@@ -22,34 +22,34 @@ public class ImapAttachments implements ImapAttachmentsAPI {
     private ImapHelper imapHelper;
 
     @Override
-    public InputStream openStream(ImapMessageAttachmentRef attachmentRef) throws MessagingException {
-        ImapMessageRef ref = attachmentRef.getImapMessageRef();
-        ImapMailBox mailBox = ref.getFolder().getMailBox();
-        String folderName = ref.getFolder().getName();
+    public InputStream openStream(ImapMessageAttachment attachment) throws MessagingException {
+        ImapMessage msg = attachment.getImapMessage();
+        ImapMailBox mailBox = msg.getFolder().getMailBox();
+        String folderName = msg.getFolder().getName();
 
         Store store = imapHelper.getStore(mailBox);
         IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
-        Task<ImapMessageRef, InputStream> task = new Task<>(
+        Task<ImapMessage, InputStream> task = new Task<>(
                 "fetch attachment conent", true, msgRef -> {
-            IMAPMessage msg = (IMAPMessage) folder.getMessageByUID(msgRef.getMsgUid()); //todo: this fetching can be optimised to fetch only attachments data
-            msg.setPeek(true);
+            IMAPMessage imapMessage = (IMAPMessage) folder.getMessageByUID(msgRef.getMsgUid()); //todo: this fetching can be optimised to fetch only attachments data
+            imapMessage.setPeek(true);
             try {
-                Multipart multipart = (Multipart) msg.getContent();
+                Multipart multipart = (Multipart) imapMessage.getContent();
 
-                BodyPart attachment = multipart.getBodyPart(attachmentRef.getOrderNumber());
+                BodyPart imapAttachment = multipart.getBodyPart(attachment.getOrderNumber());
 
-                return attachment.getInputStream();
+                return imapAttachment.getInputStream();
             } catch (IOException e) {
                 throw new RuntimeException("Can't read content of attachment/message", e);
             }
 
         });
-        return imapHelper.doWithMsg(ref, folder, task);
+        return imapHelper.doWithMsg(msg, folder, task);
     }
 
     @Override
-    public byte[] loadFile(ImapMessageAttachmentRef attachmentRef) throws MessagingException {
-        try (InputStream is = openStream(attachmentRef)) {
+    public byte[] loadFile(ImapMessageAttachment attachment) throws MessagingException {
+        try (InputStream is = openStream(attachment)) {
             return IOUtils.toByteArray(is);
         } catch (IOException e) {
             throw new RuntimeException("Can't fetch bytes for attachment", e);

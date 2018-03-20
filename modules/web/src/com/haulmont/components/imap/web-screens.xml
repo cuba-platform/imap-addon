@@ -8,10 +8,10 @@
             template="com/haulmont/components/imap/web/imapmailbox/imap-mail-box-edit.xml"/>
     <screen id="imapcomponent$ImapMailBox.browse"
             template="com/haulmont/components/imap/web/imapmailbox/imap-mail-box-browse.xml"/>
-    <screen id="imapcomponent$ImapMessageRef.browse"
-            template="com/haulmont/components/imap/web/imapmessageref/imap-message-ref-browse.xml"/>
-    <screen id="imapcomponent$ImapMessageRef.edit"
-            template="com/haulmont/components/imap/web/imapmessageref/imap-message-ref-edit.xml"/>
+    <screen id="imapcomponent$ImapMessage.browse"
+            template="com/haulmont/components/imap/web/imapmessage/imap-message-ref-browse.xml"/>
+    <screen id="imapcomponent$ImapMessage.edit"
+            template="com/haulmont/components/imap/web/imapmessage/imap-message-ref-edit.xml"/>
     <screen id="imapcomponent$ImapFolderEvent.edit"
             template="com/haulmont/components/imap/web/imapfolderevent/imap-folder-event-edit.xml"/>
 </screen-config>

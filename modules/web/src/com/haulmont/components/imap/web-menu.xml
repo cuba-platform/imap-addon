@@ -3,6 +3,6 @@
     <menu id="imap-component"
           insertBefore="administration">
         <item screen="imapcomponent$ImapMailBox.browse"/>
-        <item screen="imapcomponent$ImapMessageRef.browse"/>
+        <item screen="imapcomponent$ImapMessage.browse"/>
     </menu>
 </menu-config>

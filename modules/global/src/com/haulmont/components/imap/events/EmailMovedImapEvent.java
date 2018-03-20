@@ -1,13 +1,13 @@
 package com.haulmont.components.imap.events;
 
-import com.haulmont.components.imap.entity.ImapMessageRef;
+import com.haulmont.components.imap.entity.ImapMessage;
 
 public class EmailMovedImapEvent extends BaseImapEvent {
 
     private final String oldFolderName;
 
-    public EmailMovedImapEvent(ImapMessageRef messageRef, String oldFodlerName) {
-        super(messageRef);
+    public EmailMovedImapEvent(ImapMessage message, String oldFodlerName) {
+        super(message);
 
         this.oldFolderName = oldFodlerName;
     }
@@ -17,14 +17,14 @@ public class EmailMovedImapEvent extends BaseImapEvent {
     }
 
     public String getNewFolderName() {
-        return messageRef.getFolder().getName();
+        return message.getFolder().getName();
     }
 
     @Override
     public String toString() {
         return "EmailMovedImapEvent{" +
                 "oldFolderName='" + oldFolderName + '\'' +
-                ", messageRef=" + messageRef +
+                ", message=" + message +
                 '}';
     }
 }

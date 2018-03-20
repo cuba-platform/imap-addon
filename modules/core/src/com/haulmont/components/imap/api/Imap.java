@@ -7,8 +7,8 @@ import com.haulmont.components.imap.core.Task;
 import com.haulmont.components.imap.dto.ImapFolderDto;
 import com.haulmont.components.imap.dto.ImapMessageDto;
 import com.haulmont.components.imap.entity.ImapMailBox;
-import com.haulmont.components.imap.entity.ImapMessageAttachmentRef;
-import com.haulmont.components.imap.entity.ImapMessageRef;
+import com.haulmont.components.imap.entity.ImapMessageAttachment;
+import com.haulmont.components.imap.entity.ImapMessage;
 import com.haulmont.components.imap.service.ImapAPIService;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
@@ -83,11 +83,11 @@ public class Imap implements ImapAPI {
     }
 
     @Override
-    public ImapMessageDto fetchMessage(ImapMessageRef messageRef) throws MessagingException {
-        return consumeMessage(messageRef, nativeMessage -> {
-            ImapMailBox mailBox = messageRef.getFolder().getMailBox();
+    public ImapMessageDto fetchMessage(ImapMessage message) throws MessagingException {
+        return consumeMessage(message, nativeMessage -> {
+            ImapMailBox mailBox = message.getFolder().getMailBox();
 
-            return toDto(mailBox, messageRef.getFolder().getName(), messageRef.getMsgUid(), nativeMessage);
+            return toDto(mailBox, message.getFolder().getName(), message.getMsgUid(), nativeMessage);
 
         }, "fetch and transform message");
 
@@ -95,16 +95,16 @@ public class Imap implements ImapAPI {
     }
 
     @Override
-    public Collection<ImapMessageDto> fetchMessages(Collection<ImapMessageRef> messageRefs) throws MessagingException {
-        List<ImapMessageDto> mailMessageDtos = new ArrayList<>(messageRefs.size());
-        Map<ImapMailBox, List<ImapMessageRef>> byMailBox = messageRefs.stream().collect(Collectors.groupingBy(msg -> msg.getFolder().getMailBox()));
+    public Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages) throws MessagingException {
+        List<ImapMessageDto> mailMessageDtos = new ArrayList<>(messages.size());
+        Map<ImapMailBox, List<ImapMessage>> byMailBox = messages.stream().collect(Collectors.groupingBy(msg -> msg.getFolder().getMailBox()));
         byMailBox.entrySet().parallelStream().forEach(mailBoxGroup -> {
             try {
                 ImapMailBox mailBox = mailBoxGroup.getKey();
-                Map<String, List<ImapMessageRef>> byFolder = mailBoxGroup.getValue().stream().collect(Collectors.groupingBy(msg -> msg.getFolder().getName()));
+                Map<String, List<ImapMessage>> byFolder = mailBoxGroup.getValue().stream().collect(Collectors.groupingBy(msg -> msg.getFolder().getName()));
 
                 Store store = imapHelper.getStore(mailBox);
-                for (Map.Entry<String, List<ImapMessageRef>> folderGroup : byFolder.entrySet()) {
+                for (Map.Entry<String, List<ImapMessage>> folderGroup : byFolder.entrySet()) {
                     String folderName = folderGroup.getKey();
                     IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
                     imapHelper.doWithFolder(
@@ -115,8 +115,8 @@ public class Imap implements ImapAPI {
                                     false,
                                     true,
                                     f -> {
-                                        for (ImapMessageRef messageRef : folderGroup.getValue()) {
-                                            long uid = messageRef.getMsgUid();
+                                        for (ImapMessage message : folderGroup.getValue()) {
+                                            long uid = message.getMsgUid();
                                             IMAPMessage nativeMessage = (IMAPMessage) folder.getMessageByUID(uid);
                                             if (nativeMessage == null) {
                                                 continue;
@@ -138,62 +138,59 @@ public class Imap implements ImapAPI {
     }
 
     @Override
-    public Collection<ImapMessageAttachmentRef> fetchAttachments(UUID messageRefId) throws MessagingException {
-        ImapMessageRef ref = null;
+    public Collection<ImapMessageAttachment> fetchAttachments(UUID messageId) throws MessagingException {
+        ImapMessage msg = null;
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
-            ref = em.find(ImapMessageRef.class, messageRefId, "imap-msg-ref-full");
-            if (ref == null) {
-                throw new RuntimeException("Can't find msg#" + messageRefId);
+            msg = em.find(ImapMessage.class, messageId, "imap-msg--full");
+            if (msg == null) {
+                throw new RuntimeException("Can't find msg#" + messageId);
             }
         }
 
-        if (Boolean.TRUE.equals(ref.getAttachmentsLoaded())) {
+        if (Boolean.TRUE.equals(msg.getAttachmentsLoaded())) {
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
-                TypedQuery<ImapMessageAttachmentRef> query = em.createQuery(
-                        "select a from imapcomponent$ImapMessageAttachmentRef a where a.imapMessageRef.id = :msg",
-                        ImapMessageAttachmentRef.class
-                ).setParameter("msg", messageRefId).setViewName("imap-msg-attachment-full");
+                TypedQuery<ImapMessageAttachment> query = em.createQuery(
+                        "select a from imapcomponent$ImapMessageAttachment a where a.imapMessage.id = :msg",
+                        ImapMessageAttachment.class
+                ).setParameter("msg", messageId).setViewName("imap-msg-attachment-full");
                 return query.getResultList();
             }
         }
 
-        ImapMailBox mailBox = ref.getFolder().getMailBox();
-        String folderName = ref.getFolder().getName();
+        ImapMailBox mailBox = msg.getFolder().getMailBox();
+        String folderName = msg.getFolder().getName();
         Store store = imapHelper.getStore(mailBox);
         try {
             IMAPFolder folder = (IMAPFolder) store.getFolder(folderName);
-            Task<ImapMessageRef, Collection<ImapMessageAttachmentRef>> task = new Task<>(
+            Task<ImapMessage, Collection<ImapMessageAttachment>> task = new Task<>(
                     "extracting attachments", true, msgRef -> {
-                    IMAPMessage msg = (IMAPMessage) folder.getMessageByUID(msgRef.getMsgUid());
+                IMAPMessage imapMsg = (IMAPMessage) folder.getMessageByUID(msgRef.getMsgUid());
 
-                Collection<ImapMessageAttachmentRef> attachmentRefs = makeAttachmentRefs(msg);
-
-//                msgRef.setAttachmentsLoaded(true);
-
+                Collection<ImapMessageAttachment> attachments = makeAttachments(imapMsg);
 
                 try (Transaction tx = persistence.createTransaction()) {
                     EntityManager em = persistence.getEntityManager();
-                    attachmentRefs.forEach(it -> {
-                        it.setImapMessageRef(msgRef);
+                    attachments.forEach(it -> {
+                        it.setImapMessage(msgRef);
                         em.persist(it);
                     });
-                    em.createQuery("update imapcomponent$ImapMessageRef m set m.attachmentsLoaded = true where m.id = :msg")
-                    .setParameter("msg", messageRefId).executeUpdate();
+                    em.createQuery("update imapcomponent$ImapMessage m set m.attachmentsLoaded = true where m.id = :msg")
+                            .setParameter("msg", messageId).executeUpdate();
                     tx.commit();
                 }
 
-                return attachmentRefs;
+                return attachments;
 
             });
-            return imapHelper.doWithMsg(ref, folder, task);
+            return imapHelper.doWithMsg(msg, folder, task);
         } finally {
             store.close();
         }
     }
 
-    private Collection<ImapMessageAttachmentRef> makeAttachmentRefs(IMAPMessage msg) throws MessagingException {
+    private Collection<ImapMessageAttachment> makeAttachments(IMAPMessage msg) throws MessagingException {
 
         if (!msg.getContentType().contains("multipart")) {
             return Collections.emptyList();
@@ -209,25 +206,25 @@ public class Imap implements ImapAPI {
             return Collections.emptyList();
         }
 
-        List<ImapMessageAttachmentRef> result = new ArrayList<>();
+        List<ImapMessageAttachment> result = new ArrayList<>();
         for (int i = 0; i < multipart.getCount(); i++) {
             BodyPart bodyPart = multipart.getBodyPart(i);
             if (!Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) &&
                     StringUtils.isBlank(bodyPart.getFileName())) {
                 continue; // dealing with attachments only
             }
-            ImapMessageAttachmentRef attachmentRef = metadata.create(ImapMessageAttachmentRef.class);
+            ImapMessageAttachment attachment = metadata.create(ImapMessageAttachment.class);
             String name = bodyPart.getFileName();
             try {
                 name = MimeUtility.decodeText(name);
             } catch (UnsupportedEncodingException e) {
                 log.warn("Can't decode name of attachment", e);
             }
-            attachmentRef.setName(name);
-            attachmentRef.setFileSize((long) bodyPart.getSize());
-            attachmentRef.setCreatedTs(timeSource.currentTimestamp());
-            attachmentRef.setOrderNumber(i);
-            result.add(attachmentRef);
+            attachment.setName(name);
+            attachment.setFileSize((long) bodyPart.getSize());
+            attachment.setCreatedTs(timeSource.currentTimestamp());
+            attachment.setOrderNumber(i);
+            result.add(attachment);
         }
 
         return result;
@@ -259,18 +256,18 @@ public class Imap implements ImapAPI {
     }
 
     @Override
-    public void deleteMessage(ImapMessageRef messageRef) throws MessagingException {
-        ImapMailBox mailBox = messageRef.getFolder().getMailBox();
+    public void deleteMessage(ImapMessage message) throws MessagingException {
+        ImapMailBox mailBox = message.getFolder().getMailBox();
         Store store = imapHelper.getStore(mailBox);
         try {
 
             if (mailBox.getTrashFolderName() != null) {
-                doMove(messageRef, mailBox.getTrashFolderName(), mailBox, store);
+                doMove(message, mailBox.getTrashFolderName(), mailBox, store);
             } else {
-                consumeMessage(messageRef, msg -> {
+                consumeMessage(message, msg -> {
                     msg.setFlag(Flags.Flag.DELETED, true);
                     return null;
-                }, "Mark message#" + messageRef.getMsgUid() + " as DELETED");
+                }, "Mark message#" + message.getMsgUid() + " as DELETED");
             }
         } finally {
             store.close();
@@ -278,19 +275,19 @@ public class Imap implements ImapAPI {
     }
 
     @Override
-    public void moveMessage(ImapMessageRef ref, String folderName) throws MessagingException {
-        ImapMailBox mailBox = ref.getFolder().getMailBox();
+    public void moveMessage(ImapMessage msg, String folderName) throws MessagingException {
+        ImapMailBox mailBox = msg.getFolder().getMailBox();
         Store store = imapHelper.getStore(mailBox);
         try {
-            doMove(ref, folderName, mailBox, store);
+            doMove(msg, folderName, mailBox, store);
         } finally {
             store.close();
         }
 
     }
 
-    private void doMove(ImapMessageRef ref, String newFolderName, ImapMailBox mailBox, Store store) throws MessagingException {
-        Message message = consumeMessage(ref, msg -> msg, "Get message#" + ref.getMsgUid());
+    private void doMove(ImapMessage msg, String newFolderName, ImapMailBox mailBox, Store store) throws MessagingException {
+        Message message = consumeMessage(msg, _msg -> _msg, "Get message#" + msg.getMsgUid());
         IMAPFolder newFolder = (IMAPFolder) store.getFolder(newFolderName);
         imapHelper.doWithFolder(
                 mailBox,
@@ -314,33 +311,33 @@ public class Imap implements ImapAPI {
     }
 
     @Override
-    public void markAsRead(ImapMessageRef messageRef) throws MessagingException {
-        consumeMessage(messageRef, msg -> {
+    public void markAsRead(ImapMessage message) throws MessagingException {
+        consumeMessage(message, msg -> {
             msg.setFlag(Flags.Flag.SEEN, true);
             return null;
-        }, "Mark message#" + messageRef.getMsgUid() + " as SEEN");
+        }, "Mark message#" + message.getMsgUid() + " as SEEN");
     }
 
     @Override
-    public void markAsImportant(ImapMessageRef messageRef) throws MessagingException {
-        consumeMessage(messageRef, msg -> {
+    public void markAsImportant(ImapMessage message) throws MessagingException {
+        consumeMessage(message, msg -> {
             msg.setFlag(Flags.Flag.FLAGGED, true);
             return null;
-        }, "Mark message#" + messageRef.getMsgUid() + " as FLAGGED");
+        }, "Mark message#" + message.getMsgUid() + " as FLAGGED");
     }
 
     @Override
-    public void setFlag(ImapMessageRef messageRef, ImapFlag flag, boolean set) throws MessagingException {
-        consumeMessage(messageRef, msg -> {
+    public void setFlag(ImapMessage message, ImapFlag flag, boolean set) throws MessagingException {
+        consumeMessage(message, msg -> {
             msg.setFlags(flag.getFlags(), set);
             return null;
-        }, "Set flag " + flag + " of message " + messageRef.getMsgUid() + " to " + set);
+        }, "Set flag " + flag + " of message " + message.getMsgUid() + " to " + set);
     }
 
-    private <T> T consumeMessage(ImapMessageRef ref, MessageFunction<IMAPMessage, T> consumer, String actionDescription) throws MessagingException {
-        ImapMailBox mailBox = ref.getFolder().getMailBox();
-        String folderName = ref.getFolder().getName();
-        long uid = ref.getMsgUid();
+    private <T> T consumeMessage(ImapMessage msg, MessageFunction<IMAPMessage, T> consumer, String actionDescription) throws MessagingException {
+        ImapMailBox mailBox = msg.getFolder().getMailBox();
+        String folderName = msg.getFolder().getName();
+        long uid = msg.getMsgUid();
         Store store = imapHelper.getStore(mailBox);
         try {
 

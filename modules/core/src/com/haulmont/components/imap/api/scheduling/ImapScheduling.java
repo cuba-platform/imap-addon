@@ -206,7 +206,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             authentication.begin();
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
-                return ((Number) em.createQuery("select count(m.id) from imapcomponent$ImapMessageRef m where m.folder.id = :mailFolderId")
+                return ((Number) em.createQuery("select count(m.id) from imapcomponent$ImapMessage m where m.folder.id = :mailFolderId")
                         .setParameter("mailFolderId", cubaFolder)
                         .getSingleResult()).longValue();
             } finally {
@@ -219,17 +219,17 @@ public class ImapScheduling implements ImapSchedulingAPI {
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
 
-                List<ImapMessageRef> messages = em.createQuery(
-                        "select m from imapcomponent$ImapMessageRef m where m.folder.id = :mailFolderId order by m.updatedTs asc nulls first",
-                        ImapMessageRef.class
+                List<ImapMessage> messages = em.createQuery(
+                        "select m from imapcomponent$ImapMessage m where m.folder.id = :mailFolderId order by m.updateTs asc nulls first",
+                        ImapMessage.class
                 )
                         .setParameter("mailFolderId", cubaFolder)
                         .setMaxResults(count)
-                        .setViewName("imap-msg-ref-full")
+                        .setViewName("imap-msg-full")
                         .getResultList();
 
                 List<MsgHeader> imapMessages = imapHelper.getAllByUids(
-                        folder, messages.stream().mapToLong(ImapMessageRef::getMsgUid).toArray()
+                        folder, messages.stream().mapToLong(ImapMessage::getMsgUid).toArray()
                 );
                 Map<Long, MsgHeader> headersByUid = new HashMap<>(imapMessages.size());
                 for (MsgHeader msg : imapMessages) {
@@ -246,25 +246,26 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
         }
 
-        private List<BaseImapEvent> updateMessage(EntityManager em, ImapMessageRef msgRef, Map<Long, MsgHeader> msgsByUid) {
-            MsgHeader newMsgHeader = msgsByUid.get(msgRef.getMsgUid());
+        private List<BaseImapEvent> updateMessage(EntityManager em, ImapMessage msg, Map<Long, MsgHeader> msgsByUid) {
+            MsgHeader newMsgHeader = msgsByUid.get(msg.getMsgUid());
             if (newMsgHeader == null) {
-                em.remove(msgRef);
+                em.remove(msg);
                 return cubaFolder.hasEvent(ImapEventType.EMAIL_DELETED)
-                        ? Collections.singletonList(new EmailDeletedImapEvent(msgRef)) : Collections.emptyList();
+                        ? Collections.singletonList(new EmailDeletedImapEvent(msg)) : Collections.emptyList();
             }
             Flags flags = newMsgHeader.getFlags();
+            Flags oldFlags = msg.getImapFlags();
 
             List<BaseImapEvent> modificationEvents = new ArrayList<>(3);
-            boolean oldSeen = Boolean.TRUE.equals(msgRef.getSeen());
+            boolean oldSeen = oldFlags.contains(Flags.Flag.SEEN);
             boolean newSeen = flags.contains(Flags.Flag.SEEN);
-            boolean oldDeleted = Boolean.TRUE.equals(msgRef.getDeleted());
+            boolean oldDeleted = oldFlags.contains(Flags.Flag.DELETED);
             boolean newDeleted = flags.contains(Flags.Flag.DELETED);
-            boolean oldFlagged = Boolean.TRUE.equals(msgRef.getFlagged());
+            boolean oldFlagged = oldFlags.contains(Flags.Flag.FLAGGED);
             boolean newFlagged = flags.contains(Flags.Flag.FLAGGED);
-            boolean oldAnswered = Boolean.TRUE.equals(msgRef.getAnswered());
+            boolean oldAnswered = oldFlags.contains(Flags.Flag.ANSWERED);
             boolean newAnswered = flags.contains(Flags.Flag.ANSWERED);
-            String oldRefId = msgRef.getReferenceId();
+            String oldRefId = msg.getReferenceId();
             String newRefId = newMsgHeader.getRefId();
 
             //todo: handle custom flags
@@ -274,14 +275,14 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 if (oldSeen != newSeen) {
                     changedFlagsWithNewValue.put("SEEN", newSeen);
                     if (newSeen && cubaFolder.hasEvent(ImapEventType.EMAIL_SEEN)) {
-                        modificationEvents.add(new EmailSeenImapEvent(msgRef));
+                        modificationEvents.add(new EmailSeenImapEvent(msg));
                     }
                 }
 
                 if (oldAnswered != newAnswered || !Objects.equals(oldRefId, newRefId)) {
                     changedFlagsWithNewValue.put("ANSWERED", newAnswered);
                     if (newAnswered || newRefId != null) {
-                        modificationEvents.add(new EmailAnsweredImapEvent(msgRef));
+                        modificationEvents.add(new EmailAnsweredImapEvent(msg));
                     }
                 }
 
@@ -292,17 +293,15 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     changedFlagsWithNewValue.put("FLAGGED", newFlagged);
                 }
                 if (cubaFolder.hasEvent(ImapEventType.FLAGS_UPDATED)) {
-                    modificationEvents.add(new EmailFlagChangedImapEvent(msgRef, changedFlagsWithNewValue));
+                    modificationEvents.add(new EmailFlagChangedImapEvent(msg, changedFlagsWithNewValue));
                 }
-                msgRef.setSeen(newSeen);
-                msgRef.setDeleted(newDeleted);
-                msgRef.setAnswered(newAnswered);
-                msgRef.setFlagged(newFlagged);
-                msgRef.setReferenceId(newRefId);
+
             }
-            msgRef.setThreadId(newMsgHeader.getThreadId());  // todo: fire thread event
-            msgRef.setUpdatedTs(new Date());
-            em.persist(msgRef);
+            msg.setReferenceId(newRefId);
+            msg.setImapFlags(flags);
+            msg.setThreadId(newMsgHeader.getThreadId());  // todo: fire thread event
+            msg.setUpdateTs(new Date());
+            em.persist(msg);
 
             return modificationEvents;
         }
@@ -373,7 +372,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                 EntityManager em = persistence.getEntityManager();
 
                 for (MsgHeader msg : imapMessages) {
-                    ImapMessageRef newMessage = insertNewMessage(em, msg);
+                    ImapMessage newMessage = insertNewMessage(em, msg);
                     toCommit |= (newMessage != null);
 
                     if (newMessage != null) {
@@ -390,7 +389,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             return newEmailImapEvents;
         }
 
-        private ImapMessageRef insertNewMessage(EntityManager em, MsgHeader msg) {
+        private ImapMessage insertNewMessage(EntityManager em, MsgHeader msg) {
             long uid = msg.getUid();
             Flags flags = msg.getFlags();
             String caption = msg.getCaption();
@@ -398,7 +397,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
             Long threadId = msg.getThreadId();
 
             int sameUids = em.createQuery(
-                    "select m from imapcomponent$ImapMessageRef m where m.msgUid = :uid and m.folder.id = :mailFolderId"
+                    "select m from imapcomponent$ImapMessage m where m.msgUid = :uid and m.folder.id = :mailFolderId"
             )
                     .setParameter("uid", uid)
                     .setParameter("mailFolderId", cubaFolder)
@@ -406,14 +405,11 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     .getResultList()
                     .size();
             if (sameUids == 0) {
-                ImapMessageRef entity = metadata.create(ImapMessageRef.class);
+                ImapMessage entity = metadata.create(ImapMessage.class);
                 entity.setMsgUid(uid);
                 entity.setFolder(cubaFolder);
-                entity.setUpdatedTs(new Date());
-                entity.setAnswered(flags.contains(Flags.Flag.ANSWERED));
-                entity.setDeleted(flags.contains(Flags.Flag.DELETED));
-                entity.setFlagged(flags.contains(Flags.Flag.FLAGGED));
-                entity.setSeen(flags.contains(Flags.Flag.SEEN));
+                entity.setUpdateTs(new Date());
+                entity.setImapFlags(flags);
                 entity.setCaption(caption);
                 entity.setReferenceId(refId);
                 entity.setThreadId(threadId);
