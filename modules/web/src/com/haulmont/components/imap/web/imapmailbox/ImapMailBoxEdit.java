@@ -7,9 +7,8 @@ import com.haulmont.components.imap.entity.ImapAuthenticationMethod;
 import com.haulmont.components.imap.entity.ImapSimpleAuthentication;
 import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.gui.WindowManager;
-import com.haulmont.cuba.gui.components.AbstractEditor;
+import com.haulmont.cuba.gui.components.*;
 import com.haulmont.components.imap.entity.ImapMailBox;
-import com.haulmont.cuba.gui.components.FieldGroup;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
 
@@ -23,6 +22,15 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     @Inject
     private FieldGroup mainParams;
+
+    @Inject
+    private FieldGroup pollingParams;
+
+    @Inject
+    private Button selectTrashFolderButton;
+
+    @Inject
+    private CheckBox useTrashFolderChkBox;
 
     @Inject
     private ImapAPIService service;
@@ -87,13 +95,8 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     @Override
     protected void postInit() {
-        FieldGroup.FieldConfig mailBoxRootCertificateField = this.mainParams.getFieldNN("mailBoxRootCertificateField");
-        mailBoxRootCertificateField.setVisible(getItem().getSecureMode() != null);
-        mailBoxDs.addItemPropertyChangeListener(event -> {
-            if (Objects.equals("secureMode", event.getProperty())) {
-                mailBoxRootCertificateField.setVisible(event.getValue() != null);
-            }
-        });
+        setCertificateVisibility();
+        setTrashFolderVisibility();
 
         addCloseWithCommitListener(() -> {
             ImapMailBox mailBox = getItem();
@@ -113,6 +116,34 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                 });
             } else {
                 dm.commit(new CommitContext(toCommit, toDelete));
+            }
+        });
+    }
+
+    private void setCertificateVisibility() {
+        FieldGroup.FieldConfig mailBoxRootCertificateField = this.mainParams.getFieldNN("mailBoxRootCertificateField");
+        mailBoxRootCertificateField.setVisible(getItem().getSecureMode() != null);
+        mailBoxDs.addItemPropertyChangeListener(event -> {
+            if (Objects.equals("secureMode", event.getProperty())) {
+                mailBoxRootCertificateField.setVisible(event.getValue() != null);
+            }
+        });
+    }
+
+    private void setTrashFolderVisibility() {
+        FieldGroup.FieldConfig trashFolderNameField = this.pollingParams.getFieldNN("trashFolderNameField");
+        boolean visible = getItem().getTrashFolderName() != null;
+        trashFolderNameField.setVisible(visible);
+        selectTrashFolderButton.setVisible(visible);
+        useTrashFolderChkBox.setValue(visible);
+
+        useTrashFolderChkBox.addValueChangeListener(e -> {
+            boolean newVisible = Boolean.TRUE.equals(e.getValue());
+            trashFolderNameField.setVisible(newVisible);
+            selectTrashFolderButton.setVisible(newVisible);
+
+            if (!newVisible) {
+                getItem().setTrashFolderName(null);
             }
         });
     }

@@ -6,6 +6,7 @@ import com.haulmont.components.imap.entity.ImapMailBox;
 import com.haulmont.components.imap.web.ds.ImapFolderDatasource;
 import com.haulmont.cuba.gui.components.AbstractEditor;
 import com.haulmont.cuba.gui.components.TreeTable;
+import com.haulmont.cuba.gui.data.Datasource;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -17,7 +18,7 @@ public class ImapMailBoxTrashFolder extends AbstractEditor<ImapMailBox> {
     private ImapFolderDatasource imapFolderDs;
 
     @Inject
-    private TreeTable<ImapFolderDto> mailFoldersTable;
+    private TreeTable<ImapFolderDto> imapFoldersTable;
 
     @Override
     public void init(Map<String, Object> params) {
@@ -38,14 +39,17 @@ public class ImapMailBoxTrashFolder extends AbstractEditor<ImapMailBox> {
                         .collect(Collectors.toList());
             }
             if (trashFolder != null) {
-                mailFoldersTable.setSelected(trashFolder);
+                imapFoldersTable.setSelected(trashFolder);
             }
         }
 
         addCloseWithCommitListener(() -> {
-            Set<ImapFolderDto> selected = mailFoldersTable.getSelected();
+            Set<ImapFolderDto> selected = imapFoldersTable.getSelected();
             if (selected != null && !selected.isEmpty()) {
-                mailBox.setTrashFolderName(selected.iterator().next().getFullName());
+                @SuppressWarnings("unchecked")
+                Datasource<ImapMailBox> parentDs = getParentDs();
+                //noinspection ConstantConditions
+                parentDs.getItem().setTrashFolderName(selected.iterator().next().getFullName());
             }
         });
     }

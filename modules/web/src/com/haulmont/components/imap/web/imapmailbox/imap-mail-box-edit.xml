@@ -23,48 +23,53 @@
         <scrollBox id="gridScroll"
                    spacing="true"
                    width="100%">
-            <groupBox caption="Connection configuration"
-                      spacing="true"
-                      width="AUTO">
-                <fieldGroup id="mainParams"
-                            datasource="mailBoxDs">
-                    <column width="250px">
-                        <field property="host"/>
-                        <field property="port"/>
-                        <field property="secureMode"/>
-                        <field id="mailBoxRootCertificateField"
-                               property="rootCertificate"/>
-                        <field datasource="authenticationDs"
-                               property="username"/>
-                        <field id="authenticationPasswordId">
-                            <passwordField caption="Password"
-                                           datasource="authenticationDs"
-                                           property="password"
-                                           required="true"/>
-                        </field>
-                    </column>
-                </fieldGroup>
-                <button caption="msg://checkConnectionCaption"
-                        invoke="checkTheConnection"/>
-            </groupBox>
-            <groupBox caption="Polling configuration"
-                      spacing="true"
-                      width="AUTO">
-                <fieldGroup id="pollingParams"
-                            datasource="mailBoxDs">
-                    <column width="250px">
-                        <field property="pollInterval"/>
-                        <field property="processingTimeout"/>
-                        <field property="cubaFlag"/>
-                        <field property="updateSliceSize"/>
-                        <field editable="false"
-                               property="trashFolderName"/>
-                    </column>
-                </fieldGroup>
-                <button caption="msg://selectTrashFolderCaption"
-                        invoke="selectTrashFolder"/>
-            </groupBox>
-            <groupBox caption="Folders configuration"
+            <hbox spacing="true">
+                <groupBox caption="msg://connectionConfigurationCaption"
+                          spacing="true"
+                          width="AUTO">
+                    <fieldGroup id="mainParams"
+                                datasource="mailBoxDs">
+                        <column width="250px">
+                            <field property="host"/>
+                            <field property="port"/>
+                            <field property="secureMode"/>
+                            <field id="mailBoxRootCertificateField"
+                                   property="rootCertificate"/>
+                            <field datasource="authenticationDs"
+                                   property="username"/>
+                            <field id="authenticationPasswordId">
+                                <passwordField caption="msg://passwordFieldCaption"
+                                               datasource="authenticationDs"
+                                               property="password"
+                                               required="true"/>
+                            </field>
+                        </column>
+                    </fieldGroup>
+                    <button caption="msg://checkConnectionCaption"
+                            invoke="checkTheConnection"/>
+                </groupBox>
+                <groupBox caption="msg://pollingConfigurationCaption"
+                          spacing="true"
+                          width="AUTO">
+                    <fieldGroup id="pollingParams"
+                                datasource="mailBoxDs">
+                        <column width="250px">
+                            <field property="pollInterval"/>
+                            <field property="processingTimeout"/>
+                            <field property="cubaFlag"/>
+                            <field property="updateSliceSize"/>
+                            <field id="customDeleteChkBox">
+                                <checkBox caption="msg://useTrashFolderForRemovalCaption" id="useTrashFolderChkBox" />
+                            </field>
+                            <field editable="false" id="trashFolderNameField"
+                                   property="trashFolderName"/>
+                        </column>
+                    </fieldGroup>
+                    <button caption="msg://selectTrashFolderCaption"
+                            invoke="selectTrashFolder" id="selectTrashFolderButton"/>
+                </groupBox>
+            </hbox>
+            <groupBox caption="msg://foldersConfigurationCaption"
                       spacing="true"
                       width="100%">
                 <split height="100%"

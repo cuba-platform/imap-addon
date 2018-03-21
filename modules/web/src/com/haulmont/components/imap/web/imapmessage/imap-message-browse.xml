@@ -39,7 +39,7 @@
                           alwaysVisible="true">
                 <button id="editBtn"
                         action="imapMessagesTable.edit"
-                        caption="View"/>
+                        caption="msg://editBtnCaption"/>
             </buttonsPanel>
         </groupTable>
     </layout>
