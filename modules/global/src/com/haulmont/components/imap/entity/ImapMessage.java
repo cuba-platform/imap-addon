@@ -56,7 +56,7 @@ public class ImapMessage extends StandardEntity {
     @Transient
     private List<InternalFlag> internalFlags = Collections.emptyList();
 
-    String getFlags() {
+    public String getFlags() {
         return flags;
     }
 
