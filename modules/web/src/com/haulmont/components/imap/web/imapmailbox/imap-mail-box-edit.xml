@@ -41,7 +41,8 @@
                                 <passwordField caption="msg://passwordFieldCaption"
                                                datasource="authenticationDs"
                                                property="password"
-                                               required="true"/>
+                                               required="true"
+                                               maxLength="128" />
                             </field>
                         </column>
                     </fieldGroup>

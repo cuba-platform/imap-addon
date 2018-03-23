@@ -5,8 +5,10 @@ import com.haulmont.components.imap.entity.ImapFolder;
 import com.haulmont.components.imap.entity.ImapMailBox;
 import com.haulmont.components.imap.entity.ImapMessage;
 import com.haulmont.components.imap.entity.ImapSecureMode;
+import com.haulmont.components.imap.security.Encryptor;
 import com.haulmont.cuba.core.global.FileLoader;
 import com.haulmont.cuba.core.global.FileStorageException;
+import com.haulmont.cuba.core.global.PersistenceHelper;
 import com.sun.mail.iap.Argument;
 import com.sun.mail.iap.Response;
 import com.sun.mail.imap.IMAPFolder;
@@ -59,6 +61,9 @@ public class ImapHelper {
     @Inject
     private ImapConfig config;
 
+    @Inject
+    private Encryptor encryptor;
+
     public Store getStore(ImapMailBox box) throws MessagingException {
         /*Store store = boxesStores.get(box);
         if (store != null) {
@@ -105,7 +110,10 @@ public class ImapHelper {
         Session session = Session.getDefaultInstance(props, null);
 
         Store store = session.getStore(protocol);
-        store.connect(box.getHost(), box.getAuthentication().getUsername(), box.getAuthentication().getPassword());
+        String password = PersistenceHelper.isNew(box)
+                ? box.getAuthentication().getPassword() : encryptor.getPlainPassword(box);
+
+        store.connect(box.getHost(), box.getAuthentication().getUsername(), password);
 
         return store;
     }

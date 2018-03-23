@@ -11,7 +11,9 @@ import java.util.List;
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import javax.validation.constraints.NotNull;
+import com.haulmont.cuba.core.entity.annotation.Listeners;
 
+@Listeners("imapcomponent_MailboxPasswordListener")
 @NamePattern("%s:%s|host,port")
 @Table(name = "IMAPCOMPONENT_IMAP_MAIL_BOX")
 @Entity(name = "imapcomponent$ImapMailBox")
