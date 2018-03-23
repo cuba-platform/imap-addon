@@ -142,7 +142,7 @@ public class Imap implements ImapAPI {
         ImapMessage msg = null;
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
-            msg = em.find(ImapMessage.class, messageId, "imap-msg--full");
+            msg = em.find(ImapMessage.class, messageId, "imap-msg-full");
             if (msg == null) {
                 throw new RuntimeException("Can't find msg#" + messageId);
             }
