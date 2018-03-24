@@ -1,11 +1,9 @@
 package com.haulmont.components.imap.core;
 
 import com.haulmont.components.imap.config.ImapConfig;
-import com.haulmont.components.imap.entity.ImapFolder;
-import com.haulmont.components.imap.entity.ImapMailBox;
-import com.haulmont.components.imap.entity.ImapMessage;
-import com.haulmont.components.imap.entity.ImapSecureMode;
+import com.haulmont.components.imap.entity.*;
 import com.haulmont.components.imap.security.Encryptor;
+import com.haulmont.cuba.core.*;
 import com.haulmont.cuba.core.global.FileLoader;
 import com.haulmont.cuba.core.global.FileStorageException;
 import com.haulmont.cuba.core.global.PersistenceHelper;
@@ -64,6 +62,9 @@ public class ImapHelper {
     @Inject
     private Encryptor encryptor;
 
+    @Inject
+    private Persistence persistence;
+
     public Store getStore(ImapMailBox box) throws MessagingException {
         /*Store store = boxesStores.get(box);
         if (store != null) {
@@ -110,12 +111,22 @@ public class ImapHelper {
         Session session = Session.getDefaultInstance(props, null);
 
         Store store = session.getStore(protocol);
-        String password = PersistenceHelper.isNew(box)
-                ? box.getAuthentication().getPassword() : encryptor.getPlainPassword(box);
+        String password = box.getAuthentication().getPassword();
+        if (password.equals(getPersistedPassword(box))) {
+            password = encryptor.getPlainPassword(box);
+        }
 
         store.connect(box.getHost(), box.getAuthentication().getUsername(), password);
 
         return store;
+    }
+
+    private String getPersistedPassword(ImapMailBox mailBox) {
+        try (Transaction tx = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            ImapSimpleAuthentication persisted = em.find(ImapSimpleAuthentication.class, mailBox.getAuthentication().getId());
+            return persisted != null ? persisted.getPassword() : null;
+        }
     }
 
     public <T> T doWithFolder(ImapMailBox mailBox, IMAPFolder folder, FolderTask<T> task) {
