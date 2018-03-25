@@ -1,20 +1,21 @@
 package com.haulmont.components.imap.events;
 
+import com.haulmont.components.imap.api.ImapFlag;
 import com.haulmont.components.imap.entity.ImapMessage;
 
 import java.util.Map;
 
 public class EmailFlagChangedImapEvent extends BaseImapEvent {
 
-    private final Map<String, Boolean> changedFlagsWithNewValue;
+    private final Map<ImapFlag, Boolean> changedFlagsWithNewValue;
 
-    public EmailFlagChangedImapEvent(ImapMessage message, Map<String, Boolean> changedFlagsWithNewValue) {
+    public EmailFlagChangedImapEvent(ImapMessage message, Map<ImapFlag, Boolean> changedFlagsWithNewValue) {
         super(message);
 
         this.changedFlagsWithNewValue = changedFlagsWithNewValue;
     }
 
-    public Map<String, Boolean> getChangedFlagsWithNewValue() {
+    public Map<ImapFlag, Boolean> getChangedFlagsWithNewValue() {
         return changedFlagsWithNewValue;
     }
 

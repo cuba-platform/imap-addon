@@ -20,17 +20,16 @@ public class ImapFlag implements Serializable {
     public static final ImapFlag IMPORTANT = new ImapFlag(SystemFlag.IMPORTANT);
     public static final ImapFlag RECENT = new ImapFlag(SystemFlag.RECENT);
 
-    @JsonCreator
-    public ImapFlag(@JsonProperty("name") String name) {
+    public ImapFlag(String name) {
         this(null, name);
     }
 
-    @JsonCreator
-    public ImapFlag(@JsonProperty("systemFlag") SystemFlag systemFlag) {
+    public ImapFlag(SystemFlag systemFlag) {
         this(systemFlag, null);
     }
 
-    private ImapFlag(SystemFlag systemFlag, String name) {
+    @JsonCreator
+    private ImapFlag(@JsonProperty("systemFlag") SystemFlag systemFlag, @JsonProperty("name") String name) {
         this.systemFlag = systemFlag;
         this.name = name;
     }

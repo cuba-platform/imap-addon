@@ -1,5 +1,6 @@
 package com.haulmont.components.imap.api.scheduling;
 
+import com.haulmont.components.imap.api.ImapFlag;
 import com.haulmont.components.imap.core.MsgHeader;
 import com.haulmont.components.imap.entity.ImapEventType;
 import com.haulmont.components.imap.entity.ImapFolder;
@@ -24,57 +25,69 @@ class UpdateMessagesInFolderTask extends ExistingMessagesInFolderTask {
         if (newMsgHeader == null) {
             return Collections.emptyList();
         }
-        Flags flags = newMsgHeader.getFlags();
+        Flags newFlags = newMsgHeader.getFlags();
         Flags oldFlags = msg.getImapFlags();
 
         List<BaseImapEvent> modificationEvents = new ArrayList<>(3);
-        boolean oldSeen = oldFlags.contains(Flags.Flag.SEEN);
-        boolean newSeen = flags.contains(Flags.Flag.SEEN);
-        boolean oldDeleted = oldFlags.contains(Flags.Flag.DELETED);
-        boolean newDeleted = flags.contains(Flags.Flag.DELETED);
-        boolean oldFlagged = oldFlags.contains(Flags.Flag.FLAGGED);
-        boolean newFlagged = flags.contains(Flags.Flag.FLAGGED);
-        boolean oldAnswered = oldFlags.contains(Flags.Flag.ANSWERED);
-        boolean newAnswered = flags.contains(Flags.Flag.ANSWERED);
-        String oldRefId = msg.getReferenceId();
-        String newRefId = newMsgHeader.getRefId();
+        if (!Objects.equals(newFlags, oldFlags)) {
 
-        //todo: handle custom flags
+            HashMap<ImapFlag, Boolean> changedFlagsWithNewValue = new HashMap<>();
+            if (isSeen(newFlags, oldFlags)) {
+                modificationEvents.add(new EmailSeenImapEvent(msg));
+            }
 
-        if (oldSeen != newSeen || oldDeleted != newDeleted || oldAnswered != newAnswered || oldFlagged != newFlagged || !Objects.equals(oldRefId, newRefId)) {
-            HashMap<String, Boolean> changedFlagsWithNewValue = new HashMap<>();
-            if (oldSeen != newSeen) {
-                changedFlagsWithNewValue.put("SEEN", newSeen);
-                if (newSeen && cubaFolder.hasEvent(ImapEventType.EMAIL_SEEN)) {
-                    modificationEvents.add(new EmailSeenImapEvent(msg));
+            if (isAnswered(newFlags, oldFlags)) { //todo: handle answered event based on refs
+                modificationEvents.add(new EmailAnsweredImapEvent(msg));
+            }
+
+            for (String userFlag : oldFlags.getUserFlags()) {
+                if (!newFlags.contains(userFlag)) {
+                    changedFlagsWithNewValue.put(new ImapFlag(userFlag), false);
                 }
             }
 
-            if (oldAnswered != newAnswered || !Objects.equals(oldRefId, newRefId)) {
-                changedFlagsWithNewValue.put("ANSWERED", newAnswered);
-                if (newAnswered || newRefId != null) {
-                    modificationEvents.add(new EmailAnsweredImapEvent(msg));
+            for (Flags.Flag systemFlag : oldFlags.getSystemFlags()) {
+                if (!newFlags.contains(systemFlag)) {
+                    changedFlagsWithNewValue.put(new ImapFlag(ImapFlag.SystemFlag.valueOf(systemFlag)), false);
                 }
             }
 
-            if (oldDeleted != newDeleted) {
-                changedFlagsWithNewValue.put("DELETED", newDeleted);
+            for (String userFlag : newFlags.getUserFlags()) {
+                if (!oldFlags.contains(userFlag)) {
+                    changedFlagsWithNewValue.put(new ImapFlag(userFlag), true);
+                }
             }
-            if (oldFlagged != newFlagged) {
-                changedFlagsWithNewValue.put("FLAGGED", newFlagged);
+
+            for (Flags.Flag systemFlag : newFlags.getSystemFlags()) {
+                if (!oldFlags.contains(systemFlag)) {
+                    changedFlagsWithNewValue.put(new ImapFlag(ImapFlag.SystemFlag.valueOf(systemFlag)), true);
+                }
             }
+
             if (cubaFolder.hasEvent(ImapEventType.FLAGS_UPDATED)) {
                 modificationEvents.add(new EmailFlagChangedImapEvent(msg, changedFlagsWithNewValue));
             }
 
         }
-        msg.setReferenceId(newRefId);
-        msg.setImapFlags(flags);
+        msg.setReferenceId(newMsgHeader.getRefId());
+        msg.setImapFlags(newFlags);
         msg.setThreadId(newMsgHeader.getThreadId());  // todo: fire thread event
         msg.setUpdateTs(new Date());
         em.persist(msg);
 
         return modificationEvents;
+    }
+
+    private boolean isSeen(Flags newflags, Flags oldFlags) {
+        return !oldFlags.contains(Flags.Flag.SEEN)
+                && newflags.contains(Flags.Flag.SEEN)
+                && cubaFolder.hasEvent(ImapEventType.EMAIL_SEEN);
+    }
+
+    private boolean isAnswered(Flags newflags, Flags oldFlags) {
+        return !oldFlags.contains(Flags.Flag.ANSWERED)
+                && newflags.contains(Flags.Flag.ANSWERED)
+                && cubaFolder.hasEvent(ImapEventType.NEW_ANSWER);
     }
 
     @Override
