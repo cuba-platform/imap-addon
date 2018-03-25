@@ -46,6 +46,15 @@ public class ImapFlag implements Serializable {
         return systemFlag != null ? new Flags(systemFlag.systemFlag) : new Flags(name);
     }
 
+
+    @Override
+    public String toString() {
+        return "ImapFlag{" +
+                "systemFlag=" + systemFlag +
+                ", name='" + name + '\'' +
+                '}';
+    }
+
     public enum SystemFlag {
         SEEN(Flags.Flag.SEEN),
         ANSWERED(Flags.Flag.ANSWERED),

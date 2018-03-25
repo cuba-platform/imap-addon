@@ -6,12 +6,16 @@ import com.haulmont.components.imap.entity.ImapFolder;
 import com.haulmont.components.imap.service.ImapAPIService;
 import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.gui.data.impl.CustomHierarchicalDatasource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.mail.MessagingException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ImapFolderDatasource extends CustomHierarchicalDatasource<ImapFolderDto, UUID> {
+
+    private final static Logger log = LoggerFactory.getLogger(ImapFolderDatasource.class);
 
     public static final String FOLDER_DS_MAILBOX_PARAM = "mailBox";
     private ImapAPIService service = AppBeans.get(ImapAPIService.class);
@@ -23,6 +27,7 @@ public class ImapFolderDatasource extends CustomHierarchicalDatasource<ImapFolde
             throw new UnsupportedOperationException();
         }
         try {
+            log.debug("Fetch folders for {}", mailBox);
             Collection<ImapFolderDto> rootFolders = service.fetchFolders(mailBox);
 
             List<ImapFolderDto> folders = new ArrayList<>(rootFolders);
@@ -33,6 +38,8 @@ public class ImapFolderDatasource extends CustomHierarchicalDatasource<ImapFolde
             if (selectedFolders == null) {
                 selectedFolders = Collections.emptyList();
             }
+            log.debug("Fetch folders for {}. All folders: {}, selected: {}", mailBox, folders, selectedFolders);
+
             List<String> fullNames = selectedFolders.stream().map(ImapFolder::getName).collect(Collectors.toList());
             folders.forEach(f -> f.setSelected(fullNames.contains(f.getFullName())));
 

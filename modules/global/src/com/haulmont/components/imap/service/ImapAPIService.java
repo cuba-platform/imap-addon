@@ -19,7 +19,7 @@ public interface ImapAPIService {
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) throws MessagingException;
 
     ImapMessageDto fetchMessage(ImapMessage message) throws MessagingException;
-    Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages) throws MessagingException;
+    Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages);
     Collection<ImapMessageAttachment> fetchAttachments(UUID msgRefId) throws MessagingException;
 
     void moveMessage(ImapMessage msg, String folderName) throws MessagingException;

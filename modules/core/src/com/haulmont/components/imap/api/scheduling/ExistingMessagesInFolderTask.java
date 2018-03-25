@@ -27,6 +27,8 @@ abstract class ExistingMessagesInFolderTask extends AbstractFolderTask {
                 getCount(),
                 (mailBox.getUpdateSliceSize() != null) ? Math.max(mailBox.getUpdateSliceSize(), batchSize) : batchSize
         );
+        log.debug("[{} for {}]handle events for existing messages using windowSize {} and batchSize {}",
+                taskDescription(), cubaFolder, windowSize, batchSize);
         return scheduling.imapHelper.doWithFolder(
                 mailBox,
                 folder,
@@ -37,7 +39,10 @@ abstract class ExistingMessagesInFolderTask extends AbstractFolderTask {
                         f -> {
                             List<BaseImapEvent> modificationEvents = new ArrayList<>((int) windowSize);
                             for (int i = 0; i < windowSize; i += batchSize) {
-                                modificationEvents.addAll(handleBatch((int) Math.min(batchSize, windowSize - i)));
+                                int thisBatchSize = (int) Math.min(batchSize, windowSize - i);
+                                log.trace("[{} for {}]handle batch#{} with size {}",
+                                        taskDescription(), cubaFolder, i, thisBatchSize);
+                                modificationEvents.addAll(handleBatch(batchSize));
                             }
 
                             modificationEvents.addAll(trailEvents());
@@ -77,6 +82,9 @@ abstract class ExistingMessagesInFolderTask extends AbstractFolderTask {
             List<MsgHeader> imapMessages = scheduling.imapHelper.getAllByUids(
                     folder, messages.stream().mapToLong(ImapMessage::getMsgUid).toArray()
             );
+            log.trace("[{} for {}]batch messages from db: {}, from IMAP server: {}",
+                    taskDescription(), cubaFolder, messages, imapMessages);
+
             Map<Long, MsgHeader> headersByUid = new HashMap<>(imapMessages.size());
             for (MsgHeader msg : imapMessages) {
                 headersByUid.put(msg.getUid(), msg);

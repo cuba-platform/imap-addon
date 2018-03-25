@@ -14,6 +14,8 @@ import javax.validation.constraints.NotNull;
 import com.haulmont.cuba.core.entity.StandardEntity;
 import com.haulmont.cuba.core.entity.BaseUuidEntity;
 import com.haulmont.chile.core.annotations.NamePattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -23,6 +25,8 @@ import java.util.*;
 @Table(name = "IMAPCOMPONENT_IMAP_MESSAGE")
 @Entity(name = "imapcomponent$ImapMessage")
 public class ImapMessage extends StandardEntity {
+    private final static Logger log = LoggerFactory.getLogger(ImapMessage.class);
+
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final long serialVersionUID = -295396787486211720L;
@@ -89,19 +93,21 @@ public class ImapMessage extends StandardEntity {
         }
         try {
             if (!internalFlags.equals(this.internalFlags)) {
+                log.debug("Convert imap flags {} to raw string", internalFlags);
                 this.flags = objectMapper.writeValueAsString(internalFlags);
                 this.internalFlags = internalFlags;
             }
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Can't convert flags " + internalFlags, e);
         }
     }
 
     public Flags getImapFlags() {
         try {
+            log.debug("Parse imap flags from raw string {}", flags);
             this.internalFlags = objectMapper.readValue(this.flags, new TypeReference<List<ImapFlag>>() {});
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Can't parse flags from string " + flags, e);
         }
 
         Flags flags = new Flags();
@@ -111,7 +117,6 @@ public class ImapMessage extends StandardEntity {
         return flags;
     }
 
-
     public void setAttachmentsLoaded(Boolean attachmentsLoaded) {
         this.attachmentsLoaded = attachmentsLoaded;
     }
@@ -119,7 +124,6 @@ public class ImapMessage extends StandardEntity {
     public Boolean getAttachmentsLoaded() {
         return attachmentsLoaded;
     }
-
 
     public ImapFolder getFolder() {
         return folder;
@@ -129,7 +133,6 @@ public class ImapMessage extends StandardEntity {
         this.folder = folder;
     }
 
-
     public String getReferenceId() {
         return referenceId;
     }
@@ -137,7 +140,6 @@ public class ImapMessage extends StandardEntity {
     public void setReferenceId(String referenceId) {
         this.referenceId = referenceId;
     }
-
 
     public void setThreadId(Long threadId) {
         this.threadId = threadId;
@@ -154,7 +156,6 @@ public class ImapMessage extends StandardEntity {
     public String getCaption() {
         return caption;
     }
-
 
     public void setMsgUid(Long msgUid) {
         this.msgUid = msgUid;

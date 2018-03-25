@@ -80,7 +80,6 @@ public class ImapMailBox extends StandardEntity {
         this.folders = folders;
     }
 
-
     public ImapSimpleAuthentication getAuthentication() {
         return authentication;
     }
@@ -89,7 +88,6 @@ public class ImapMailBox extends StandardEntity {
         this.authentication = authentication;
     }
 
-
     public void setUpdateSliceSize(Integer updateSliceSize) {
         this.updateSliceSize = updateSliceSize;
     }
@@ -97,7 +95,6 @@ public class ImapMailBox extends StandardEntity {
     public Integer getUpdateSliceSize() {
         return updateSliceSize;
     }
-
 
     public void setProcessingTimeout(Integer processingTimeout) {
         this.processingTimeout = processingTimeout;
@@ -123,7 +120,6 @@ public class ImapMailBox extends StandardEntity {
         return trashFolderName;
     }
 
-
     public ImapAuthenticationMethod getAuthenticationMethod() {
         return authenticationMethod == null ? null : ImapAuthenticationMethod.fromId(authenticationMethod);
     }
@@ -131,7 +127,6 @@ public class ImapMailBox extends StandardEntity {
     public void setAuthenticationMethod(ImapAuthenticationMethod authenticationMethod) {
         this.authenticationMethod = authenticationMethod == null ? null : authenticationMethod.getId();
     }
-
 
     public ImapSecureMode getSecureMode() {
         return secureMode == null ? null : ImapSecureMode.fromId(secureMode);
@@ -141,7 +136,6 @@ public class ImapMailBox extends StandardEntity {
         this.secureMode = secureMode == null ? null : secureMode.getId();
     }
 
-
     public Integer getPort() {
         return port;
     }
@@ -149,7 +143,6 @@ public class ImapMailBox extends StandardEntity {
     public void setPort(Integer port) {
         this.port = port;
     }
-
 
     public void setRootCertificate(FileDescriptor rootCertificate) {
         this.rootCertificate = rootCertificate;
@@ -166,10 +159,6 @@ public class ImapMailBox extends StandardEntity {
     public FileDescriptor getClientCertificate() {
         return clientCertificate;
     }
-
-
-
-
 
     public void setHost(String host) {
         this.host = host;

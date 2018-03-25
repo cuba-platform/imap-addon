@@ -95,6 +95,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
         log.trace("{}\n now={} lastStart={} lastFinish={}", mailBox, now, lastStart, lastFinish);
         if ((lastStart == 0 || lastStart < lastFinish) && now >= lastFinish + mailBox.getPollInterval() * 1000L) {
             lastStartCache.put(mailBox, now);
+            log.info("Fire mailbox processing task for {}", mailBox);
             forkJoinPool.execute(new MailBoxProcessingTask(mailBox));
         } else {
             log.trace("{}\n time has not come", mailBox);
@@ -127,8 +128,11 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
                     if (imapFolder == null) {
                         log.info("Can't find folder {}. Probably it was removed", cubaFolder.getName());
+                        continue;
                     }
                     if (cubaFolder.hasEvent(ImapEventType.NEW_EMAIL)) {
+                        log.info("Search new messages for {}", cubaFolder);
+
                         NewMessagesInFolderTask subtask = new NewMessagesInFolderTask(
                                 mailBox, cubaFolder, imapFolder, ImapScheduling.this
                         );
@@ -139,6 +143,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                             cubaFolder.hasEvent(ImapEventType.FLAGS_UPDATED) ||
                             cubaFolder.hasEvent(ImapEventType.NEW_ANSWER) ||
                             cubaFolder.hasEvent(ImapEventType.NEW_THREAD)) {
+                        log.info("Update messages for {}", cubaFolder);
 
                         UpdateMessagesInFolderTask updateSubtask = new UpdateMessagesInFolderTask(
                                 mailBox, cubaFolder, imapFolder, ImapScheduling.this
@@ -148,6 +153,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     }
                     if (cubaFolder.hasEvent(ImapEventType.EMAIL_DELETED) ||
                             cubaFolder.hasEvent(ImapEventType.EMAIL_MOVED)) {
+                        log.info("Track deleted/moved messages for {}", cubaFolder);
 
                         MissedMessagesInFolderTask missedMessagesTask = new MissedMessagesInFolderTask(
                                 mailBox, cubaFolder, imapFolder, ImapScheduling.this, allFolders
@@ -168,6 +174,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
     }
 
     void fireEvents(ImapFolder folder, Collection<? extends BaseImapEvent> imapEvents) {
+        log.debug("Fire events {} for {}", imapEvents, folder);
         imapEvents.forEach(event -> {
             ImapEventType.getByEventType(event.getClass()).stream()
                     .map(folder::getEvent)
@@ -189,6 +196,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     .filter(m -> m.getName().equals(folderEvent.getMethodName()))
                     .filter(m -> m.getParameterTypes().length == 1 && m.getParameterTypes()[0].isAssignableFrom(eventClass))
                     .collect(Collectors.toList());
+            log.trace("{}: methods to invoke: {}", folderEvent, methods);
             for (Method method : methods) {
                 method.invoke(bean, event);
             }

@@ -75,4 +75,16 @@ public class MsgHeader {
     public void setThreadId(Long threadId) {
         this.threadId = threadId;
     }
+
+    @Override
+    public String toString() {
+        return "MsgHeader{" +
+                "uid=" + uid +
+                ", flags=" + flags +
+                ", caption='" + caption + '\'' +
+                ", msgId='" + msgId + '\'' +
+                ", refId='" + refId + '\'' +
+                ", threadId=" + threadId +
+                '}';
+    }
 }

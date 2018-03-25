@@ -25,8 +25,6 @@ import java.util.stream.Collectors;
 
 public class MissedMessagesInFolderTask extends ExistingMessagesInFolderTask {
 
-    private final static Logger log = LoggerFactory.getLogger(ImapScheduling.class);
-
     private Collection<ImapMessage> missedMsgs = new ArrayList<>();
     private final Collection<IMAPFolder> otherFolders;
 
@@ -37,6 +35,11 @@ public class MissedMessagesInFolderTask extends ExistingMessagesInFolderTask {
                 .filter(f -> Boolean.TRUE.equals(f.getCanHoldMessages()) && !f.getName().equals(cubaFolder.getName()))
                 .map(ImapFolderDto::getImapFolder)
                 .collect(Collectors.toList());
+        if (log.isDebugEnabled()) {
+            log.debug("Missed messages task will use folder {} to trigger MOVE event",
+                    otherFolders.stream().map(IMAPFolder::getFullName).collect(Collectors.toList())
+            );
+        }
     }
 
     @Override
@@ -67,6 +70,8 @@ public class MissedMessagesInFolderTask extends ExistingMessagesInFolderTask {
         if (!cubaFolder.hasEvent(ImapEventType.EMAIL_MOVED) && !cubaFolder.hasEvent(ImapEventType.EMAIL_DELETED)) {
             return Collections.emptyList();
         }
+        log.debug("Handle missed messages {} for folder {}", missedMsgs, cubaFolder);
+
         List<BaseImapEvent> result = new ArrayList<>(missedMsgs.size());
 
         missedMsgs.stream()
@@ -124,6 +129,8 @@ public class MissedMessagesInFolderTask extends ExistingMessagesInFolderTask {
                 });
             }
         }
+
+        log.debug("Handle missed messages for folder {}. Moved: {}, deleted: {}", cubaFolder, movedIds, messagesByIds);
 
         movedIds.forEach(messagesByIds::remove);
         result.addAll(messagesByIds.values().stream().map(EmailDeletedImapEvent::new).collect(Collectors.toList()));

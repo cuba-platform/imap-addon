@@ -10,6 +10,8 @@ import com.haulmont.components.imap.web.ds.ImapFolderDatasource;
 import com.haulmont.bali.util.ParamsMap;
 import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.gui.components.AbstractEditor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -17,6 +19,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ImapMailBoxFolders extends AbstractEditor<ImapMailBox> {
+
+    private final static Logger log = LoggerFactory.getLogger(ImapMailBoxFolders.class);
 
     @Inject
     private ImapFolderDatasource imapFolderDs;
@@ -54,6 +58,7 @@ public class ImapMailBoxFolders extends AbstractEditor<ImapMailBox> {
                 }
             }
 
+            log.debug("Updating folders of {}. To add: {}, to delete: {}", mailBox, selected, toDelete);
 
             mailBox.getFolders().addAll(selected.values().stream().map(dto -> {
                 ImapFolder imapFolder = metadata.create(ImapFolder.class);

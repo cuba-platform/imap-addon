@@ -8,6 +8,8 @@ import com.haulmont.components.imap.dto.ImapMessageDto;
 import com.haulmont.components.imap.entity.ImapMailBox;
 import com.haulmont.components.imap.entity.ImapMessage;
 import com.haulmont.components.imap.entity.ImapMessageAttachment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
@@ -17,6 +19,7 @@ import java.util.*;
 @Service(ImapAPIService.NAME)
 public class ImapAPIServiceBean implements ImapAPIService {
 
+    private final static Logger log = LoggerFactory.getLogger(ImapAPIServiceBean.class);
 
     @Inject
     private ImapHelper imapHelper;
@@ -26,6 +29,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
 
     @Override
     public void testConnection(ImapMailBox box) throws MessagingException {
+        log.info("Check connection for {}", box);
         imapHelper.getStore(box);
     }
 
@@ -45,7 +49,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     @Override
-    public Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages) throws MessagingException {
+    public Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages) {
         return imapAPI.fetchMessages(messages);
     }
 

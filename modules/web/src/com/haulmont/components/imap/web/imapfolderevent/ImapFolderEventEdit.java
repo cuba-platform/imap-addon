@@ -6,11 +6,16 @@ import com.haulmont.cuba.gui.components.*;
 import com.haulmont.components.imap.entity.ImapFolderEvent;
 import com.haulmont.cuba.gui.data.Datasource;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.*;
 
 public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
+
+    private final static Logger log = LoggerFactory.getLogger(ImapFolderEventEdit.class);
+
     @Inject
     protected LookupField beanNameField;
 
@@ -78,12 +83,14 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
     }
 
     private void initBeans(ImapEventType eventType) {
+        log.debug("Init beans for event {}", eventType);
         availableBeans = eventType != null
                 ? service.getAvailableBeans(eventType.getEventClass()) : Collections.emptyMap();
         beanNameField.setOptionsList(new ArrayList<>(availableBeans.keySet()));
     }
 
     private void initMethods(String beanName) {
+        log.debug("Init methods of bean {} for event {}", beanName, getItem());
         availableMethods = availableBeans.get(beanName);
 
         if (availableMethods != null) {
@@ -96,6 +103,7 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
     }
 
     private void setInitialMethodNameValue(ImapFolderEvent event) {
+        log.debug("Set method name {} for event {}", event.getMethodName());
         if (availableMethods == null) {
             return;
         }

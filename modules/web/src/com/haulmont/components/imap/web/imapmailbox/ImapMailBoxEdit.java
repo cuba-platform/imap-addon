@@ -11,6 +11,8 @@ import com.haulmont.cuba.gui.components.*;
 import com.haulmont.components.imap.entity.ImapMailBox;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -19,6 +21,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
+
+    private final static Logger log = LoggerFactory.getLogger(ImapMailBoxEdit.class);
 
     @Inject
     private FieldGroup mainParams;
@@ -59,6 +63,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     public void selectTrashFolder() {
         ImapMailBox mailBox = getItem();
         Boolean newEntity = mailBox.getNewEntity();
+        log.debug("Open trash folder window for {} with newFlag {}", mailBox, newEntity);
         AbstractEditor selectFolders = openEditor(
                 "imapcomponent$ImapMailBox.trashFolder",
                 mailBox,
@@ -72,6 +77,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     public void selectFolders() {
         ImapMailBox mailBox = getItem();
         Boolean newEntity = mailBox.getNewEntity();
+        log.debug("Open select folders window for {} with newFlag {}", mailBox, newEntity);
         AbstractEditor selectFolders = openEditor(
                 "imapcomponent$ImapMailBox.folders",
                 mailBox,
@@ -109,6 +115,9 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                     .filter(f -> !mailBox.getFolders().contains(f))
                     .collect(Collectors.toList());
 
+            log.debug("Populate persistence context for {} (isNew: {}) with folders to save {} and delete {}",
+                    mailBox, mailBox.getNewEntity(), toCommit, toDelete);
+
             if (Boolean.TRUE.equals(mailBox.getNewEntity())) {
                 getDsContext().addAfterCommitListener((context, e) -> {
                     context.getCommitInstances().addAll(toCommit);
@@ -133,12 +142,14 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private void setTrashFolderVisibility() {
         FieldGroup.FieldConfig trashFolderNameField = this.pollingParams.getFieldNN("trashFolderNameField");
         boolean visible = getItem().getTrashFolderName() != null;
+        log.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
         trashFolderNameField.setVisible(visible);
         selectTrashFolderButton.setVisible(visible);
         useTrashFolderChkBox.setValue(visible);
 
         useTrashFolderChkBox.addValueChangeListener(e -> {
             boolean newVisible = Boolean.TRUE.equals(e.getValue());
+            log.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
             trashFolderNameField.setVisible(newVisible);
             selectTrashFolderButton.setVisible(newVisible);
 

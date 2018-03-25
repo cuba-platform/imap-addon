@@ -45,6 +45,7 @@ import java.util.stream.Collectors;
 public class ImapHelper {
 
     private final static Logger log = LoggerFactory.getLogger(ImapHelper.class);
+
     private static final String REFERENCES_HEADER = "References";
     private static final String IN_REPLY_TO_HEADER = "In-Reply-To";
     private static final String SUBJECT_HEADER = "Subject";
@@ -67,6 +68,8 @@ public class ImapHelper {
     private Persistence persistence;
 
     public Store getStore(ImapMailBox box) throws MessagingException {
+        log.debug("Accessing imap store for {}", box);
+
         /*Store store = boxesStores.get(box);
         if (store != null) {
             return store;
@@ -131,10 +134,12 @@ public class ImapHelper {
     }
 
     public <T> T doWithFolder(ImapMailBox mailBox, IMAPFolder folder, FolderTask<T> task) {
+        log.debug("perform '{}' for {} of mailbox {}", task.getDescription(), folder.getFullName(), mailBox);
         FolderKey key = new FolderKey(new MailboxKey(mailBox.getHost(), mailBox.getPort()), folder.getFullName());
         folderLocks.putIfAbsent(key, new Object());
         Object lock = folderLocks.get(key);
         synchronized (lock) {
+            log.trace("[{}->{}]lock acquired for '{}'", mailBox, folder.getFullName(), task.getDescription());
             try {
                 if (!folder.isOpen()) {
                     folder.open(Folder.READ_WRITE);
@@ -160,6 +165,7 @@ public class ImapHelper {
     }
 
     public <T> T doWithMsg(ImapMessage message, IMAPFolder imapFolder, Task<ImapMessage, T> task) {
+        log.debug("perform message task '{}' for {} of folder {}", task.getDescription(), message, imapFolder.getFullName());
         ImapFolder folder = message.getFolder();
         ImapMailBox mailBox = folder.getMailBox();
         MessageKey key = new MessageKey(
@@ -169,6 +175,7 @@ public class ImapHelper {
         msgLocks.putIfAbsent(key, new Object());
         Object lock = msgLocks.get(key);
         synchronized (lock) {
+            log.trace("[{}->{}]lock acquired for '{}'", imapFolder.getFullName(), message, task.getDescription());
             try {
                 if (!imapFolder.isOpen()) {
                     imapFolder.open(Folder.READ_WRITE);
@@ -185,10 +192,14 @@ public class ImapHelper {
     }
 
     public List<MsgHeader> search(IMAPFolder folder, SearchTerm searchTerm) throws MessagingException {
+        log.debug("search messages in {} with {}", folder.getFullName(), searchTerm) ;
         return getAllByUids( folder, (long[]) folder.doCommand(uidSearchCommand(searchTerm)) );
     }
 
     public List<MsgHeader> getAllByUids(IMAPFolder folder, long[] uids) throws MessagingException {
+        if (log.isDebugEnabled()) {
+            log.debug("get messages by uids {} in {}", Arrays.toString(uids), folder.getFullName());
+        }
         if (uids != null && uids.length > 0) {
             return (List<MsgHeader>) folder.doCommand(uidFetchWithFlagsCommand(uids));
         }
@@ -269,6 +280,7 @@ public class ImapHelper {
 
                         for (int i = 0; i < fr.getItemCount(); i++) {
                             Item item = fr.getItem(i);
+                            log.trace("Processing item#{}: {}", i, item.getClass().getName());
                             if (item instanceof Flags) {
                                 flags = (Flags) item;
                             } else if (item instanceof UID) {
@@ -348,8 +360,10 @@ public class ImapHelper {
         try {
             socketFactory = new MailSSLSocketFactory();
             if (config.getTrustAllCertificates()) {
+                log.debug("Configure factory to trust all certificates");
                 socketFactory.setTrustAllHosts(true);
             } else if (box.getRootCertificate() != null) {
+                log.debug("Configure factory to trust only known certificates and certificated from file#{}", box.getRootCertificate().getId());
                 try ( InputStream rootCert = fileLoader.openStream(box.getRootCertificate()) ) {
                     socketFactory.setTrustManagers(new TrustManager[] {new UnifiedTrustManager(rootCert) });
                 } catch (FileStorageException | GeneralSecurityException | IOException e) {

@@ -19,13 +19,16 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class NewMessagesInFolderTask extends AbstractFolderTask {
-    public NewMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder, IMAPFolder folder, ImapScheduling scheduling) {
+class NewMessagesInFolderTask extends AbstractFolderTask {
+
+
+    NewMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder, IMAPFolder folder, ImapScheduling scheduling) {
         super(mailBox, cubaFolder, folder, scheduling);
     }
 
     @Override
     List<NewEmailImapEvent> makeEvents() {
+        log.debug("[{}]handle events for new messages", cubaFolder);
         return scheduling.imapHelper.doWithFolder(
                 mailBox,
                 folder,
@@ -38,8 +41,12 @@ public class NewMessagesInFolderTask extends AbstractFolderTask {
                                     folder, new NotTerm(new FlagTerm(cubaFlags(mailBox), true))
                             );
 
+                            log.debug("[{}]handle events for new messages. New messages: {}", cubaFolder, imapMessages);
+
+                            //todo: optimization: should not fetch all message data by uid, it is excessive since we have already what we need in msg headers
                             Message[] messages = folder.getMessagesByUID(imapMessages.stream().mapToLong(MsgHeader::getUid).toArray());
                             if (Boolean.TRUE.equals(scheduling.config.getClearCustomFlags())) {
+                                log.trace("[{}]clear custom flags", cubaFolder);
                                 for (Message message : messages) {
                                     unsetCustomFlags(message);
                                 }
@@ -110,6 +117,7 @@ public class NewMessagesInFolderTask extends AbstractFolderTask {
                 .getResultList()
                 .size();
         if (sameUids == 0) {
+            log.trace("Save new message {}", msg);
             ImapMessage entity = scheduling.metadata.create(ImapMessage.class);
             entity.setMsgUid(uid);
             entity.setFolder(cubaFolder);

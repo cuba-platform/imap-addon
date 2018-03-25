@@ -2,6 +2,8 @@ package com.haulmont.components.imap.listener;
 
 import com.haulmont.components.imap.security.Encryptor;
 import com.haulmont.cuba.core.PersistenceTools;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import com.haulmont.cuba.core.listener.BeforeInsertEntityListener;
 import com.haulmont.cuba.core.EntityManager;
@@ -12,6 +14,8 @@ import javax.inject.Inject;
 
 @Component("imapcomponent_MailboxPasswordListener")
 public class MailboxPasswordListener implements BeforeInsertEntityListener<ImapMailBox>, BeforeUpdateEntityListener<ImapMailBox> {
+
+    private final static Logger log = LoggerFactory.getLogger(MailboxPasswordListener.class);
 
     @Inject
     private Encryptor encryptor;
@@ -32,6 +36,7 @@ public class MailboxPasswordListener implements BeforeInsertEntityListener<ImapM
     }
 
     private void setEncryptedPassword(ImapMailBox entity) {
+        log.debug("Encrypt password for {}", entity);
         String encryptedPassword = encryptor.getEncryptedPassword(entity);
         entity.getAuthentication().setPassword(encryptedPassword);
     }

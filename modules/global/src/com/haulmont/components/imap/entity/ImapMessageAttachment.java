@@ -8,7 +8,6 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.validation.constraints.NotNull;
-import com.haulmont.cuba.core.entity.BaseUuidEntity;
 import com.haulmont.chile.core.annotations.NamePattern;
 import java.util.Date;
 import javax.persistence.Temporal;
@@ -42,7 +41,6 @@ public class ImapMessageAttachment extends StandardEntity {
     @Column(name = "FILE_SIZE", nullable = false)
     protected Long fileSize;
 
-
     public void setImapMessage(ImapMessage imapMessage) {
         this.imapMessage = imapMessage;
     }
@@ -51,7 +49,6 @@ public class ImapMessageAttachment extends StandardEntity {
         return imapMessage;
     }
 
-
     public void setCreatedTs(Date createdTs) {
         this.createdTs = createdTs;
     }
@@ -59,7 +56,6 @@ public class ImapMessageAttachment extends StandardEntity {
     public Date getCreatedTs() {
         return createdTs;
     }
-
 
     public void setOrderNumber(Integer orderNumber) {
         this.orderNumber = orderNumber;
@@ -84,6 +80,5 @@ public class ImapMessageAttachment extends StandardEntity {
     public Long getFileSize() {
         return fileSize;
     }
-
 
 }

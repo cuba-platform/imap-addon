@@ -19,7 +19,7 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
     private String fullName;
 
     @MetaProperty(mandatory = true)
-    private Boolean canHoldMessages = false;
+    private Boolean canHoldMessages;
 
     @MetaProperty
     private List<ImapFolderDto> children;
@@ -40,7 +40,6 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
         this.children = children;
     }
 
-
     public ImapFolderDto getParent() {
         return parent;
     }
@@ -48,7 +47,6 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
     public void setParent(ImapFolderDto parent) {
         this.parent = parent;
     }
-
 
     public ImapFolderDto(String name, String fullName, boolean canHoldMessages, List<ImapFolderDto> children) {
         this.name = name;

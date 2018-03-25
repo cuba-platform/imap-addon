@@ -3,6 +3,8 @@ package com.haulmont.components.imap.security;
 import com.haulmont.components.imap.config.ImapEncryptionConfig;
 import com.haulmont.components.imap.entity.ImapMailBox;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -18,6 +20,8 @@ import java.util.Base64;
 
 @Component
 public class DefaultEncryptor implements Encryptor {
+
+    private final static Logger log = LoggerFactory.getLogger(DefaultEncryptor.class);
 
     private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
 
@@ -37,10 +41,15 @@ public class DefaultEncryptor implements Encryptor {
         if (StringUtils.isNotBlank(encryptionIv)) {
             iv = Base64.getDecoder().decode(encryptionIv);
         }
+
+        log.info("Encryptor has been initialised with key {} and init vector {}",
+                imapConfig.getEncryptionKey(), imapConfig.getEncryptionIv()
+        );
     }
 
     @Override
     public String getEncryptedPassword(ImapMailBox mailBox) {
+        log.debug("Encrypt password for {}", mailBox);
         try {
             byte[] encrypted = getCipher(Cipher.ENCRYPT_MODE, mailBox)
                     .doFinal(saltedPassword(mailBox).getBytes(StandardCharsets.UTF_8));
@@ -62,6 +71,7 @@ public class DefaultEncryptor implements Encryptor {
 
     @Override
     public String getPlainPassword(ImapMailBox mailBox) {
+        log.debug("Decrypt password for {}", mailBox);
         try {
             byte[] password = Base64.getDecoder().decode(mailBox.getAuthentication().getPassword());
             byte[] decrypted = getCipher(Cipher.DECRYPT_MODE, mailBox).doFinal(password);
