@@ -4,6 +4,7 @@ import com.haulmont.chile.core.annotations.MetaClass;
 import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.AbstractNotPersistentEntity;
+import com.sun.mail.imap.IMAPFolder;
 
 import java.util.List;
 
@@ -28,6 +29,8 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
 
     @MetaProperty
     private Boolean selected;
+
+    private transient IMAPFolder imapFolder;
 
     public List<ImapFolderDto> getChildren() {
         return children;
@@ -84,6 +87,14 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
 
     public void setSelected(Boolean selected) {
         this.selected = selected;
+    }
+
+    public IMAPFolder getImapFolder() {
+        return imapFolder;
+    }
+
+    public void setImapFolder(IMAPFolder imapFolder) {
+        this.imapFolder = imapFolder;
     }
 
     @Override

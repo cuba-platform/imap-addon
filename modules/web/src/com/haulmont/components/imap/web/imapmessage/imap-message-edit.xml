@@ -24,6 +24,7 @@
                 <field property="caption"/>
                 <field property="flags"
                        rows="5"/>
+                <field property="messageId"/>
             </column>
         </fieldGroup>
         <hbox spacing="true"

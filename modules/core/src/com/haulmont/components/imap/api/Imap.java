@@ -62,7 +62,6 @@ public class Imap implements ImapAPI {
             result.add(map(folder));
         }
 
-
         return result;
     }
 
@@ -329,7 +328,7 @@ public class Imap implements ImapAPI {
     @Override
     public void setFlag(ImapMessage message, ImapFlag flag, boolean set) throws MessagingException {
         consumeMessage(message, msg -> {
-            msg.setFlags(flag.getFlags(), set);
+            msg.setFlags(flag.imapFlags(), set);
             return null;
         }, "Set flag " + flag + " of message " + message.getMsgUid() + " to " + set);
     }
@@ -417,6 +416,7 @@ public class Imap implements ImapAPI {
                 folder.getFullName(),
                 imapHelper.canHoldMessages(folder),
                 subFolders);
+        result.setImapFolder(folder);
         result.getChildren().forEach(f -> f.setParent(result));
         return result;
     }

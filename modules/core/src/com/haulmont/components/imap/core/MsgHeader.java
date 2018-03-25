@@ -6,6 +6,7 @@ public class MsgHeader {
     private Long uid;
     private Flags flags;
     private String caption;
+    private String msgId;
     private String refId;
     private Long threadId;
 
@@ -18,10 +19,11 @@ public class MsgHeader {
         this.caption = caption;
     }
 
-    public MsgHeader(Long uid, Flags flags, String caption, String refId, Long threadId) {
+    public MsgHeader(Long uid, Flags flags, String caption, String msgId, String refId, Long threadId) {
         this.uid = uid;
         this.flags = flags;
         this.caption = caption;
+        this.msgId = msgId;
         this.refId = refId;
         this.threadId = threadId;
     }
@@ -48,6 +50,14 @@ public class MsgHeader {
 
     public void setCaption(String caption) {
         this.caption = caption;
+    }
+
+    public String getMsgId() {
+        return msgId;
+    }
+
+    public void setMsgId(String msgId) {
+        this.msgId = msgId;
     }
 
     public String getRefId() {

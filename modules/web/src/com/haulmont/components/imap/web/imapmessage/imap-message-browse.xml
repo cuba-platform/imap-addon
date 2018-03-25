@@ -32,6 +32,7 @@
                 <column id="folder"/>
                 <column id="caption"/>
                 <column id="flags"/>
+                <column id="messageId"/>
             </columns>
             <rows datasource="imapMessagesDs"/>
             <rowsCount/>

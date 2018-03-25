@@ -97,6 +97,7 @@ create table IMAPCOMPONENT_IMAP_MESSAGE (
     MSG_UID bigint not null,
     THREAD_ID bigint,
     REFERENCE_ID varchar(255),
+    MESSAGE_ID varchar(255),
     CAPTION varchar(255) not null,
     --
     primary key (ID)

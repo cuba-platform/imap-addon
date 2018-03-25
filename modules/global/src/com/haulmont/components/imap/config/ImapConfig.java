@@ -12,9 +12,14 @@ public interface ImapConfig extends Config {
     boolean getTrustAllCertificates();
     void setTrustAllCertificates(boolean value);
 
-    @Property("cuba.email.imap.server.updateBatchSize")
+    @Property("cuba.email.imap.updateBatchSize")
     @DefaultInt(100)
     int getUpdateBatchSize();
     void setUpdateBatchSize(int value);
+
+    @Property("cuba.email.imap.clearCustomFlags")
+    @DefaultBoolean(false)
+    boolean getClearCustomFlags();
+    void setClearCustomFlags(boolean value);
 
 }

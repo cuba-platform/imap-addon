@@ -45,9 +45,10 @@ import java.util.stream.Collectors;
 public class ImapHelper {
 
     private final static Logger log = LoggerFactory.getLogger(ImapHelper.class);
-    public static final String REFERENCES_HEADER = "References";
-    public static final String IN_REPLY_TO_HEADER = "In-Reply-To";
-    public static final String SUBJECT_HEADER = "Subject";
+    private static final String REFERENCES_HEADER = "References";
+    private static final String IN_REPLY_TO_HEADER = "In-Reply-To";
+    private static final String SUBJECT_HEADER = "Subject";
+    private static final String MESSAGE_ID_HEADER = "Message-ID";
 
     private volatile ConcurrentMap<MailboxKey, Object> mailBoxLocks = new ConcurrentHashMap<>();
     private volatile ConcurrentMap<FolderKey, Object> folderLocks = new ConcurrentHashMap<>();
@@ -264,6 +265,7 @@ public class ImapHelper {
                         Long threadId = null;
                         String referenceId = null;
                         String subject = null;
+                        String messageId = null;
 
                         for (int i = 0; i < fr.getItemCount(); i++) {
                             Item item = fr.getItem(i);
@@ -304,11 +306,14 @@ public class ImapHelper {
                                     } else {
                                         subject = "(No Subject)";
                                     }
+
+                                    messageId = h.getHeader(MESSAGE_ID_HEADER, null);
+
                                 }
                             }
                         }
                         if (flags != null && uid != null) {
-                            result.add(new MsgHeader(uid, flags, subject, referenceId, threadId));
+                            result.add(new MsgHeader(uid, flags, subject, messageId, referenceId, threadId));
                         }
                     }
                 }
@@ -334,7 +339,7 @@ public class ImapHelper {
     private String buildMsgHeadersUnit(IMAPProtocol protocol) {
         return
                 (protocol.isREV1() ? "BODY.PEEK[HEADER.FIELDS (" : "RFC822.HEADER.LINES (") +
-                REFERENCES_HEADER + " " + IN_REPLY_TO_HEADER + " " + SUBJECT_HEADER +
+                REFERENCES_HEADER + " " + IN_REPLY_TO_HEADER + " " + SUBJECT_HEADER + " " + MESSAGE_ID_HEADER +
                 (protocol.isREV1() ? ")]" : ")");
     }
 

@@ -6,6 +6,7 @@ import javax.persistence.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.haulmont.components.imap.api.ImapFlag;
 import com.haulmont.cuba.core.entity.annotation.OnDeleteInverse;
 import com.haulmont.cuba.core.global.DeletePolicy;
 
@@ -49,12 +50,24 @@ public class ImapMessage extends StandardEntity {
     @Column(name = "REFERENCE_ID")
     protected String referenceId;
 
+    @Column(name = "MESSAGE_ID")
+    protected String messageId;
+
     @NotNull
     @Column(name = "CAPTION", nullable = false)
     protected String caption;
 
     @Transient
-    private List<InternalFlag> internalFlags = Collections.emptyList();
+    private List<ImapFlag> internalFlags = Collections.emptyList();
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
+    }
+
+    public String getMessageId() {
+        return messageId;
+    }
+
 
     public String getFlags() {
         return flags;
@@ -67,17 +80,17 @@ public class ImapMessage extends StandardEntity {
     public void setImapFlags(Flags flags) {
         Flags.Flag[] systemFlags = flags.getSystemFlags();
         String[] userFlags = flags.getUserFlags();
-        List<InternalFlag> internalFlags = new ArrayList<>(systemFlags.length + userFlags.length);
+        List<ImapFlag> internalFlags = new ArrayList<>(systemFlags.length + userFlags.length);
         for (Flags.Flag systemFlag : systemFlags) {
-            internalFlags.add(new InternalFlag(new Flags(systemFlag)));
+            internalFlags.add(new ImapFlag(ImapFlag.SystemFlag.valueOf(systemFlag)));
         }
         for (String userFlag : userFlags) {
-            internalFlags.add(new InternalFlag(userFlag));
+            internalFlags.add(new ImapFlag(userFlag));
         }
         try {
             if (!internalFlags.equals(this.internalFlags)) {
-                this.internalFlags = internalFlags;
                 this.flags = objectMapper.writeValueAsString(internalFlags);
+                this.internalFlags = internalFlags;
             }
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -86,18 +99,14 @@ public class ImapMessage extends StandardEntity {
 
     public Flags getImapFlags() {
         try {
-            this.internalFlags = objectMapper.readValue(this.flags, new TypeReference<List<InternalFlag>>() {});
+            this.internalFlags = objectMapper.readValue(this.flags, new TypeReference<List<ImapFlag>>() {});
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         Flags flags = new Flags();
-        for (InternalFlag internalFlag : this.internalFlags) {
-            if (internalFlag.isSystem()) {
-                flags.add(internalFlag.getSystemFlag());
-            } else {
-                flags.add(internalFlag.getCustomName());
-            }
+        for (ImapFlag internalFlag : this.internalFlags) {
+            flags.add(internalFlag.imapFlags());
         }
         return flags;
     }
@@ -153,62 +162,6 @@ public class ImapMessage extends StandardEntity {
 
     public Long getMsgUid() {
         return msgUid;
-    }
-
-    private static class InternalFlag implements Serializable {
-        private boolean system;
-        private String customName;
-        private Flags systemFlag;
-
-        public InternalFlag(Flags systemFlag) {
-            this.systemFlag = systemFlag;
-            this.system = true;
-        }
-
-        public InternalFlag(String customName) {
-            this.customName = customName;
-            this.system = false;
-        }
-
-        public boolean isSystem() {
-            return system;
-        }
-
-        public void setSystem(boolean system) {
-            this.system = system;
-        }
-
-        public String getCustomName() {
-            return customName;
-        }
-
-        public void setCustomName(String customName) {
-            this.customName = customName;
-        }
-
-        public Flags getSystemFlag() {
-            return systemFlag;
-        }
-
-        public void setSystemFlag(Flags systemFlag) {
-            this.systemFlag = systemFlag;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            InternalFlag that = (InternalFlag) o;
-            return system == that.system &&
-                    Objects.equals(customName, that.customName) &&
-                    Objects.equals(systemFlag, that.systemFlag);
-        }
-
-        @Override
-        public int hashCode() {
-
-            return Objects.hash(system, customName, systemFlag);
-        }
     }
 
 }
