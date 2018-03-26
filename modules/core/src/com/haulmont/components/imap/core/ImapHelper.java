@@ -107,10 +107,15 @@ public class ImapHelper {
 
         Properties props = System.getProperties();
         props.setProperty("mail.store.protocol", protocol);
-//        props.setProperty("mail.debug", "true");
+        if (box.getSecureMode() == ImapSecureMode.STARTTLS) {
+            props.setProperty("mail.imap.starttls.enable", "true");
+        }
+        props.setProperty("mail.debug", "true");
 
-        MailSSLSocketFactory socketFactory = getMailSSLSocketFactory(box);
-        props.put("mail.imaps.ssl.socketFactory", socketFactory);
+        if (box.getSecureMode() != null) {
+            MailSSLSocketFactory socketFactory = getMailSSLSocketFactory(box);
+            props.put("mail." + protocol + ".ssl.socketFactory", socketFactory);
+        }
 
         Session session = Session.getDefaultInstance(props, null);
 
@@ -120,7 +125,7 @@ public class ImapHelper {
             password = encryptor.getPlainPassword(box);
         }
 
-        store.connect(box.getHost(), box.getAuthentication().getUsername(), password);
+        store.connect(box.getHost(), box.getPort(), box.getAuthentication().getUsername(), password);
 
         return store;
     }
@@ -362,12 +367,15 @@ public class ImapHelper {
             if (config.getTrustAllCertificates()) {
                 log.debug("Configure factory to trust all certificates");
                 socketFactory.setTrustAllHosts(true);
-            } else if (box.getRootCertificate() != null) {
-                log.debug("Configure factory to trust only known certificates and certificated from file#{}", box.getRootCertificate().getId());
-                try ( InputStream rootCert = fileLoader.openStream(box.getRootCertificate()) ) {
-                    socketFactory.setTrustManagers(new TrustManager[] {new UnifiedTrustManager(rootCert) });
-                } catch (FileStorageException | GeneralSecurityException | IOException e) {
-                    throw new RuntimeException("SSL error", e);
+            } else {
+                socketFactory.setTrustAllHosts(false);
+                if (box.getRootCertificate() != null) {
+                    log.debug("Configure factory to trust only known certificates and certificated from file#{}", box.getRootCertificate().getId());
+                    try ( InputStream rootCert = fileLoader.openStream(box.getRootCertificate()) ) {
+                        socketFactory.setTrustManagers(new TrustManager[] {new UnifiedTrustManager(rootCert) });
+                    } catch (FileStorageException | GeneralSecurityException | IOException e) {
+                        throw new RuntimeException("SSL error", e);
+                    }
                 }
             }
         } catch (GeneralSecurityException e) {
