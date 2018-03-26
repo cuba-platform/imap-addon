@@ -33,6 +33,7 @@ create table IMAPCOMPONENT_IMAP_MAIL_BOX (
     CLIENT_CERTIFICATE_ID uuid,
     AUTHENTICATION_METHOD varchar(50) not null,
     AUTHENTICATION_ID uuid,
+    PROXY_ID uuid,
     POLL_INTERVAL integer not null,
     PROCESSING_TIMEOUT integer,
     CUBA_FLAG varchar(255),
@@ -123,3 +124,21 @@ create table IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT (
     primary key (ID)
 )^
 -- end IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT
+-- begin IMAPCOMPONENT_IMAP_PROXY
+create table IMAPCOMPONENT_IMAP_PROXY (
+    ID uuid,
+    VERSION integer not null,
+    CREATE_TS timestamp,
+    CREATED_BY varchar(50),
+    UPDATE_TS timestamp,
+    UPDATED_BY varchar(50),
+    DELETE_TS timestamp,
+    DELETED_BY varchar(50),
+    --
+    HOST varchar(255),
+    PORT integer,
+    WEB_PROXY boolean,
+    --
+    primary key (ID)
+)^
+-- end IMAPCOMPONENT_IMAP_PROXY

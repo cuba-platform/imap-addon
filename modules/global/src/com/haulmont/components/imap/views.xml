@@ -17,6 +17,10 @@
                   view="imap-folder-edit"/>
         <property name="rootCertificate"
                   view="_minimal"/>
+        <property name="proxy"
+                  view="_minimal">
+            <property name="webProxy"/>
+        </property>
     </view>
     <view class="com.haulmont.components.imap.entity.ImapMailBox"
           extends="_local"
@@ -29,6 +33,10 @@
                   view="_minimal">
             <property name="username"/>
             <property name="password"/>
+        </property>
+        <property name="proxy"
+                  view="_minimal">
+            <property name="webProxy"/>
         </property>
     </view>
     <view class="com.haulmont.components.imap.entity.ImapMessage"

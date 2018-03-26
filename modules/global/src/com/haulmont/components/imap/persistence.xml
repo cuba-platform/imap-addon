@@ -10,5 +10,6 @@
         <class>com.haulmont.components.imap.entity.ImapMessage</class>
         <class>com.haulmont.components.imap.entity.ImapFolderEvent</class>
         <class>com.haulmont.components.imap.entity.ImapMessageAttachment</class>
+        <class>com.haulmont.components.imap.entity.ImapProxy</class>
     </persistence-unit>
 </persistence>

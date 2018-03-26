@@ -11,6 +11,8 @@
                     view="imap-mailbox-edit">
             <datasource id="authenticationDs"
                         property="authentication"/>
+            <datasource id="proxyDs"
+                        property="proxy"/>
             <collectionDatasource id="foldersDs"
                                   property="folders">
                 <collectionDatasource id="eventsDs"
@@ -40,35 +42,57 @@
                             <field id="authenticationPasswordId">
                                 <passwordField caption="msg://passwordFieldCaption"
                                                datasource="authenticationDs"
+                                               maxLength="128"
                                                property="password"
-                                               required="true"
-                                               maxLength="128" />
+                                               required="true"/>
                             </field>
+                            <field id="useProxyChkBoxField">
+                                <checkBox id="useProxyChkBox"
+                                          caption="msg://useProxyCaption"/>
+                            </field>
+
                         </column>
                     </fieldGroup>
                     <button caption="msg://checkConnectionCaption"
                             invoke="checkTheConnection"/>
                 </groupBox>
-                <groupBox caption="msg://pollingConfigurationCaption"
-                          spacing="true"
-                          width="AUTO">
-                    <fieldGroup id="pollingParams"
-                                datasource="mailBoxDs">
-                        <column width="250px">
-                            <field property="pollInterval"/>
-                            <field property="processingTimeout"/>
-                            <field property="cubaFlag"/>
-                            <field property="updateSliceSize"/>
-                            <field id="customDeleteChkBox">
-                                <checkBox caption="msg://useTrashFolderForRemovalCaption" id="useTrashFolderChkBox" />
-                            </field>
-                            <field editable="false" id="trashFolderNameField"
-                                   property="trashFolderName"/>
-                        </column>
-                    </fieldGroup>
-                    <button caption="msg://selectTrashFolderCaption"
-                            invoke="selectTrashFolder" id="selectTrashFolderButton"/>
-                </groupBox>
+                <vbox spacing="true">
+                    <groupBox caption="msg://pollingConfigurationCaption"
+                              spacing="true"
+                              width="AUTO">
+                        <fieldGroup id="pollingParams"
+                                    datasource="mailBoxDs">
+                            <column width="250px">
+                                <field property="pollInterval"/>
+                                <field property="processingTimeout"/>
+                                <field property="cubaFlag"/>
+                                <field property="updateSliceSize"/>
+                                <field id="useTrashFolderChkBoxField">
+                                    <checkBox id="useTrashFolderChkBox"
+                                              caption="msg://useTrashFolderForRemovalCaption"/>
+                                </field>
+                                <field id="trashFolderNameField"
+                                       editable="false"
+                                       property="trashFolderName"/>
+                            </column>
+                        </fieldGroup>
+                        <button id="selectTrashFolderButton"
+                                caption="msg://selectTrashFolderCaption"
+                                invoke="selectTrashFolder"/>
+                    </groupBox>
+                    <groupBox caption="msg://proxyConfigurationCaption"
+                              spacing="true"
+                              width="AUTO">
+                        <fieldGroup id="proxyParams"
+                                    datasource="proxyDs">
+                            <column width="250px">
+                                <field datasource="proxyDs" property="host" caption="msg://proxyHostCaption" id="proxyHostField"/>
+                                <field datasource="proxyDs" property="port" caption="msg://proxyPortCaption" id="proxyPortField"/>
+                                <field datasource="proxyDs" property="webProxy" caption="msg://proxyUseWebCaption" id="webProxyChkBox"/>
+                            </column>
+                        </fieldGroup>
+                    </groupBox>
+                </vbox>
             </hbox>
             <groupBox caption="msg://foldersConfigurationCaption"
                       spacing="true"

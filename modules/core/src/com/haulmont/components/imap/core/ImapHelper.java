@@ -12,6 +12,7 @@ import com.sun.mail.iap.Response;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.protocol.*;
 import com.sun.mail.util.MailSSLSocketFactory;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -105,7 +106,7 @@ public class ImapHelper {
         return store;*/
         String protocol = box.getSecureMode() == ImapSecureMode.TLS ? "imaps" : "imap";
 
-        Properties props = System.getProperties();
+        Properties props = new Properties(System.getProperties());
         props.setProperty("mail.store.protocol", protocol);
         if (box.getSecureMode() == ImapSecureMode.STARTTLS) {
             props.setProperty("mail.imap.starttls.enable", "true");
@@ -115,6 +116,13 @@ public class ImapHelper {
         if (box.getSecureMode() != null) {
             MailSSLSocketFactory socketFactory = getMailSSLSocketFactory(box);
             props.put("mail." + protocol + ".ssl.socketFactory", socketFactory);
+        }
+
+        ImapProxy proxy = box.getProxy();
+        if (proxy != null) {
+            String proxyType = Boolean.TRUE.equals(proxy.getWebProxy()) ? "proxy" : "socks";
+            props.put("mail." + protocol + "." + proxyType + ".host", proxy.getHost());
+            props.put("mail." + protocol + "." + proxyType + ".port", proxy.getPort());
         }
 
         Session session = Session.getDefaultInstance(props, null);

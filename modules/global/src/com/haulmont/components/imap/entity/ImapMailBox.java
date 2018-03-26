@@ -48,6 +48,11 @@ public class ImapMailBox extends StandardEntity {
     @JoinColumn(name = "AUTHENTICATION_ID")
     protected ImapSimpleAuthentication authentication;
 
+    @OnDelete(DeletePolicy.CASCADE)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "PROXY_ID")
+    protected ImapProxy proxy;
+
     @Column(name = "POLL_INTERVAL", nullable = false)
     protected Integer pollInterval;
 
@@ -71,6 +76,15 @@ public class ImapMailBox extends StandardEntity {
 
     @Transient
     private Boolean newEntity = false;
+
+    public void setProxy(ImapProxy proxy) {
+        this.proxy = proxy;
+    }
+
+    public ImapProxy getProxy() {
+        return proxy;
+    }
+
 
     public List<ImapFolder> getFolders() {
         return folders;

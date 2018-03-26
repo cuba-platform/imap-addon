@@ -31,10 +31,16 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private FieldGroup pollingParams;
 
     @Inject
+    private FieldGroup proxyParams;
+
+    @Inject
     private Button selectTrashFolderButton;
 
     @Inject
     private CheckBox useTrashFolderChkBox;
+
+    @Inject
+    private CheckBox useProxyChkBox;
 
     @Inject
     private ImapAPIService service;
@@ -103,6 +109,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     protected void postInit() {
         setCertificateVisibility();
         setTrashFolderVisibility();
+        setProxyVisibility();
 
         addCloseWithCommitListener(() -> {
             ImapMailBox mailBox = getItem();
@@ -156,6 +163,39 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             if (!newVisible) {
                 getItem().setTrashFolderName(null);
             }
+        });
+    }
+
+    private void setProxyVisibility() {
+        FieldGroup.FieldConfig proxyHostField = this.proxyParams.getFieldNN("proxyHostField");
+        FieldGroup.FieldConfig proxyPortField = this.proxyParams.getFieldNN("proxyPortField");
+        FieldGroup.FieldConfig webProxyChkBox = this.proxyParams.getFieldNN("webProxyChkBox");
+        boolean visible = getItem().getProxy() != null;
+        log.debug("Set visibility of proxy controls for {} to {}", getItem(), visible);
+        proxyHostField.setVisible(visible);
+        proxyHostField.setRequired(visible);
+        proxyPortField.setVisible(visible);
+        proxyPortField.setRequired(visible);
+        webProxyChkBox.setVisible(visible);
+        useProxyChkBox.setValue(visible);
+        proxyParams.setVisible(visible);
+        proxyParams.getParent().setVisible(visible);
+
+        useProxyChkBox.addValueChangeListener(e -> {
+            boolean newVisible = Boolean.TRUE.equals(e.getValue());
+            log.debug("Set visibility of proxy folder controls for {} to {}", getItem(), visible);
+            if (!newVisible) {
+                getItem().setProxy(null);
+            } else {
+                getItem().setProxy(metadata.create(ImapProxy.class));
+            }
+            proxyHostField.setVisible(newVisible);
+            proxyHostField.setRequired(newVisible);
+            proxyPortField.setVisible(newVisible);
+            proxyPortField.setRequired(newVisible);
+            webProxyChkBox.setVisible(newVisible);
+            proxyParams.setVisible(newVisible);
+            proxyParams.getParent().setVisible(newVisible);
         });
     }
 
