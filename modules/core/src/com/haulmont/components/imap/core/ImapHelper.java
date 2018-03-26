@@ -125,7 +125,7 @@ public class ImapHelper {
             props.put("mail." + protocol + "." + proxyType + ".port", proxy.getPort());
         }
 
-        Session session = Session.getDefaultInstance(props, null);
+        Session session = Session.getInstance(props, null);
 
         Store store = session.getStore(protocol);
         String password = box.getAuthentication().getPassword();
