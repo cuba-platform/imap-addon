@@ -1,3 +1,3 @@
 # CUBA IMAP provider
-protocol=imap; type=store; class=com.haulmont.components.imap.core.CubaIMAPStore; vendor=Cuba;
-protocol=imaps; type=store; class=com.haulmont.components.imap.core.CubaIMAPSSLStore; vendor=Cuba;
+protocol=imap; type=store; class=com.haulmont.addon.imap.core.CubaIMAPStore; vendor=Cuba;
+protocol=imaps; type=store; class=com.haulmont.addon.imap.core.CubaIMAPSSLStore; vendor=Cuba;

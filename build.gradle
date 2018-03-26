@@ -29,7 +29,7 @@ apply(plugin: 'cuba')
 
 cuba {
     artifact {
-        group = 'com.haulmont.components.imap'
+        group = 'com.haulmont.addon.imap'
         version = '0.1'
         isSnapshot = true
     }
@@ -166,7 +166,7 @@ configure(guiModule) {
 
     task deployConf(type: Copy) {
         from file('src')
-        include "com/haulmont/components/imap/**"
+        include "com/haulmont/addon/imap/**"
         into "$cuba.tomcat.dir/conf/imap"
     }
 }
@@ -194,7 +194,7 @@ configure(webModule) {
 
     task deployConf(type: Copy) {
         from file('src')
-        include "com/haulmont/components/imap/**"
+        include "com/haulmont/addon/imap/**"
         into "$cuba.tomcat.dir/conf/imap"
     }
 

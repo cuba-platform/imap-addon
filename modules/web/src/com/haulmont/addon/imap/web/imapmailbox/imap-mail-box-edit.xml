@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://editorCaption"
+        class="com.haulmont.addon.imap.web.imapmailbox.ImapMailBoxEdit"
+        datasource="mailBoxDs"
+        focusComponent="mainParams"
+        messagesPack="com.haulmont.addon.imap.web.imapmailbox">
+    <dsContext>
+        <datasource id="mailBoxDs"
+                    class="com.haulmont.addon.imap.entity.ImapMailBox"
+                    view="imap-mailbox-edit">
+            <datasource id="authenticationDs"
+                        property="authentication"/>
+            <datasource id="proxyDs"
+                        property="proxy"/>
+            <collectionDatasource id="foldersDs"
+                                  property="folders">
+                <collectionDatasource id="eventsDs"
+                                      property="events"/>
+            </collectionDatasource>
+        </datasource>
+    </dsContext>
+    <layout expand="gridScroll"
+            spacing="true">
+        <scrollBox id="gridScroll"
+                   spacing="true"
+                   width="100%">
+            <hbox spacing="true">
+                <groupBox caption="msg://connectionConfigurationCaption"
+                          spacing="true"
+                          width="AUTO">
+                    <fieldGroup id="mainParams"
+                                datasource="mailBoxDs">
+                        <column width="250px">
+                            <field property="host"/>
+                            <field property="port"/>
+                            <field property="secureMode"/>
+                            <field id="mailBoxRootCertificateField"
+                                   property="rootCertificate"/>
+                            <field datasource="authenticationDs"
+                                   property="username"/>
+                            <field id="authenticationPasswordId">
+                                <passwordField caption="msg://passwordFieldCaption"
+                                               datasource="authenticationDs"
+                                               maxLength="128"
+                                               property="password"
+                                               required="true"/>
+                            </field>
+                            <field id="useProxyChkBoxField">
+                                <checkBox id="useProxyChkBox"
+                                          caption="msg://useProxyCaption"/>
+                            </field>
+
+                        </column>
+                    </fieldGroup>
+                    <button caption="msg://checkConnectionCaption"
+                            invoke="checkTheConnection"/>
+                </groupBox>
+                <vbox spacing="true">
+                    <groupBox caption="msg://pollingConfigurationCaption"
+                              spacing="true"
+                              width="AUTO">
+                        <fieldGroup id="pollingParams"
+                                    datasource="mailBoxDs">
+                            <column width="250px">
+                                <field property="pollInterval"/>
+                                <field property="processingTimeout"/>
+                                <field property="cubaFlag"/>
+                                <field property="updateSliceSize"/>
+                                <field id="useTrashFolderChkBoxField">
+                                    <checkBox id="useTrashFolderChkBox"
+                                              caption="msg://useTrashFolderForRemovalCaption"/>
+                                </field>
+                                <field id="trashFolderNameField"
+                                       editable="false"
+                                       property="trashFolderName"/>
+                            </column>
+                        </fieldGroup>
+                        <button id="selectTrashFolderButton"
+                                caption="msg://selectTrashFolderCaption"
+                                invoke="selectTrashFolder"/>
+                    </groupBox>
+                    <groupBox caption="msg://proxyConfigurationCaption"
+                              spacing="true"
+                              width="AUTO">
+                        <fieldGroup id="proxyParams"
+                                    datasource="proxyDs">
+                            <column width="250px">
+                                <field datasource="proxyDs" property="host" caption="msg://proxyHostCaption" id="proxyHostField"/>
+                                <field datasource="proxyDs" property="port" caption="msg://proxyPortCaption" id="proxyPortField"/>
+                                <field datasource="proxyDs" property="webProxy" caption="msg://proxyUseWebCaption" id="webProxyChkBox"/>
+                            </column>
+                        </fieldGroup>
+                    </groupBox>
+                </vbox>
+            </hbox>
+            <groupBox caption="msg://foldersConfigurationCaption"
+                      spacing="true"
+                      width="100%">
+                <split height="100%"
+                       orientation="horizontal"
+                       pos="50"
+                       width="100%">
+                    <vbox id="foldersBox"
+                          expand="foldersTable"
+                          height="100%"
+                          margin="false, true, false, false"
+                          spacing="true"
+                          width="100%">
+                        <table id="foldersTable"
+                               width="100%">
+                            <columns>
+                                <column id="name"/>
+                            </columns>
+                            <rows datasource="foldersDs"/>
+                            <buttonsPanel>
+                                <button caption="msg://selectFoldersCaption"
+                                        invoke="selectFolders"/>
+                            </buttonsPanel>
+                        </table>
+                    </vbox>
+                    <vbox id="eventsBox"
+                          expand="eventsTable"
+                          height="100%"
+                          margin="false, false, false, true"
+                          spacing="true"
+                          width="100%">
+                        <table id="eventsTable"
+                               width="100%">
+                            <actions>
+                                <action id="create"
+                                        openType="DIALOG"/>
+                                <action id="edit"
+                                        openType="DIALOG"/>
+                                <action id="remove"/>
+                            </actions>
+                            <columns>
+                                <column id="event"/>
+                                <column id="beanName"/>
+                                <column id="methodName"/>
+                            </columns>
+                            <rows datasource="eventsDs"/>
+                            <buttonsPanel>
+                                <button action="eventsTable.create"/>
+                                <button action="eventsTable.edit"/>
+                                <button action="eventsTable.remove"/>
+                            </buttonsPanel>
+                        </table>
+                    </vbox>
+                </split>
+            </groupBox>
+        </scrollBox>
+        <frame id="windowActions"
+               screen="editWindowActions"/>
+    </layout>
+</window>

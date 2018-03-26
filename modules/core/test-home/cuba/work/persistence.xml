@@ -55,13 +55,13 @@
     <class>com.haulmont.cuba.core.entity.JmxInstance</class>
     <class>com.haulmont.cuba.security.entity.RememberMeToken</class>
     <class>com.haulmont.cuba.core.entity.ReferenceToEntity</class>
-    <class>com.haulmont.components.imap.entity.ImapFolder</class>
-    <class>com.haulmont.components.imap.entity.ImapMailBox</class>
-    <class>com.haulmont.components.imap.entity.ImapAuthentication</class>
-    <class>com.haulmont.components.imap.entity.ImapSimpleAuthentication</class>
-    <class>com.haulmont.components.imap.entity.ImapMessage</class>
-    <class>com.haulmont.components.imap.entity.ImapMessageAttachment</class>
-    <class>com.haulmont.components.imap.entity.ImapFolderEvent</class>
+    <class>com.haulmont.addon.imap.entity.ImapFolder</class>
+    <class>com.haulmont.addon.imap.entity.ImapMailBox</class>
+    <class>com.haulmont.addon.imap.entity.ImapAuthentication</class>
+    <class>com.haulmont.addon.imap.entity.ImapSimpleAuthentication</class>
+    <class>com.haulmont.addon.imap.entity.ImapMessage</class>
+    <class>com.haulmont.addon.imap.entity.ImapMessageAttachment</class>
+    <class>com.haulmont.addon.imap.entity.ImapFolderEvent</class>
     <exclude-unlisted-classes/>
     <properties>
       <property name="eclipselink.cache.coordination.propagate-asynchronously" value="false"/>

@@ -5,4 +5,8 @@
         "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
+    <suppress files="ThreadExtension.java" checks="MethodName"/>
+    <suppress files="ThreadExtension.java" checks="MemberName"/>
+    <suppress files="ThreadExtension.java" checks="TypeName"/>
+    <suppress files="ImapMailBoxTrashFolder" checks="InnerAssignmentCheck"/>
 </suppressions>
