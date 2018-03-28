@@ -1,5 +1,5 @@
 buildscript {
-    ext.cubaVersion = '6.7.6'
+    ext.cubaVersion = '6.7.11'
     repositories {
         
         maven {
@@ -40,6 +40,9 @@ cuba {
         ajpPort = 8010
         debugPort = 8788
     }
+    ide {
+        vcs = 'Git'
+    }
 
     /*uploadRepository {
         url = 'http://repo.company.com/nexus/content/repositories/snapshots' // repository for uploading your artifacts
@@ -53,7 +56,7 @@ dependencies {
 
 }
 
-def postgres = 'org.postgresql:postgresql:9.4.1212'
+def hsql = 'org.hsqldb:hsqldb:2.2.9'
 
 configure([globalModule, coreModule, guiModule, webModule]) {
     apply(plugin: 'java')
@@ -120,8 +123,8 @@ configure(coreModule) {
     dependencies {
         compile(globalModule)
         provided(servletApi)
-        jdbc(postgres)
-        testRuntime(postgres)
+        jdbc(hsql)
+        testRuntime(hsql)
 
     }
 
@@ -142,19 +145,19 @@ configure(coreModule) {
     }
 
     task createDb(dependsOn: assembleDbScripts, description: 'Creates local database', type: CubaDbCreation) {
-        dbms = 'postgres'
-        host = 'localhost:32768'
-        dbName = 'haulmont'
-        dbUser = 'postgres'
-        dbPassword = 'postgres'
+        dbms = 'hsql'
+        host = 'localhost'
+        dbName = 'imapcomponent'
+        dbUser = 'sa'
+        dbPassword = ''
     }
 
     task updateDb(dependsOn: assembleDbScripts, description: 'Updates local database', type: CubaDbUpdate) {
-        dbms = 'postgres'
-        host = 'localhost:32768'
-        dbName = 'haulmont'
-        dbUser = 'postgres'
-        dbPassword = 'postgres'
+        dbms = 'hsql'
+        host = 'localhost'
+        dbName = 'imapcomponent'
+        dbUser = 'sa'
+        dbPassword = ''
     }
 }
 
