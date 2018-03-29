@@ -2,6 +2,7 @@ package com.haulmont.addon.imap.events;
 
 import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.addon.imap.entity.ImapMessage;
+import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.Map;
 
@@ -21,9 +22,9 @@ public class EmailFlagChangedImapEvent extends BaseImapEvent {
 
     @Override
     public String toString() {
-        return "EmailFlagChangedImapEvent{" +
-                "changedFlagsWithNewValue=" + changedFlagsWithNewValue +
-                ", message=" + message +
-                '}';
+        return new ToStringBuilder(this).
+                append("changedFlagsWithNewValue", changedFlagsWithNewValue).
+                append("message", message).
+                toString();
     }
 }

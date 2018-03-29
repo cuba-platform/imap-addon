@@ -8,10 +8,4 @@ public class EmailDeletedImapEvent extends BaseImapEvent {
         super(message);
     }
 
-    @Override
-    public String toString() {
-        return "EmailDeletedImapEvent{" +
-                "message=" + message +
-                '}';
-    }
 }

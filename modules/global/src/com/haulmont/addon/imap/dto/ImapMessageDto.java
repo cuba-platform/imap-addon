@@ -4,6 +4,7 @@ import com.haulmont.chile.core.annotations.MetaClass;
 import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.AbstractNotPersistentEntity;
+import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.Date;
 import java.util.List;
@@ -156,16 +157,16 @@ public class ImapMessageDto extends AbstractNotPersistentEntity {
 
     @Override
     public String toString() {
-        return "MailMessageDto{" +
-                "from='" + from + '\'' +
-                ", toList=" + toList +
-                ", ccList=" + ccList +
-                ", bccList=" + bccList +
-                ", subject='" + subject + '\'' +
-                ", body='" + body + '\'' +
-                ", flags=" + flags +
-                ", mailBoxHost='" + mailBoxHost + '\'' +
-                ", mailBoxPort='" + mailBoxPort + '\'' +
-                '}';
+        return new ToStringBuilder(this).
+                append("from", from).
+                append("toList", toList).
+                append("ccList", ccList).
+                append("bccList", bccList).
+                append("subject", subject).
+                append("body", body).
+                append("flags", flags).
+                append("mailBoxHost", mailBoxHost).
+                append("mailBoxPort", mailBoxPort).
+                toString();
     }
 }

@@ -1,6 +1,7 @@
 package com.haulmont.addon.imap.events;
 
 import com.haulmont.addon.imap.entity.ImapMessage;
+import org.apache.commons.lang.builder.ToStringBuilder;
 
 public class EmailMovedImapEvent extends BaseImapEvent {
 
@@ -22,9 +23,9 @@ public class EmailMovedImapEvent extends BaseImapEvent {
 
     @Override
     public String toString() {
-        return "EmailMovedImapEvent{" +
-                "newFolderName='" + newFolderName + '\'' +
-                ", message=" + message +
-                '}';
+        return new ToStringBuilder(this).
+                append("newFolderName", newFolderName).
+                append("message", message).
+                toString();
     }
 }
