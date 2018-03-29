@@ -8,35 +8,20 @@ The main model to interact with incoming Emails is via Spring application Events
 
 Besides the Event based programming model it is also possible to directly interact with the corresponding API methods.
 
+**Please note that component still in development and not stable.**
+
 ## Installation
 
-1. Add the following maven repository `TBD` to the build.gradle of your CUBA application:
-
-
-    buildscript {
-        
-        //...
-        
-        repositories {
-        
-            // ...
-        
-            maven {
-                url  "TBD"
-            }
-        }
-        
-        // ...
-    }
-
-2. Select a version of the add-on which is compatible with the platform version used in your project:
+1. Open component in CUBA studio and invoke Run > Install app component
+1. Open your application in CUBA studio and in project properties in 'Advanced' tab enable 'Use local Maven repository'
+1. Select a version of the add-on which is compatible with the platform version used in your project:
 
 | Platform Version | Add-on Version |
 | ---------------- | -------------- |
-| 6.7.x            | 0.1.x-SNAPSHOT |
+| 6.7.x            | 0.1-SNAPSHOT |
 
 
-The latest version is: TBD
+The latest version is: 0.1-SNAPSHOT
 
 Add custom application component to your project:
 
@@ -50,6 +35,8 @@ Add custom application component to your project:
 ### IMAP encryption configuration options
 
 It is required to configure the following application properties in the `app.properties` of the application:
+
+IMAP mail box password encryption keys:
 ```
 cuba.email.imap.encryption.key = HBXv3Q70IlmBMiW4EMyPHw==
 cuba.email.imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
@@ -57,20 +44,8 @@ cuba.email.imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
 
 
 ### Register EventListeners to interact with IMAP events
-In order to react to IMAP events in your application, you can register Service methods as Event listener through the `@EventListener` Annotation. 
+In order to react to IMAP events in your application, you can register `@Component` methods as Event listener through the `@EventListener` Annotation. 
 
-```
-import org.springframework.context.event.EventListener;
-
-public interface EmailReceiveService {
-    String NAME = "ceuia_EmailReceiveService";
-
-    @EventListener
-    void receiveEmail(NewEmailImapEvent event);
-}
-```
-
-with the corresponding ServiceBean:
 ```
 import org.springframework.context.event.EventListener;
 
@@ -82,6 +57,17 @@ public class EmailReceiveServiceBean implements EmailReceiveService {
     public void receiveEmail(NewEmailImapEvent event) {
       // handle IMAP event
     }
+}
+```
+
+or you can create `@Service` methods which will have only one attribute with correct event type
+```
+import org.springframework.context.event.EventListener;
+
+public interface EmailReceiveService {
+    String NAME = "ceuia_EmailReceiveService";
+
+    void receiveEmail(NewEmailImapEvent event);
 }
 ```
 
