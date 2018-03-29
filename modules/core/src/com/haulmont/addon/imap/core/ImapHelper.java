@@ -3,6 +3,7 @@ package com.haulmont.addon.imap.core;
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.security.Encryptor;
+import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
@@ -17,6 +18,7 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 import javax.inject.Inject;
 import javax.mail.*;
@@ -29,8 +31,8 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
@@ -55,9 +57,10 @@ public class ImapHelper {
     private static final String SUBJECT_HEADER = "Subject";
     private static final String MESSAGE_ID_HEADER = "Message-ID";
 
-    private volatile ConcurrentMap<MailboxKey, Object> mailBoxLocks = new ConcurrentHashMap<>();
-    private volatile ConcurrentMap<FolderKey, Object> folderLocks = new ConcurrentHashMap<>();
-    private volatile ConcurrentMap<MessageKey, Object> msgLocks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MailboxKey, Object> mailBoxLocks = new ConcurrentHashMap<>();
+    private final Map<MailboxKey, Pair<ConnectionsParams, Store>> stores = new HashMap<>();
+    private final ConcurrentMap<FolderKey, Object> folderLocks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MessageKey, Object> msgLocks = new ConcurrentHashMap<>();
 
     @Inject
     private FileLoader fileLoader;
@@ -74,39 +77,56 @@ public class ImapHelper {
     public Store getStore(ImapMailBox box) throws MessagingException {
         LOG.debug("Accessing imap store for {}", box);
 
-        /*Store store = boxesStores.get(box);
-        if (store != null) {
-            return store;
-        }
-        synchronized (lock) { //todo: should be more fine-grained scoped to mailbox
-            store = boxesStores.get(box);
-            if (store != null) {
-                return store;
+        MailboxKey key = mailboxKey(box);
+        mailBoxLocks.putIfAbsent(key, new Object());
+        Object lock = mailBoxLocks.get(key);
+        synchronized (lock) {
+            Pair<ConnectionsParams, Store> mailboxStore = stores.get(key);
+            String persistedPassword = getPersistedPassword(box);
+            if (mailboxStore == null || connectionParamsDiffer(mailboxStore.getFirst(), box, persistedPassword)) {
+                buildAndCacheStore(key, box, persistedPassword);
             }
 
-            String protocol = box.getSecureMode() == MailSecureMode.TLS ? "imaps" : "imap";
-
-            Properties props = System.getProperties();
-            props.setProperty("mail.store.protocol", protocol);
-
-            MailSSLSocketFactory socketFactory = getMailSSLSocketFactory(box);
-            props.put("mail.imaps.ssl.socketFactory", socketFactory);
-
-            Session session = Session.getDefaultInstance(props, null);
-
-            store = session.getStore(protocol);
-            store.connect(box.getHost(), box.getAuthentication().getUsername(), box.getAuthentication().getPassword());
-            boxesStores.put(box, store);
+            Store store = stores.get(key).getSecond();
+            if (!store.isConnected()) {
+                store.connect();
+            }
+            return store;
         }
 
-        if (!store.isConnected()) {
-            *//*if (this.logger.isDebugEnabled()) {
-                this.logger.debug("connecting to store [" + MailTransportUtils.toPasswordProtectedString(this.url) + "]");
-            }*//*
-            store.connect();
+    }
+
+    private boolean connectionParamsDiffer(ConnectionsParams oldParams, ImapMailBox newConfig, String persistedPassword) {
+        Assert.isTrue(newConfig != null, "New mailbox config shouldn't be null");
+        if (oldParams == null) {
+            return true;
+        }
+        if (oldParams.secureMode != newConfig.getSecureMode()) {
+            return true;
         }
 
-        return store;*/
+        if (proxyParamsDiffer(oldParams, newConfig)) {
+            return true;
+        }
+
+        return !Objects.equals(oldParams.encryptedPassword, enryptedPassword(newConfig, persistedPassword));
+    }
+
+    private boolean proxyParamsDiffer(ConnectionsParams oldParams, ImapMailBox newConfig) {
+        ImapProxy newProxy = newConfig.getProxy();
+        if (!oldParams.useProxy && newProxy == null) {
+            return false;
+        }
+        if (oldParams.useProxy == (newProxy == null)) {
+            return true;
+        }
+        return !Objects.equals(oldParams.webProxy, newProxy.getWebProxy()) ||
+                !Objects.equals(oldParams.proxyHost, newProxy.getHost()) ||
+                !Objects.equals(oldParams.proxyPort, newProxy.getPort());
+
+    }
+
+    private void buildAndCacheStore(MailboxKey key, ImapMailBox box, String persistedPassword) throws MessagingException {
         String protocol = box.getSecureMode() == ImapSecureMode.TLS ? "imaps" : "imap";
 
         Properties props = new Properties(System.getProperties());
@@ -114,7 +134,7 @@ public class ImapHelper {
         if (box.getSecureMode() == ImapSecureMode.STARTTLS) {
             props.setProperty("mail.imap.starttls.enable", "true");
         }
-        props.setProperty("mail.debug", "true");
+//        props.setProperty("mail.debug", "true");
 
         if (box.getSecureMode() != null) {
             MailSSLSocketFactory socketFactory = getMailSSLSocketFactory(box);
@@ -131,14 +151,27 @@ public class ImapHelper {
         Session session = Session.getInstance(props, null);
 
         Store store = session.getStore(protocol);
-        String password = box.getAuthentication().getPassword();
-        if (password.equals(getPersistedPassword(box))) {
-            password = encryptor.getPlainPassword(box);
+        String passwordToConnect = decryptedPassword(box, persistedPassword);
+        store.connect(box.getHost(), box.getPort(), box.getAuthentication().getUsername(), passwordToConnect);
+
+        ConnectionsParams connectionsParams = new ConnectionsParams(box, enryptedPassword(box, persistedPassword));
+        stores.put(key, new Pair<>(connectionsParams, store));
+    }
+
+    private String decryptedPassword(ImapMailBox mailBox, String persistedPassword) {
+        String password = mailBox.getAuthentication().getPassword();
+        if (Objects.equals(password, persistedPassword)) {
+            password = encryptor.getPlainPassword(mailBox);
         }
+        return password;
+    }
 
-        store.connect(box.getHost(), box.getPort(), box.getAuthentication().getUsername(), password);
-
-        return store;
+    private String enryptedPassword(ImapMailBox mailBox, String persistedPassword) {
+        String password = mailBox.getAuthentication().getPassword();
+        if (!Objects.equals(password, persistedPassword)) {
+            password = encryptor.getEncryptedPassword(mailBox);
+        }
+        return password;
     }
 
     private String getPersistedPassword(ImapMailBox mailBox) {
@@ -151,7 +184,7 @@ public class ImapHelper {
 
     public <T> T doWithFolder(ImapMailBox mailBox, IMAPFolder folder, FolderTask<T> task) {
         LOG.debug("perform '{}' for {} of mailbox {}", task.getDescription(), folder.getFullName(), mailBox);
-        FolderKey key = new FolderKey(new MailboxKey(mailBox.getHost(), mailBox.getPort()), folder.getFullName());
+        FolderKey key = new FolderKey(mailboxKey(mailBox), folder.getFullName());
         folderLocks.putIfAbsent(key, new Object());
         Object lock = folderLocks.get(key);
         synchronized (lock) {
@@ -168,7 +201,7 @@ public class ImapHelper {
                         e
                 );
             } finally {
-                if (task.isCloseFolder()) {
+                if (task.isCloseFolder() && folder.isOpen()) {
                     try {
                         folder.close(false);
                     } catch (MessagingException e) {
@@ -185,7 +218,7 @@ public class ImapHelper {
         ImapFolder folder = message.getFolder();
         ImapMailBox mailBox = folder.getMailBox();
         MessageKey key = new MessageKey(
-                new FolderKey(new MailboxKey(mailBox.getHost(), mailBox.getPort()), folder.getName()),
+                new FolderKey(mailboxKey(mailBox), folder.getName()),
                 message.getMsgUid()
         );
         msgLocks.putIfAbsent(key, new Object());
@@ -205,6 +238,10 @@ public class ImapHelper {
             }
 
         }
+    }
+
+    private MailboxKey mailboxKey(ImapMailBox mailBox) {
+        return new MailboxKey(mailBox.getHost(), mailBox.getPort(), mailBox.getAuthentication().getUsername());
     }
 
     public List<MsgHeader> search(IMAPFolder folder, SearchTerm searchTerm) throws MessagingException {
@@ -408,31 +445,40 @@ public class ImapHelper {
         }
 
         if (p.isMimeType("multipart/alternative")) {
-            // prefer html text over plain text
-            Multipart mp = (Multipart) p.getContent();
-            Body body = null;
-            for (int i = 0; i < mp.getCount(); i++) {
-                Part bp = mp.getBodyPart(i);
-                if (bp.isMimeType("text/plain")) {
-                    if (body == null) {
-                        body = getText(bp);
+            Object content = p.getContent();
+            if (content instanceof InputStream) {
+                return new Body(IOUtils.toString((InputStream) p.getContent(), StandardCharsets.UTF_8), false);
+            } else if (content instanceof Multipart) {
+                Multipart mp = (Multipart) content;
+                Body body = null;
+                for (int i = 0; i < mp.getCount(); i++) {
+                    Part bp = mp.getBodyPart(i);
+                    if (bp.isMimeType("text/plain")) {
+                        if (body == null) {
+                            body = getText(bp);
+                        }
+                    } else if (bp.isMimeType("text/html")) {
+                        Body b = getText(bp);
+                        if (b != null) {
+                            return b;
+                        }
+                    } else {
+                        return getText(bp);
                     }
-                } else if (bp.isMimeType("text/html")) {
-                    Body b = getText(bp);
-                    if (b != null) {
-                        return b;
-                    }
-                } else {
-                    return getText(bp);
                 }
+                return body;
             }
-            return body;
         } else if (p.isMimeType("multipart/*")) {
-            Multipart mp = (Multipart) p.getContent();
-            for (int i = 0; i < mp.getCount(); i++) {
-                Body s = getText(mp.getBodyPart(i));
-                if (s != null) {
-                    return s;
+            Object content = p.getContent();
+            if (content instanceof InputStream) {
+                return new Body(IOUtils.toString((InputStream) p.getContent(), StandardCharsets.UTF_8), false);
+            } else if (content instanceof Multipart) {
+                Multipart mp = (Multipart) content;
+                for (int i = 0; i < mp.getCount(); i++) {
+                    Body s = getText(mp.getBodyPart(i));
+                    if (s != null) {
+                        return s;
+                    }
                 }
             }
         }
@@ -521,6 +567,30 @@ public class ImapHelper {
 
         public boolean isHtml() {
             return html;
+        }
+    }
+
+    private static class ConnectionsParams implements Serializable {
+        private ImapSecureMode secureMode;
+        private boolean useProxy;
+
+        private boolean webProxy;
+        private String proxyHost;
+        private Integer proxyPort;
+
+        private String encryptedPassword;
+
+        ConnectionsParams(ImapMailBox mailBox, String encryptedPassword) {
+            this.secureMode = mailBox.getSecureMode();
+            ImapProxy proxy = mailBox.getProxy();
+            this.useProxy = proxy != null;
+            if (proxy != null) {
+                this.webProxy = Boolean.TRUE.equals(proxy.getWebProxy());
+                this.proxyHost = proxy.getHost();
+                this.proxyPort = proxy.getPort();
+            }
+
+            this.encryptedPassword = encryptedPassword;
         }
     }
 
