@@ -12,7 +12,7 @@
     </dsContext>
     <dialogMode height="600"
                 width="800"/>
-    <layout spacing="true">
+    <layout spacing="true" expand="windowActions">
         <fieldGroup id="fieldGroup"
                     datasource="imapMessageDs"
                     editable="false">
@@ -27,11 +27,14 @@
                 <field property="messageId"/>
             </column>
         </fieldGroup>
-        <hbox spacing="true"
+        <hbox id="windowActions"
+              spacing="true"
               stylename="c-edit-window-actions">
             <button id="windowClose"
                     action="windowClose"
-                    icon="100"/>
+                    caption="mainMsg://actions.Close"
+                    icon="theme://actions.Editor.Ok.icon"
+            />
         </hbox>
     </layout>
 </window>
