@@ -13,6 +13,7 @@ import com.sun.mail.iap.Response;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.protocol.*;
 import com.sun.mail.util.MailSSLSocketFactory;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,8 @@ import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -397,7 +400,11 @@ public class ImapHelper {
     public Body getText(Part p) throws
             MessagingException, IOException {
         if (p.isMimeType("text/*")) {
-            return new Body((String) p.getContent(), p.isMimeType("text/html"));
+            Object content = p.getContent();
+            String body = content instanceof InputStream
+                    ? IOUtils.toString((InputStream) p.getContent(), StandardCharsets.UTF_8)
+                    : content.toString();
+            return new Body(body, p.isMimeType("text/html"));
         }
 
         if (p.isMimeType("multipart/alternative")) {
