@@ -26,9 +26,9 @@ public class MissedMessagesInFolderTask extends ExistingMessagesInFolderTask {
     private Collection<ImapMessage> missedMsgs = new ArrayList<>();
     private final Collection<IMAPFolder> otherFolders;
 
-    MissedMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder, IMAPFolder folder,
+    MissedMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder,
                                ImapScheduling scheduling, Collection<ImapFolderDto> allFolders) {
-        super(mailBox, cubaFolder, folder, scheduling);
+        super(mailBox, cubaFolder, scheduling);
         otherFolders = allFolders.stream()
                 .flatMap(f -> folderWithChildren(f).stream())
                 .filter(f -> Boolean.TRUE.equals(f.getCanHoldMessages()) && !f.getName().equals(cubaFolder.getName()))
@@ -97,7 +97,7 @@ public class MissedMessagesInFolderTask extends ExistingMessagesInFolderTask {
 
             Collection<String> ids = scheduling.imapHelper.doWithFolder(
                     mailBox,
-                    otherFolder,
+                    otherFolder.getFullName(),
                     new FolderTask<>(
                             "fetch messages from folder " + otherFolder.getFullName() + " by message ids " + messagesByIds.keySet(),
                             true,

@@ -8,15 +8,14 @@ import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.events.*;
 import com.haulmont.cuba.core.EntityManager;
-import com.sun.mail.imap.IMAPFolder;
 
 import javax.mail.Flags;
 import java.util.*;
 
 class UpdateMessagesInFolderTask extends ExistingMessagesInFolderTask {
 
-    UpdateMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder, IMAPFolder folder, ImapScheduling scheduling) {
-        super(mailBox, cubaFolder, folder, scheduling);
+    UpdateMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder, ImapScheduling scheduling) {
+        super(mailBox, cubaFolder, scheduling);
     }
 
     @Override

@@ -16,13 +16,13 @@ public interface ImapAPI {
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box) throws MessagingException;
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) throws MessagingException;
 
-    ImapMessageDto fetchMessage(ImapMessage message) throws MessagingException;
+    ImapMessageDto fetchMessage(ImapMessage message);
     Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages);
-    Collection<ImapMessageAttachment> fetchAttachments(UUID msgRefId) throws MessagingException;
+    Collection<ImapMessageAttachment> fetchAttachments(UUID msgRefId);
 
-    void moveMessage(ImapMessage msg, String folderName) throws MessagingException;
-    void deleteMessage(ImapMessage message) throws MessagingException;
-    void markAsRead(ImapMessage message) throws MessagingException;
-    void markAsImportant(ImapMessage message) throws MessagingException;
-    void setFlag(ImapMessage message, ImapFlag flag, boolean set) throws MessagingException;
+    void moveMessage(ImapMessage msg, String folderName);
+    void deleteMessage(ImapMessage message);
+    void markAsRead(ImapMessage message);
+    void markAsImportant(ImapMessage message);
+    void setFlag(ImapMessage message, ImapFlag flag, boolean set);
 }

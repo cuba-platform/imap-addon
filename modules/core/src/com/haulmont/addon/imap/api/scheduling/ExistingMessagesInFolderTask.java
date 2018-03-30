@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
 
 abstract class ExistingMessagesInFolderTask extends AbstractFolderTask {
 
-    ExistingMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder, IMAPFolder folder, ImapScheduling scheduling) {
-        super(mailBox, cubaFolder, folder, scheduling);
+    ExistingMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder, ImapScheduling scheduling) {
+        super(mailBox, cubaFolder, scheduling);
     }
 
     @Override
@@ -29,33 +29,32 @@ abstract class ExistingMessagesInFolderTask extends AbstractFolderTask {
         );
         LOG.debug("[{} for {}]handle events for existing messages using windowSize {} and batchSize {}",
                 taskDescription(), cubaFolder, windowSize, batchSize);
-        return scheduling.imapHelper.doWithFolder(
-                mailBox,
-                folder,
-                new FolderTask<>(
-                        taskDescription(),
-                        true,
-                        true,
-                        f -> {
-                            List<BaseImapEvent> modificationEvents = new ArrayList<>((int) windowSize);
-                            for (int i = 0; i < windowSize; i += batchSize) {
-                                int thisBatchSize = (int) Math.min(batchSize, windowSize - i);
-                                LOG.trace("[{} for {}]handle batch#{} with size {}",
-                                        taskDescription(), cubaFolder, i, thisBatchSize);
-                                modificationEvents.addAll(handleBatch(batchSize));
-                            }
+        List<BaseImapEvent> modificationEvents = new ArrayList<>((int) windowSize);
+        for (int i = 0; i < windowSize; i += batchSize) {
+            int thisBatchSize = (int) Math.min(batchSize, windowSize - i);
+            LOG.trace("[{} for {}]handle batch#{} with size {}",
+                    taskDescription(), cubaFolder, i, thisBatchSize);
 
-                            modificationEvents.addAll(trailEvents());
+            List<BaseImapEvent> batchEvents = scheduling.imapHelper.doWithFolder(
+                    mailBox,
+                    cubaFolder.getName(),
+                    new FolderTask<>(
+                            taskDescription(),
+                            true,
+                            false,
+                            f -> handleBatch(f, batchSize)
+                    )
+            );
 
-                            return modificationEvents;
-                        }
-                )
-        );
+            modificationEvents.addAll(batchEvents);
+        }
+        modificationEvents.addAll(trailEvents());
+        return modificationEvents;
     }
 
     private long getCount() {
         scheduling.authentication.begin();
-        try (Transaction tx = scheduling.persistence.createTransaction()) {
+        try (Transaction ignored = scheduling.persistence.createTransaction()) {
             EntityManager em = scheduling.persistence.getEntityManager();
             return ((Number) em.createQuery("select count(m.id) from imapcomponent$ImapMessage m where m.folder.id = :mailFolderId")
                     .setParameter("mailFolderId", cubaFolder)
@@ -65,7 +64,7 @@ abstract class ExistingMessagesInFolderTask extends AbstractFolderTask {
         }
     }
 
-    private List<BaseImapEvent> handleBatch(int count) throws MessagingException {
+    private List<BaseImapEvent> handleBatch(IMAPFolder folder, int count) throws MessagingException {
         scheduling.authentication.begin();
         try (Transaction tx = scheduling.persistence.createTransaction()) {
             EntityManager em = scheduling.persistence.getEntityManager();

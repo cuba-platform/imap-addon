@@ -17,6 +17,7 @@ import javax.mail.*;
 import java.util.*;
 
 @Service(ImapAPIService.NAME)
+@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapAPIServiceBean implements ImapAPIService {
 
     private final static Logger LOG = LoggerFactory.getLogger(ImapAPIServiceBean.class);
@@ -44,7 +45,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     @Override
-    public ImapMessageDto fetchMessage(ImapMessage message) throws MessagingException {
+    public ImapMessageDto fetchMessage(ImapMessage message) {
         return imapAPI.fetchMessage(message);
     }
 
@@ -54,32 +55,32 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     @Override
-    public Collection<ImapMessageAttachment> fetchAttachments(UUID msgId) throws MessagingException {
+    public Collection<ImapMessageAttachment> fetchAttachments(UUID msgId) {
         return imapAPI.fetchAttachments(msgId);
     }
 
     @Override
-    public void moveMessage(ImapMessage msg, String folderName) throws MessagingException {
+    public void moveMessage(ImapMessage msg, String folderName) {
         imapAPI.moveMessage(msg, folderName);
     }
 
     @Override
-    public void deleteMessage(ImapMessage message) throws MessagingException {
+    public void deleteMessage(ImapMessage message) {
         imapAPI.deleteMessage(message);
     }
 
     @Override
-    public void markAsRead(ImapMessage message) throws MessagingException {
+    public void markAsRead(ImapMessage message) {
         imapAPI.markAsRead(message);
     }
 
     @Override
-    public void markAsImportant(ImapMessage message) throws MessagingException {
+    public void markAsImportant(ImapMessage message) {
         imapAPI.markAsImportant(message);
     }
 
     @Override
-    public void setFlag(ImapMessage message, ImapFlag flag, boolean set) throws MessagingException {
+    public void setFlag(ImapMessage message, ImapFlag flag, boolean set) {
         imapAPI.setFlag(message, flag, set);
     }
 }

@@ -48,6 +48,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 @Component
+@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapHelper {
 
     private final static Logger LOG = LoggerFactory.getLogger(ImapHelper.class);
@@ -60,7 +61,7 @@ public class ImapHelper {
     private final ConcurrentMap<MailboxKey, Object> mailBoxLocks = new ConcurrentHashMap<>();
     private final Map<MailboxKey, Pair<ConnectionsParams, Store>> stores = new HashMap<>();
     private final ConcurrentMap<FolderKey, Object> folderLocks = new ConcurrentHashMap<>();
-    private final ConcurrentMap<MessageKey, Object> msgLocks = new ConcurrentHashMap<>();
+    private final Map<FolderKey, IMAPFolder> folders = new HashMap<>();
 
     @Inject
     private FileLoader fileLoader;
@@ -80,6 +81,7 @@ public class ImapHelper {
         MailboxKey key = mailboxKey(box);
         mailBoxLocks.putIfAbsent(key, new Object());
         Object lock = mailBoxLocks.get(key);
+        //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (lock) {
             Pair<ConnectionsParams, Store> mailboxStore = stores.get(key);
             String persistedPassword = getPersistedPassword(box);
@@ -175,45 +177,49 @@ public class ImapHelper {
     }
 
     private String getPersistedPassword(ImapMailBox mailBox) {
-        try (Transaction tx = persistence.createTransaction()) {
+        try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             ImapSimpleAuthentication persisted = em.find(ImapSimpleAuthentication.class, mailBox.getAuthentication().getId());
             return persisted != null ? persisted.getPassword() : null;
         }
     }
 
-    public <T> T doWithFolder(ImapMailBox mailBox, IMAPFolder folder, FolderTask<T> task) {
-        LOG.debug("perform '{}' for {} of mailbox {}", task.getDescription(), folder.getFullName(), mailBox);
-        FolderKey key = new FolderKey(mailboxKey(mailBox), folder.getFullName());
+    public <T> T doWithFolder(ImapMailBox mailBox, String folderFullName, FolderTask<T> task) {
+        LOG.debug("perform '{}' for {} of mailbox {}", task.getDescription(), folderFullName, mailBox);
+        FolderKey key = new FolderKey(mailboxKey(mailBox), folderFullName);
         folderLocks.putIfAbsent(key, new Object());
         Object lock = folderLocks.get(key);
-        synchronized (lock) {
-            LOG.trace("[{}->{}]lock acquired for '{}'", mailBox, folder.getFullName(), task.getDescription());
-            try {
+        IMAPFolder folder = null;
+        try {
+            Store store = getStore(mailBox);
+            //noinspection SynchronizationOnLocalVariableOrMethodParameter
+            synchronized (lock) {
+                LOG.trace("[{}->{}]lock acquired for '{}'", mailBox, folderFullName, task.getDescription());
+                folders.putIfAbsent(key, (IMAPFolder) store.getFolder(folderFullName));
+                 folder = folders.get(key);
                 if (!folder.isOpen()) {
                     folder.open(Folder.READ_WRITE);
                 }
                 T result = task.getAction().apply(folder);
                 return task.isHasResult() ? result : null;
-            } catch (MessagingException e) {
-                throw new RuntimeException(
-                        String.format("error performing task '%s' for folder with key '%s'", task.getDescription(), key),
-                        e
-                );
-            } finally {
-                if (task.isCloseFolder() && folder.isOpen()) {
-                    try {
-                        folder.close(false);
-                    } catch (MessagingException e) {
-                        LOG.warn("Can't close folder {} for mailBox {}:{}", folder.getFullName(), mailBox.getHost(), mailBox.getPort());
-                    }
+            }
+        } catch (MessagingException e) {
+            throw new RuntimeException(
+                    String.format("error performing task '%s' for folder with key '%s'", task.getDescription(), key),
+                    e
+            );
+        } finally {
+            if (task.isCloseFolder() && folder != null && folder.isOpen()) {
+                try {
+                    folder.close(false);
+                } catch (MessagingException e) {
+                    LOG.warn("Can't close folder {} for mailBox {}:{}", folderFullName, mailBox.getHost(), mailBox.getPort());
                 }
             }
-
         }
     }
 
-    public <T> T doWithMsg(ImapMessage message, IMAPFolder imapFolder, Task<ImapMessage, T> task) {
+    /*public <T> T doWithMsg(ImapMessage message, IMAPFolder imapFolder, Task<ImapMessage, T> task) {
         LOG.debug("perform message task '{}' for {} of folder {}", task.getDescription(), message, imapFolder.getFullName());
         ImapFolder folder = message.getFolder();
         ImapMailBox mailBox = folder.getMailBox();
@@ -238,7 +244,7 @@ public class ImapHelper {
             }
 
         }
-    }
+    }*/
 
     private MailboxKey mailboxKey(ImapMailBox mailBox) {
         return new MailboxKey(mailBox.getHost(), mailBox.getPort(), mailBox.getAuthentication().getUsername());
@@ -254,6 +260,7 @@ public class ImapHelper {
             LOG.debug("get messages by uids {} in {}", Arrays.toString(uids), folder.getFullName());
         }
         if (uids != null && uids.length > 0) {
+            //noinspection unchecked
             return (List<MsgHeader>) folder.doCommand(uidFetchWithFlagsCommand(uids));
         }
         return Collections.emptyList();
@@ -321,7 +328,7 @@ public class ImapHelper {
 
                 List<MsgHeader> result = new ArrayList<>();
                 for (Response response : responses) {
-                    if (response == null || !(response instanceof FetchResponse))
+                    if (!(response instanceof FetchResponse))
                         continue;
 
                     FetchResponse fr = (FetchResponse) response;
@@ -410,8 +417,8 @@ public class ImapHelper {
                 (protocol.isREV1() ? ")]" : ")");
     }
 
-    protected MailSSLSocketFactory getMailSSLSocketFactory(ImapMailBox box) throws MessagingException {
-        MailSSLSocketFactory socketFactory = null;
+    private MailSSLSocketFactory getMailSSLSocketFactory(ImapMailBox box) throws MessagingException {
+        MailSSLSocketFactory socketFactory;
         try {
             socketFactory = new MailSSLSocketFactory();
             if (config.getTrustAllCertificates()) {
@@ -498,7 +505,7 @@ public class ImapHelper {
         private X509TrustManager defaultTrustManager;
         private X509TrustManager localTrustManager;
 
-        public UnifiedTrustManager(InputStream rootCertStream) {
+        UnifiedTrustManager(InputStream rootCertStream) {
             try {
                 this.defaultTrustManager = createTrustManager(null);
 
@@ -556,7 +563,7 @@ public class ImapHelper {
         private String text;
         private boolean html;
 
-        public Body(String text, boolean html) {
+        Body(String text, boolean html) {
             this.text = text;
             this.html = html;
         }

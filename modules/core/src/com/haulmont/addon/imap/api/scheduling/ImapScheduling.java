@@ -28,6 +28,7 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Component(ImapSchedulingAPI.NAME)
+@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapScheduling implements ImapSchedulingAPI {
 
     private final static Logger LOG = LoggerFactory.getLogger(ImapScheduling.class);
@@ -64,7 +65,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
     @Override
     public void processMailBoxes() {
         authentication.begin();
-        try (Transaction tx = persistence.createTransaction()) {
+        try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             TypedQuery<ImapMailBox> query = em.createQuery(
                     "select distinct b from imapcomponent$ImapMailBox b " +
@@ -74,6 +75,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     ImapMailBox.class
             );
             query.getResultList().stream().flatMap(mb -> mb.getFolders().stream()).forEach(f -> f.getEvents().size());
+            //noinspection ResultOfMethodCallIgnored
             query.getResultList().stream().flatMap(mb -> mb.getFolders().stream()).forEach(f -> f.getMailBox().getPollInterval());
             query.getResultList().forEach(this::processMailBox);
         } finally {
@@ -134,7 +136,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                         LOG.info("Search new messages for {}", cubaFolder);
 
                         NewMessagesInFolderTask subtask = new NewMessagesInFolderTask(
-                                mailBox, cubaFolder, imapFolder, ImapScheduling.this
+                                mailBox, cubaFolder, ImapScheduling.this
                         );
                         folderSubtasks.add(subtask);
                         subtask.fork();
@@ -146,7 +148,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                         LOG.info("Update messages for {}", cubaFolder);
 
                         UpdateMessagesInFolderTask updateSubtask = new UpdateMessagesInFolderTask(
-                                mailBox, cubaFolder, imapFolder, ImapScheduling.this
+                                mailBox, cubaFolder, ImapScheduling.this
                         );
                         folderSubtasks.add(updateSubtask);
                         updateSubtask.fork();
@@ -156,7 +158,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                         LOG.info("Track deleted/moved messages for {}", cubaFolder);
 
                         MissedMessagesInFolderTask missedMessagesTask = new MissedMessagesInFolderTask(
-                                mailBox, cubaFolder, imapFolder, ImapScheduling.this, allFolders
+                                mailBox, cubaFolder, ImapScheduling.this, allFolders
                         );
                         folderSubtasks.add(missedMessagesTask);
                         missedMessagesTask.fork();

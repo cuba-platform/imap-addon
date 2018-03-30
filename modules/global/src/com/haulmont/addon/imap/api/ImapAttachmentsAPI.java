@@ -8,7 +8,7 @@ import java.io.InputStream;
 public interface ImapAttachmentsAPI {
     String NAME = "imapcomponent_ImapAttachmentsAPI";
 
-    InputStream openStream(ImapMessageAttachment attachment) throws MessagingException;
+    InputStream openStream(ImapMessageAttachment attachment);
 
-    byte[] loadFile(ImapMessageAttachment attachment) throws MessagingException;
+    byte[] loadFile(ImapMessageAttachment attachment);
 }

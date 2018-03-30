@@ -8,7 +8,6 @@ import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.events.NewEmailImapEvent;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Transaction;
-import com.sun.mail.imap.IMAPFolder;
 
 import javax.mail.Flags;
 import javax.mail.Message;
@@ -21,9 +20,8 @@ import java.util.List;
 
 class NewMessagesInFolderTask extends AbstractFolderTask {
 
-
-    NewMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder, IMAPFolder folder, ImapScheduling scheduling) {
-        super(mailBox, cubaFolder, folder, scheduling);
+    NewMessagesInFolderTask(ImapMailBox mailBox, ImapFolder cubaFolder, ImapScheduling scheduling) {
+        super(mailBox, cubaFolder, scheduling);
     }
 
     @Override
@@ -31,21 +29,21 @@ class NewMessagesInFolderTask extends AbstractFolderTask {
         LOG.debug("[{}]handle events for new messages", cubaFolder);
         return scheduling.imapHelper.doWithFolder(
                 mailBox,
-                folder,
+                cubaFolder.getName(),
                 new FolderTask<>(
                         "get new messages",
                         true,
                         true,
                         f -> {
                             List<MsgHeader> imapMessages = scheduling.imapHelper.search(
-                                    folder, new NotTerm(new FlagTerm(cubaFlags(mailBox), true))
+                                    f, new NotTerm(new FlagTerm(cubaFlags(mailBox), true))
                             );
 
                             LOG.debug("[{}]handle events for new messages. New messages: {}", cubaFolder, imapMessages);
 
                             //todo: optimization: should not fetch all message data by uid,
                             // it is excessive since we have already what we need in msg headers
-                            Message[] messages = folder.getMessagesByUID(imapMessages.stream().mapToLong(MsgHeader::getUid).toArray());
+                            Message[] messages = f.getMessagesByUID(imapMessages.stream().mapToLong(MsgHeader::getUid).toArray());
                             if (Boolean.TRUE.equals(scheduling.config.getClearCustomFlags())) {
                                 LOG.trace("[{}]clear custom flags", cubaFolder);
                                 for (Message message : messages) {
@@ -61,8 +59,7 @@ class NewMessagesInFolderTask extends AbstractFolderTask {
 
                             List<NewEmailImapEvent> newEmailImapEvents = saveNewMessages(imapMessages);
 
-
-                            folder.setFlags(messages, cubaFlags(mailBox), true);
+                            f.setFlags(messages, cubaFlags(mailBox), true);
                             return newEmailImapEvents;
                         }
                 )
