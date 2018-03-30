@@ -6,6 +6,8 @@ import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.AbstractNotPersistentEntity;
 import com.sun.mail.imap.IMAPFolder;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @NamePattern("%s |fullName")
@@ -26,9 +28,6 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
 
     @MetaProperty
     private ImapFolderDto parent;
-
-    @MetaProperty
-    private Boolean selected;
 
     private transient IMAPFolder imapFolder;
 
@@ -79,14 +78,6 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
         this.canHoldMessages = canHoldMessages;
     }
 
-    public Boolean getSelected() {
-        return selected;
-    }
-
-    public void setSelected(Boolean selected) {
-        this.selected = selected;
-    }
-
     public IMAPFolder getImapFolder() {
         return imapFolder;
     }
@@ -103,5 +94,21 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
                 ", canHoldMessages=" + canHoldMessages +
                 ", children=" + children +
                 '}';
+    }
+
+    public static List<ImapFolderDto> flattenList(Collection<ImapFolderDto> folderDtos) {
+        List<ImapFolderDto> result = new ArrayList<>(folderDtos.size());
+
+        folderDtos.forEach(folder -> addFolderWithChildren(result, folder));
+
+        return result;
+    }
+
+    private static void addFolderWithChildren(List<ImapFolderDto> foldersList, ImapFolderDto folder) {
+        foldersList.add(folder);
+        List<ImapFolderDto> children = folder.getChildren();
+        if (children != null) {
+            children.forEach(childFolder -> addFolderWithChildren(foldersList, childFolder));
+        }
     }
 }

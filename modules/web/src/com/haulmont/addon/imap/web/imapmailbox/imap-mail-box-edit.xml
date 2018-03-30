@@ -13,11 +13,12 @@
                         property="authentication"/>
             <datasource id="proxyDs"
                         property="proxy"/>
-            <collectionDatasource id="foldersDs"
-                                  property="folders">
+            <hierarchicalDatasource id="foldersDs"
+                                    property="folders"
+                                    hierarchyProperty="parent">
                 <collectionDatasource id="eventsDs"
                                       property="events"/>
-            </collectionDatasource>
+            </hierarchicalDatasource>
         </datasource>
     </dsContext>
     <layout expand="gridScroll"
@@ -96,28 +97,26 @@
             </hbox>
             <groupBox caption="msg://foldersConfigurationCaption"
                       spacing="true"
-                      width="100%">
+                      height="100%"
+                      width="100%" id="foldersBox">
                 <split height="100%"
                        orientation="horizontal"
                        pos="50"
                        width="100%">
-                    <vbox id="foldersBox"
-                          expand="foldersTable"
-                          height="100%"
+                    <vbox height="100%"
                           margin="false, true, false, false"
                           spacing="true"
                           width="100%">
-                        <table id="foldersTable"
-                               width="100%">
+                        <treeTable id="foldersTable"
+                                   editable="true"
+                                   height="100%"
+                                   width="100%">
                             <columns>
-                                <column id="name"/>
+                                <column id="name" editable="false"/>
+                                <column id="selected" editable="true" caption=""/>
                             </columns>
                             <rows datasource="foldersDs"/>
-                            <buttonsPanel>
-                                <button caption="msg://selectFoldersCaption"
-                                        invoke="selectFolders"/>
-                            </buttonsPanel>
-                        </table>
+                        </treeTable>
                     </vbox>
                     <vbox id="eventsBox"
                           expand="eventsTable"

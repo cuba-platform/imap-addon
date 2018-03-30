@@ -121,7 +121,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                         .collect(Collectors.toList());
                 List<RecursiveAction> folderSubtasks = new ArrayList<>(listenedFolders.size() * 2);
                 Collection<ImapFolderDto> allFolders = imapAPI.fetchFolders(mailBox);
-                for (ImapFolder cubaFolder : mailBox.getFolders()) {
+                for (ImapFolder cubaFolder : mailBox.getProcessableFolders()) {
                     IMAPFolder imapFolder = allFolders.stream()
                             .filter(f -> f.getName().equals(cubaFolder.getName()))
                             .findFirst()

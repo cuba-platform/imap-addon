@@ -11,6 +11,10 @@ create table IMAPCOMPONENT_IMAP_FOLDER (
     --
     NAME varchar(255) not null,
     MAIL_BOX_ID uuid not null,
+    SELECTED boolean not null,
+    SELECTABLE boolean not null,
+    DISABLED boolean,
+    PARENT_FOLDER_ID uuid,
     --
     primary key (ID)
 )^

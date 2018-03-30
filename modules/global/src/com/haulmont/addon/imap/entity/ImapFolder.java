@@ -23,7 +23,7 @@ public class ImapFolder extends StandardEntity {
     protected String name;
 
     @OnDelete(DeletePolicy.CASCADE)
-    @OneToMany(mappedBy = "folder")
+    @OneToMany(mappedBy = "folder", cascade = CascadeType.PERSIST, orphanRemoval = true)
     @Composition
     protected List<ImapFolderEvent> events;
 
@@ -31,6 +31,20 @@ public class ImapFolder extends StandardEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "MAIL_BOX_ID")
     protected ImapMailBox mailBox;
+
+    @Column(name = "SELECTED", nullable = false)
+    protected Boolean selected = false;
+
+    @Column(name = "SELECTABLE", nullable = false)
+    protected Boolean selectable;
+
+    @Column(name = "DISABLED")
+    protected Boolean disabled;
+
+    @OnDeleteInverse(DeletePolicy.CASCADE)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "PARENT_FOLDER_ID")
+    protected ImapFolder parent;
 
     public ImapMailBox getMailBox() {
         return mailBox;
@@ -66,6 +80,39 @@ public class ImapFolder extends StandardEntity {
 
     public boolean hasEvent(ImapEventType eventType) {
         return getEvent(eventType) != null;
+    }
+
+
+    public Boolean getSelected() {
+        return selected;
+    }
+
+    public void setSelected(Boolean selected) {
+        this.selected = selected;
+    }
+
+    public Boolean getSelectable() {
+        return selectable;
+    }
+
+    public void setSelectable(Boolean selectable) {
+        this.selectable = selectable;
+    }
+
+    public Boolean getDisabled() {
+        return disabled;
+    }
+
+    public void setDisabled(Boolean disabled) {
+        this.disabled = disabled;
+    }
+
+    public ImapFolder getParent() {
+        return parent;
+    }
+
+    public void setParent(ImapFolder parent) {
+        this.parent = parent;
     }
 
 }

@@ -7,6 +7,7 @@ import com.haulmont.chile.core.annotations.Composition;
 import com.haulmont.cuba.core.entity.annotation.OnDelete;
 import com.haulmont.cuba.core.global.DeletePolicy;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.FileDescriptor;
@@ -74,9 +75,6 @@ public class ImapMailBox extends StandardEntity {
     @OneToMany(mappedBy = "mailBox", cascade = { CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     protected List<ImapFolder> folders;
 
-    @Transient
-    private Boolean newEntity = false;
-
     public void setProxy(ImapProxy proxy) {
         this.proxy = proxy;
     }
@@ -88,6 +86,12 @@ public class ImapMailBox extends StandardEntity {
 
     public List<ImapFolder> getFolders() {
         return folders;
+    }
+
+    public List<ImapFolder> getProcessableFolders() {
+        return folders.stream()
+                .filter(f -> Boolean.TRUE.equals(f.getSelected()) && !Boolean.TRUE.equals(f.getDisabled()))
+                .collect(Collectors.toList());
     }
 
     public void setFolders(List<ImapFolder> folders) {
@@ -190,11 +194,4 @@ public class ImapMailBox extends StandardEntity {
         return pollInterval;
     }
 
-    public Boolean getNewEntity() {
-        return newEntity;
-    }
-
-    public void setNewEntity(Boolean newEntity) {
-        this.newEntity = newEntity;
-    }
 }

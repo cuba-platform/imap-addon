@@ -7,6 +7,8 @@
                   view="_local"/>
         <property name="mailBox"
                   view="_minimal"/>
+        <property name="parent"
+                  view="_minimal"/>
     </view>
     <view class="com.haulmont.addon.imap.entity.ImapMailBox"
           extends="_local"

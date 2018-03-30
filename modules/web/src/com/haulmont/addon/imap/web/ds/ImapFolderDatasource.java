@@ -2,7 +2,6 @@ package com.haulmont.addon.imap.web.ds;
 
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
-import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.service.ImapAPIService;
 import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.gui.data.impl.CustomHierarchicalDatasource;
@@ -11,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.mail.MessagingException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ImapFolderDatasource extends CustomHierarchicalDatasource<ImapFolderDto, UUID> {
 
@@ -30,18 +28,9 @@ public class ImapFolderDatasource extends CustomHierarchicalDatasource<ImapFolde
             LOG.debug("Fetch folders for {}", mailBox);
             Collection<ImapFolderDto> rootFolders = service.fetchFolders(mailBox);
 
-            List<ImapFolderDto> folders = new ArrayList<>(rootFolders);
+            List<ImapFolderDto> folders = ImapFolderDto.flattenList(rootFolders);
 
-            rootFolders.forEach(folder -> addFolderWithChildren(folders, folder));
-
-            List<ImapFolder> selectedFolders = mailBox.getFolders();
-            if (selectedFolders == null) {
-                selectedFolders = Collections.emptyList();
-            }
-            LOG.debug("Fetch folders for {}. All folders: {}, selected: {}", mailBox, folders, selectedFolders);
-
-            List<String> fullNames = selectedFolders.stream().map(ImapFolder::getName).collect(Collectors.toList());
-            folders.forEach(f -> f.setSelected(fullNames.contains(f.getFullName())));
+            LOG.debug("Fetch folders for {}. All folders: {}", mailBox, folders);
 
             return folders;
         } catch (MessagingException e) {
@@ -50,11 +39,4 @@ public class ImapFolderDatasource extends CustomHierarchicalDatasource<ImapFolde
 
     }
 
-    private void addFolderWithChildren(List<ImapFolderDto> foldersList, ImapFolderDto folder) {
-        foldersList.add(folder);
-        List<ImapFolderDto> children = folder.getChildren();
-        if (children != null) {
-            children.forEach(childFolder -> addFolderWithChildren(foldersList, childFolder));
-        }
-    }
 }
