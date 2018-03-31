@@ -3,6 +3,7 @@ package com.haulmont.addon.imap.entity;
 import javax.persistence.*;
 
 import com.haulmont.chile.core.annotations.Composition;
+import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.cuba.core.global.DeletePolicy;
 
 import com.haulmont.cuba.core.entity.StandardEntity;
@@ -10,6 +11,7 @@ import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.annotation.OnDeleteInverse;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import com.haulmont.cuba.core.entity.annotation.OnDelete;
 
@@ -113,6 +115,22 @@ public class ImapFolder extends StandardEntity {
 
     public void setParent(ImapFolder parent) {
         this.parent = parent;
+    }
+
+    @MetaProperty
+    public String getEventsInfo() {
+        int i = 0;
+        StringBuilder builder = new StringBuilder();
+        for (ImapFolderEvent event : events) {
+            ImapEventType eventType = event.getEvent();
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(eventType);
+            i++;
+        }
+
+        return builder.toString();
     }
 
 }

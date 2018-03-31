@@ -9,6 +9,7 @@ import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.*;
 import com.haulmont.addon.imap.entity.ImapMailBox;
+import com.haulmont.cuba.gui.components.actions.BaseAction;
 import com.haulmont.cuba.gui.data.Datasource;
 import com.haulmont.cuba.gui.data.HierarchicalDatasource;
 import com.haulmont.cuba.gui.executors.BackgroundTask;
@@ -22,6 +23,9 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.mail.MessagingException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
@@ -47,6 +51,18 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     @Inject
     private TreeTable<ImapFolder> foldersTable;
+
+    @Inject
+    protected BoxLayout selectedFolderPanel;
+
+    @Inject
+    protected ScrollBoxLayout editEventsContainer;
+
+    @Inject
+    protected GridLayout editEventsGrid;
+
+    @Inject
+    protected CheckBox allEventsChkBox;
 
     @Inject
     private FolderRefresher folderRefresher;
@@ -75,7 +91,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 //                foldersTable.repaint();
             }
             showNotification("Connection succeed", NotificationType.HUMANIZED);
-        } catch (Exception e) {
+        } catch (MessagingException e) {
             log.error("Connection Error", e);
             showNotification("Connection failed", NotificationType.ERROR);
         }
@@ -100,6 +116,156 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             checkBox.setDatasource(foldersTable.getItemDatasource(folder), "selected");
             checkBox.setEditable(Boolean.TRUE.equals(folder.getSelectable() && !Boolean.TRUE.equals(folder.getDisabled())));
             return checkBox;
+        });
+
+        makeEventsInfoColumn();
+
+        setupEvents();
+    }
+
+    private void setupEvents() {
+
+        ImapEventType[] eventTypes = ImapEventType.values();
+        Map<CheckBox, ImapEventType> eventCheckBoxes = new HashMap<>(eventTypes.length);
+        AtomicBoolean eventsChanging = new AtomicBoolean(false);
+        editEventsGrid.setRows(eventTypes.length + 1);
+        for (int i = 0; i < eventTypes.length; i++) {
+            ImapEventType eventType = eventTypes[i];
+            String eventName = AppBeans.get(Messages.class).getMessage(eventType);
+
+            Label label = componentsFactory.createComponent(Label.class);
+            label.setFrame(getFrame());
+            label.setValue(eventName);
+            editEventsGrid.add(label, 0, i + 1);
+
+            CheckBox checkBox = componentsFactory.createComponent(CheckBox.class);
+            checkBox.setAlignment(Alignment.MIDDLE_CENTER);
+            checkBox.setFrame(getFrame());
+            checkBox.setDescription(eventName);
+            checkBox.setId(eventName + "_chkBox");
+            checkBox.addValueChangeListener(e -> {
+                if (eventsChanging.get()) {
+                    return;
+                }
+
+                ImapFolder selectedFolder = foldersTable.getSingleSelected();
+
+                if (selectedFolder == null) {
+                    return;
+                }
+
+                eventsChanging.set(true);
+                if (toggleEvent(Boolean.TRUE.equals(e.getValue()), selectedFolder, eventType)) {
+                    //todo: repaint only selected folder column
+                    foldersTable.repaint();
+                }
+
+                allEventsChkBox.setValue(eventCheckBoxes.keySet().stream().allMatch(CheckBox::isChecked));
+
+                eventsChanging.set(false);
+            });
+            eventCheckBoxes.put(checkBox, eventType);
+            editEventsGrid.add(checkBox, 1, i + 1);
+        }
+
+
+        allEventsChkBox.addValueChangeListener(e -> {
+            if (eventsChanging.get()) {
+                return;
+            }
+
+            ImapFolder selectedFolder = foldersTable.getSingleSelected();
+
+            if (selectedFolder == null) {
+                return;
+            }
+
+            eventsChanging.set(true);
+            boolean changed = eventCheckBoxes.entrySet().stream()
+                    .peek(entry -> entry.getKey().setValue(e.getValue()))
+                    .anyMatch(entry ->
+                            toggleEvent(Boolean.TRUE.equals(e.getValue()), selectedFolder, entry.getValue())
+                    );
+            if (changed) {
+                //todo: repaint only selected folder column
+                foldersTable.repaint();
+            }
+
+            eventsChanging.set(false);
+        });
+
+        foldersDs.addItemChangeListener(e -> {
+            ImapFolder folder = e.getItem();
+            if (!selectedFolderPanel.isVisible() && folder != null) {
+                selectedFolderPanel.setVisible(true);
+            }
+            if (selectedFolderPanel.isVisible() && (folder == null)) {
+                selectedFolderPanel.setVisible(false);
+            }
+
+            eventsChanging.set(true);
+
+            if (folder != null) {
+                eventCheckBoxes.forEach((checkBox, eventType) -> checkBox.setValue(folder.hasEvent(eventType)));
+                allEventsChkBox.setValue(eventCheckBoxes.keySet().stream().allMatch(CheckBox::isChecked));
+            }
+
+            eventsChanging.set(false);
+        });
+    }
+
+    private boolean toggleEvent(boolean value, ImapFolder imapFolder, ImapEventType eventType) {
+        if (value && !imapFolder.hasEvent(eventType)) {
+            ImapFolderEvent imapEvent = metadata.create(ImapFolderEvent.class);
+            imapEvent.setEvent(eventType);
+            imapEvent.setFolder(imapFolder);
+            List<ImapFolderEvent> events = imapFolder.getEvents();
+            if (events == null) {
+                imapFolder.setEvents(events = new ArrayList<>(ImapEventType.values().length));
+            }
+            events.add(imapEvent);
+            return true;
+        } else if (!value && imapFolder.hasEvent(eventType)) {
+            imapFolder.getEvents().remove(imapFolder.getEvent(eventType));
+            return true;
+        }
+
+        return false;
+    }
+
+    private void makeEventsInfoColumn() {
+        Map<ImapEventType, BaseAction> imapEventActions = Arrays.stream(ImapEventType.values()).collect(Collectors.toMap(
+                Function.identity(),
+                eventType -> new BaseAction("event-" + eventType.getId()) {
+                    @Override
+                    public void actionPerform(Component component) {
+                        ImapFolder selectedFolder = foldersTable.getSingleSelected();
+                        if (selectedFolder == null) {
+                            return;
+                        }
+
+                        ImapFolderEvent event = selectedFolder.getEvent(eventType);
+                        if (event == null) {
+                            return;
+                        }
+                        openEditor(event, WindowManager.OpenType.DIALOG);
+                    }
+                }
+        ));
+
+        foldersTable.addGeneratedColumn("eventsInfo", folder -> {
+            HBoxLayout hbox = componentsFactory.createComponent(HBoxLayout.class);
+            if (folder.getEvents() != null) {
+
+                for (ImapFolderEvent event : folder.getEvents()) {
+                    Button button = componentsFactory.createComponent(Button.class);
+                    button.setCaption(AppBeans.get(Messages.class).getMessage(event.getEvent()));
+                    button.setAction(imapEventActions.get(event.getEvent()));
+                    hbox.add(button);
+                }
+            }
+
+            return hbox;
         });
     }
 
