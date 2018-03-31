@@ -65,9 +65,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     protected CheckBox allEventsChkBox;
 
     @Inject
-    private Button windowCommit;
-
-    @Inject
     private FolderRefresher folderRefresher;
 
     @Inject
