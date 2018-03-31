@@ -25,7 +25,7 @@ public class ImapFolder extends StandardEntity {
     protected String name;
 
     @OnDelete(DeletePolicy.CASCADE)
-    @OneToMany(mappedBy = "folder", cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL, orphanRemoval = true)
     @Composition
     protected List<ImapFolderEvent> events;
 

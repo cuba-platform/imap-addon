@@ -16,8 +16,6 @@
             <hierarchicalDatasource id="foldersDs"
                                     property="folders"
                                     hierarchyProperty="parent">
-                <collectionDatasource id="eventsDs"
-                                      property="events"/>
             </hierarchicalDatasource>
         </datasource>
     </dsContext>

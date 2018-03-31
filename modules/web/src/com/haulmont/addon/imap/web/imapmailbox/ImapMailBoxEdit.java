@@ -181,15 +181,13 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             }
 
             eventsChanging.set(true);
-            boolean changed = eventCheckBoxes.entrySet().stream()
-                    .peek(entry -> entry.getKey().setValue(e.getValue()))
-                    .anyMatch(entry ->
-                            toggleEvent(Boolean.TRUE.equals(e.getValue()), selectedFolder, entry.getValue())
-                    );
-            if (changed) {
-                //todo: repaint only selected folder column
-                foldersTable.repaint();
-            }
+            eventCheckBoxes.forEach((checkbox, eventType) -> {
+                Object value = e.getValue();
+                checkbox.setValue(value);
+                toggleEvent(Boolean.TRUE.equals(e.getValue()), selectedFolder, eventType);
+            });
+            //todo: repaint only selected folder column
+            foldersTable.repaint();
 
             eventsChanging.set(false);
         });
@@ -224,9 +222,11 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                 imapFolder.setEvents(events = new ArrayList<>(ImapEventType.values().length));
             }
             events.add(imapEvent);
+            foldersDs.modifyItem(imapFolder);
             return true;
         } else if (!value && imapFolder.hasEvent(eventType)) {
             imapFolder.getEvents().remove(imapFolder.getEvent(eventType));
+            foldersDs.modifyItem(imapFolder);
             return true;
         }
 
@@ -285,6 +285,10 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             BackgroundTaskHandler taskHandler = backgroundWorker.handle(new FoldersRefreshTask());
             taskHandler.execute();
         }
+        addCloseWithCommitListener(() -> {
+            ImapMailBox mailBox = getItem();
+            System.out.println(mailBox);
+        });
     }
 
     private void setCertificateVisibility() {
