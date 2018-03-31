@@ -65,6 +65,9 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     protected CheckBox allEventsChkBox;
 
     @Inject
+    private Button windowCommit;
+
+    @Inject
     private FolderRefresher folderRefresher;
 
     @Inject
@@ -82,10 +85,13 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     @Inject
     private ComponentsFactory componentsFactory;
 
+    private boolean connectionEstablished = false;
+
     public void checkTheConnection() {
         try {
             boolean refresh = folderRefresher.refreshFolders(getItem());
             log.debug("refreshed folders from IMAP, need to refresh datasource - {}", refresh);
+            setEnableForButtons(true);
             if (refresh) {
                 foldersDs.refresh();
 //                foldersTable.repaint();
@@ -111,6 +117,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     @Override
     public void init(Map<String, Object> params) {
+        setEnableForButtons(false);
         foldersTable.addGeneratedColumn("selected", folder -> {
             CheckBox checkBox = componentsFactory.createComponent(CheckBox.class);
             checkBox.setDatasource(foldersTable.getItemDatasource(folder), "selected");
@@ -285,10 +292,14 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             BackgroundTaskHandler taskHandler = backgroundWorker.handle(new FoldersRefreshTask());
             taskHandler.execute();
         }
-        addCloseWithCommitListener(() -> {
-            ImapMailBox mailBox = getItem();
-            System.out.println(mailBox);
-        });
+    }
+
+    @Override
+    protected boolean preCommit() {
+        if (!connectionEstablished) {
+            showNotification("Can't save mail box configuration without successful connection");
+        }
+        return connectionEstablished;
     }
 
     private void setCertificateVisibility() {
@@ -354,6 +365,11 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         });
     }
 
+    private void setEnableForButtons(boolean enable) {
+        connectionEstablished = enable;
+        selectTrashFolderButton.setEnabled(enable);
+    }
+
     private class FoldersRefreshTask extends BackgroundTask<Integer, Boolean> {
 
         public FoldersRefreshTask() {
@@ -377,9 +393,10 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         @Override
         public void done(Boolean refresh) {
             log.debug("refreshed folders from IMAP, need to refresh datasource - {}", refresh);
+            setEnableForButtons(true);
             if (refresh) {
                 foldersDs.refresh();
-                foldersTable.repaint();
+//                foldersTable.repaint();
             }
         }
 
