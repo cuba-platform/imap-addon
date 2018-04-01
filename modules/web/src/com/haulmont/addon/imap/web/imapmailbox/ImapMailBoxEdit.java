@@ -86,6 +86,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private boolean connectionEstablished = false;
 
     public void checkTheConnection() {
+        connectionEstablished = false;
         try {
             folderRefresher.refreshFolders(getItem());
             log.debug("refreshed folders from IMAP");
@@ -378,6 +379,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
         @Override
         public Boolean run(TaskLifeCycle<Integer> taskLifeCycle) {
+            connectionEstablished = false;
             try {
                 folderRefresher.refreshFolders(mailBox);
                 return true;

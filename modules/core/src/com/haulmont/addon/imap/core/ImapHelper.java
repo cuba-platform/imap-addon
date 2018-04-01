@@ -134,6 +134,8 @@ public class ImapHelper {
 
         Properties props = new Properties(System.getProperties());
         props.setProperty("mail.store.protocol", protocol);
+        props.setProperty("mail." + protocol + ".connectiontimeout", "5000");
+        props.setProperty("mail." + protocol + ".timeout", "5000");
         if (box.getSecureMode() == ImapSecureMode.STARTTLS) {
             props.setProperty("mail.imap.starttls.enable", "true");
         }
