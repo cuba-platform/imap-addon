@@ -1,15 +1,14 @@
 package com.haulmont.addon.imap.listener;
 
+import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.security.Encryptor;
+import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.PersistenceTools;
-import com.haulmont.cuba.core.listener.BeforeDetachEntityListener;
+import com.haulmont.cuba.core.listener.BeforeInsertEntityListener;
+import com.haulmont.cuba.core.listener.BeforeUpdateEntityListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import com.haulmont.cuba.core.listener.BeforeInsertEntityListener;
-import com.haulmont.cuba.core.EntityManager;
-import com.haulmont.addon.imap.entity.ImapMailBox;
-import com.haulmont.cuba.core.listener.BeforeUpdateEntityListener;
 
 import javax.inject.Inject;
 

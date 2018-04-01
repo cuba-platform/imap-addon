@@ -221,7 +221,8 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             imapEvent.setFolder(imapFolder);
             List<ImapFolderEvent> events = imapFolder.getEvents();
             if (events == null) {
-                imapFolder.setEvents(events = new ArrayList<>(ImapEventType.values().length));
+                events = new ArrayList<>(ImapEventType.values().length);
+                imapFolder.setEvents(events);
             }
             events.add(imapEvent);
             foldersDs.modifyItem(imapFolder);

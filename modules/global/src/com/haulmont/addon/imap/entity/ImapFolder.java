@@ -1,19 +1,16 @@
 package com.haulmont.addon.imap.entity;
 
-import javax.persistence.*;
-
 import com.haulmont.chile.core.annotations.Composition;
 import com.haulmont.chile.core.annotations.MetaProperty;
+import com.haulmont.chile.core.annotations.NamePattern;
+import com.haulmont.cuba.core.entity.StandardEntity;
+import com.haulmont.cuba.core.entity.annotation.OnDelete;
+import com.haulmont.cuba.core.entity.annotation.OnDeleteInverse;
 import com.haulmont.cuba.core.global.DeletePolicy;
 
-import com.haulmont.cuba.core.entity.StandardEntity;
-import com.haulmont.chile.core.annotations.NamePattern;
-import com.haulmont.cuba.core.entity.annotation.OnDeleteInverse;
-
+import javax.persistence.*;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import com.haulmont.cuba.core.entity.annotation.OnDelete;
 
 @NamePattern("%s|name")
 @Table(name = "IMAPCOMPONENT_IMAP_FOLDER")
