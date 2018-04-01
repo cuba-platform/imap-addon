@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class FolderRefresher {
-    private final static Logger log = LoggerFactory.getLogger(FolderRefresher.class);
+    private final static Logger LOG = LoggerFactory.getLogger(FolderRefresher.class);
 
     @Inject
     private ImapAPIService imapService;
@@ -29,12 +29,12 @@ public class FolderRefresher {
     private Metadata metadata;
 
     public boolean refreshFolders(ImapMailBox mailBox) throws MessagingException {
-        log.info("refresh folder for {}", mailBox);
+        LOG.info("refresh folder for {}", mailBox);
         Collection<ImapFolderDto> folderDtos = imapService.fetchFolders(mailBox);
         boolean refresh;
         List<ImapFolder> folders = mailBox.getFolders();
         if (CollectionUtils.isEmpty(folders)) {
-            log.debug("There is no folders for {}. Will add all from IMAP server, fully enabling folders that can contain messages", mailBox);
+            LOG.debug("There is no folders for {}. Will add all from IMAP server, fully enabling folders that can contain messages", mailBox);
             mailBox.setFolders(folderDtos.stream()
                     .flatMap(dto -> folderWithChildren(dto).stream())
                     .peek(f -> {
@@ -45,7 +45,7 @@ public class FolderRefresher {
             );
             refresh = true;
         } else {
-            log.debug("There are folders for {}. Will add new from IMAP server and disable missing", mailBox);
+            LOG.debug("There are folders for {}. Will add new from IMAP server and disable missing", mailBox);
             refresh = mergeFolders(ImapFolderDto.flattenList(folderDtos), folders);
         }
         if (refresh) {
@@ -80,8 +80,8 @@ public class FolderRefresher {
                 .filter(folder -> !dtosByNames.containsKey(folder.getName()))
                 .collect(Collectors.toList());
         deletedFolders.forEach(folder -> folder.setDisabled(true));
-        log.trace("New folders:{}", newFoldersWithParent.keySet());
-        log.trace("Deleted folders:{}", deletedFolders);
+        LOG.trace("New folders:{}", newFoldersWithParent.keySet());
+        LOG.trace("Deleted folders:{}", deletedFolders);
         refresh = !newFoldersWithParent.isEmpty() || !deletedFolders.isEmpty();
         return refresh;
     }
@@ -91,7 +91,7 @@ public class FolderRefresher {
     }
 
     private List<ImapFolder> folderWithChildren(ImapFolderDto dto, ImapFolder parent) {
-        log.trace("Convert dto {} to folder with children, parent of folder-{}", dto, parent);
+        LOG.trace("Convert dto {} to folder with children, parent of folder-{}", dto, parent);
         List<ImapFolder> result = new ArrayList<>();
 
         ImapFolder imapFolder = mapDto(dto);
@@ -118,7 +118,7 @@ public class FolderRefresher {
     }
 
     private void enableCompletely(ImapFolder imapFolder) {
-        log.trace("Set {} selected and enable all events", imapFolder);
+        LOG.trace("Set {} selected and enable all events", imapFolder);
         imapFolder.setSelected(true);
 
         imapFolder.setEvents(

@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
-    private final static Logger log = LoggerFactory.getLogger(ImapMailBoxEdit.class);
+    private final static Logger LOG = LoggerFactory.getLogger(ImapMailBoxEdit.class);
 
     @Inject
     private FieldGroup mainParams;
@@ -87,7 +87,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     public void checkTheConnection() {
         try {
             boolean refresh = folderRefresher.refreshFolders(getItem());
-            log.debug("refreshed folders from IMAP, need to refresh datasource - {}", refresh);
+            LOG.debug("refreshed folders from IMAP, need to refresh datasource - {}", refresh);
             setEnableForButtons(true);
             if (refresh) {
                 foldersDs.refresh();
@@ -95,14 +95,14 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             }
             showNotification("Connection succeed", NotificationType.HUMANIZED);
         } catch (MessagingException e) {
-            log.error("Connection Error", e);
+            LOG.error("Connection Error", e);
             showNotification("Connection failed", NotificationType.ERROR);
         }
     }
 
     public void selectTrashFolder() {
         ImapMailBox mailBox = getItem();
-        log.debug("Open trash folder window for {}", mailBox);
+        LOG.debug("Open trash folder window for {}", mailBox);
         openEditor(
                 "imapcomponent$ImapMailBox.trashFolder",
                 mailBox,
@@ -223,7 +223,8 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             imapEvent.setFolder(imapFolder);
             List<ImapFolderEvent> events = imapFolder.getEvents();
             if (events == null) {
-                imapFolder.setEvents(events = new ArrayList<>(ImapEventType.values().length));
+                events = new ArrayList<>(ImapEventType.values().length);
+                imapFolder.setEvents(events);
             }
             events.add(imapEvent);
             foldersDs.modifyItem(imapFolder);
@@ -313,14 +314,14 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private void setTrashFolderVisibility() {
         FieldGroup.FieldConfig trashFolderNameField = this.pollingParams.getFieldNN("trashFolderNameField");
         boolean visible = getItem().getTrashFolderName() != null;
-        log.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
+        LOG.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
         trashFolderNameField.setVisible(visible);
         selectTrashFolderButton.setVisible(visible);
         useTrashFolderChkBox.setValue(visible);
 
         useTrashFolderChkBox.addValueChangeListener(e -> {
             boolean newVisible = Boolean.TRUE.equals(e.getValue());
-            log.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
+            LOG.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
             trashFolderNameField.setVisible(newVisible);
             selectTrashFolderButton.setVisible(newVisible);
 
@@ -335,7 +336,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         FieldGroup.FieldConfig proxyPortField = this.proxyParams.getFieldNN("proxyPortField");
         FieldGroup.FieldConfig webProxyChkBox = this.proxyParams.getFieldNN("webProxyChkBox");
         boolean visible = getItem().getProxy() != null;
-        log.debug("Set visibility of proxy controls for {} to {}", getItem(), visible);
+        LOG.debug("Set visibility of proxy controls for {} to {}", getItem(), visible);
         proxyHostField.setVisible(visible);
         proxyHostField.setRequired(visible);
         proxyPortField.setVisible(visible);
@@ -347,7 +348,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
         useProxyChkBox.addValueChangeListener(e -> {
             boolean newVisible = Boolean.TRUE.equals(e.getValue());
-            log.debug("Set visibility of proxy folder controls for {} to {}", getItem(), visible);
+            LOG.debug("Set visibility of proxy folder controls for {} to {}", getItem(), visible);
             if (!newVisible) {
                 getItem().setProxy(null);
             } else {
@@ -390,7 +391,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
         @Override
         public void done(Boolean refresh) {
-            log.debug("refreshed folders from IMAP, need to refresh datasource - {}", refresh);
+            LOG.debug("refreshed folders from IMAP, need to refresh datasource - {}", refresh);
             setEnableForButtons(true);
             if (refresh) {
                 foldersDs.refresh();
