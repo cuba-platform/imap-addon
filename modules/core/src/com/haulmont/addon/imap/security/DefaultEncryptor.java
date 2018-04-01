@@ -23,7 +23,7 @@ import java.util.Base64;
 public class DefaultEncryptor implements Encryptor {
     static final String NAME = "imapcomponent_DefaultEncryptor";
 
-    private final static Logger LOG = LoggerFactory.getLogger(DefaultEncryptor.class);
+    private final static Logger log = LoggerFactory.getLogger(DefaultEncryptor.class);
 
     private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
 
@@ -44,7 +44,7 @@ public class DefaultEncryptor implements Encryptor {
             iv = Base64.getDecoder().decode(encryptionIv);
         }
 
-        LOG.info("Encryptor has been initialised with key {} and init vector {}",
+        log.info("Encryptor has been initialised with key {} and init vector {}",
                 imapConfig.getEncryptionKey(), imapConfig.getEncryptionIv()
         );
     }
@@ -54,7 +54,7 @@ public class DefaultEncryptor implements Encryptor {
         if (mailBox.getAuthentication().getPassword() == null) {
             return null;
         }
-        LOG.debug("Encrypt password for {}", mailBox);
+        log.debug("Encrypt password for {}", mailBox);
         try {
             byte[] encrypted = getCipher(Cipher.ENCRYPT_MODE)
                     .doFinal(saltedPassword(mailBox).getBytes(StandardCharsets.UTF_8));
@@ -79,7 +79,7 @@ public class DefaultEncryptor implements Encryptor {
         if (mailBox.getAuthentication().getPassword() == null) {
             return null;
         }
-        LOG.debug("Decrypt password for {}", mailBox);
+        log.debug("Decrypt password for {}", mailBox);
         try {
             byte[] password = Base64.getDecoder().decode(mailBox.getAuthentication().getPassword());
             byte[] decrypted = getCipher(Cipher.DECRYPT_MODE).doFinal(password);

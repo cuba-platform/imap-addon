@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.concurrent.RecursiveAction;
 
 public abstract class AbstractFolderTask extends RecursiveAction {
-    protected final static Logger LOG = LoggerFactory.getLogger(ImapScheduling.class);
+    protected final static Logger log = LoggerFactory.getLogger(ImapScheduling.class);
 
     final ImapFolder cubaFolder;
     final ImapMailBox mailBox;

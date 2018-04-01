@@ -27,12 +27,12 @@ abstract class ExistingMessagesInFolderTask extends AbstractFolderTask {
                 getCount(),
                 (mailBox.getUpdateSliceSize() != null) ? Math.max(mailBox.getUpdateSliceSize(), batchSize) : batchSize
         );
-        LOG.debug("[{} for {}]handle events for existing messages using windowSize {} and batchSize {}",
+        log.debug("[{} for {}]handle events for existing messages using windowSize {} and batchSize {}",
                 taskDescription(), cubaFolder, windowSize, batchSize);
         List<BaseImapEvent> modificationEvents = new ArrayList<>((int) windowSize);
         for (int i = 0; i < windowSize; i += batchSize) {
             int thisBatchSize = (int) Math.min(batchSize, windowSize - i);
-            LOG.trace("[{} for {}]handle batch#{} with size {}",
+            log.trace("[{} for {}]handle batch#{} with size {}",
                     taskDescription(), cubaFolder, i, thisBatchSize);
 
             List<BaseImapEvent> batchEvents = scheduling.imapHelper.doWithFolder(
@@ -81,7 +81,7 @@ abstract class ExistingMessagesInFolderTask extends AbstractFolderTask {
             List<MsgHeader> imapMessages = scheduling.imapHelper.getAllByUids(
                     folder, messages.stream().mapToLong(ImapMessage::getMsgUid).toArray()
             );
-            LOG.trace("[{} for {}]batch messages from db: {}, from IMAP server: {}",
+            log.trace("[{} for {}]batch messages from db: {}, from IMAP server: {}",
                     taskDescription(), cubaFolder, messages, imapMessages);
 
             Map<Long, MsgHeader> headersByUid = new HashMap<>(imapMessages.size());

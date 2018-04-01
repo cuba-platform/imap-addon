@@ -26,7 +26,7 @@ class NewMessagesInFolderTask extends AbstractFolderTask {
 
     @Override
     List<NewEmailImapEvent> makeEvents() {
-        LOG.debug("[{}]handle events for new messages", cubaFolder);
+        log.debug("[{}]handle events for new messages", cubaFolder);
         return scheduling.imapHelper.doWithFolder(
                 mailBox,
                 cubaFolder.getName(),
@@ -39,13 +39,13 @@ class NewMessagesInFolderTask extends AbstractFolderTask {
                                     f, new NotTerm(new FlagTerm(cubaFlags(mailBox), true))
                             );
 
-                            LOG.debug("[{}]handle events for new messages. New messages: {}", cubaFolder, imapMessages);
+                            log.debug("[{}]handle events for new messages. New messages: {}", cubaFolder, imapMessages);
 
                             //todo: optimization: should not fetch all message data by uid,
                             // it is excessive since we have already what we need in msg headers
                             Message[] messages = f.getMessagesByUID(imapMessages.stream().mapToLong(MsgHeader::getUid).toArray());
                             if (Boolean.TRUE.equals(scheduling.config.getClearCustomFlags())) {
-                                LOG.trace("[{}]clear custom flags", cubaFolder);
+                                log.trace("[{}]clear custom flags", cubaFolder);
                                 for (Message message : messages) {
                                     unsetCustomFlags(message);
                                 }
@@ -115,7 +115,7 @@ class NewMessagesInFolderTask extends AbstractFolderTask {
                 .getResultList()
                 .size();
         if (sameUids == 0) {
-            LOG.trace("Save new message {}", msg);
+            log.trace("Save new message {}", msg);
             ImapMessage entity = scheduling.metadata.create(ImapMessage.class);
             entity.setMsgUid(uid);
             entity.setFolder(cubaFolder);

@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 @SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapScheduling implements ImapSchedulingAPI {
 
-    private final static Logger LOG = LoggerFactory.getLogger(ImapScheduling.class);
+    private final static Logger log = LoggerFactory.getLogger(ImapScheduling.class);
 
     @Inject
     Persistence persistence;
@@ -85,7 +85,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
     private void processMailBox(ImapMailBox mailBox) {
         if (isRunning(mailBox)) {
-            LOG.trace("{} is running", mailBox);
+            log.trace("{} is running", mailBox);
             return;
         }
 
@@ -94,13 +94,13 @@ public class ImapScheduling implements ImapSchedulingAPI {
         Long lastStart = lastStartCache.getOrDefault(mailBox, 0L);
         Long lastFinish = lastFinishCache.getOrDefault(mailBox, 0L);
 
-        LOG.trace("{}\n now={} lastStart={} lastFinish={}", mailBox, now, lastStart, lastFinish);
+        log.trace("{}\n now={} lastStart={} lastFinish={}", mailBox, now, lastStart, lastFinish);
         if ((lastStart == 0 || lastStart < lastFinish) && now >= lastFinish + mailBox.getPollInterval() * 1000L) {
             lastStartCache.put(mailBox, now);
-            LOG.info("Fire mailbox processing task for {}", mailBox);
+            log.info("Fire mailbox processing task for {}", mailBox);
             forkJoinPool.execute(new MailBoxProcessingTask(mailBox));
         } else {
-            LOG.trace("{}\n time has not come", mailBox);
+            log.trace("{}\n time has not come", mailBox);
         }
     }
 
@@ -114,7 +114,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
 
         @Override
         protected void compute() {
-            LOG.debug("{}: running", mailBox);
+            log.debug("{}: running", mailBox);
             try {
                 List<ImapFolder> listenedFolders = mailBox.getFolders().stream()
                         .filter(f -> f.getEvents() != null && !f.getEvents().isEmpty())
@@ -129,11 +129,11 @@ public class ImapScheduling implements ImapSchedulingAPI {
                             .orElse(null);
 
                     if (imapFolder == null) {
-                        LOG.info("Can't find folder {}. Probably it was removed", cubaFolder.getName());
+                        log.info("Can't find folder {}. Probably it was removed", cubaFolder.getName());
                         continue;
                     }
                     if (cubaFolder.hasEvent(ImapEventType.NEW_EMAIL)) {
-                        LOG.info("Search new messages for {}", cubaFolder);
+                        log.info("Search new messages for {}", cubaFolder);
 
                         NewMessagesInFolderTask subtask = new NewMessagesInFolderTask(
                                 mailBox, cubaFolder, ImapScheduling.this
@@ -145,7 +145,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                             cubaFolder.hasEvent(ImapEventType.FLAGS_UPDATED) ||
                             cubaFolder.hasEvent(ImapEventType.NEW_ANSWER) ||
                             cubaFolder.hasEvent(ImapEventType.NEW_THREAD)) {
-                        LOG.info("Update messages for {}", cubaFolder);
+                        log.info("Update messages for {}", cubaFolder);
 
                         UpdateMessagesInFolderTask updateSubtask = new UpdateMessagesInFolderTask(
                                 mailBox, cubaFolder, ImapScheduling.this
@@ -155,7 +155,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     }
                     if (cubaFolder.hasEvent(ImapEventType.EMAIL_DELETED) ||
                             cubaFolder.hasEvent(ImapEventType.EMAIL_MOVED)) {
-                        LOG.info("Track deleted/moved messages for {}", cubaFolder);
+                        log.info("Track deleted/moved messages for {}", cubaFolder);
 
                         MissedMessagesInFolderTask missedMessagesTask = new MissedMessagesInFolderTask(
                                 mailBox, cubaFolder, ImapScheduling.this, allFolders
@@ -176,7 +176,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
     }
 
     void fireEvents(ImapFolder folder, Collection<? extends BaseImapEvent> imapEvents) {
-        LOG.debug("Fire events {} for {}", imapEvents, folder);
+        log.debug("Fire events {} for {}", imapEvents, folder);
         imapEvents.forEach(event -> {
             ImapEventType.getByEventType(event.getClass()).stream()
                     .map(folder::getEvent)
@@ -189,7 +189,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
     }
 
     private void invokeAttachedHandler(BaseImapEvent event, ImapFolderEvent folderEvent) {
-        LOG.trace("{}: invoking bean", folderEvent);
+        log.trace("{}: invoking bean", folderEvent);
         Object bean = AppBeans.get(folderEvent.getBeanName());
         Class<? extends BaseImapEvent> eventClass = folderEvent.getEvent().getEventClass();
         try {
@@ -198,7 +198,7 @@ public class ImapScheduling implements ImapSchedulingAPI {
                     .filter(m -> m.getName().equals(folderEvent.getMethodName()))
                     .filter(m -> m.getParameterTypes().length == 1 && m.getParameterTypes()[0].isAssignableFrom(eventClass))
                     .collect(Collectors.toList());
-            LOG.trace("{}: methods to invoke: {}", folderEvent, methods);
+            log.trace("{}: methods to invoke: {}", folderEvent, methods);
             for (Method method : methods) {
                 method.invoke(bean, event);
             }

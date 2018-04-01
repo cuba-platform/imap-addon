@@ -16,13 +16,13 @@ import java.util.stream.Collectors;
 @Service(ImapService.NAME)
 public class ImapServiceBean implements ImapService {
 
-    private final static Logger LOG = LoggerFactory.getLogger(ImapServiceBean.class);
+    private final static Logger log = LoggerFactory.getLogger(ImapServiceBean.class);
 
     private Map<Class<? extends BaseImapEvent>, AbstractBeansMetadata> beanMetas = new HashMap<>();
 
     @Override
     public Map<String, List<String>> getAvailableBeans(Class<? extends BaseImapEvent> eventClass) {
-        LOG.info("Get available beans to handle {}", eventClass);
+        log.info("Get available beans to handle {}", eventClass);
         beanMetas.putIfAbsent(eventClass, new AbstractBeansMetadata() {
             @Override
             protected boolean isMethodAvailable(Method method) {
@@ -32,7 +32,7 @@ public class ImapServiceBean implements ImapService {
             }
         });
         Map<String, List<MethodInfo>> availableBeans = beanMetas.get(eventClass).getAvailableBeans();
-        LOG.debug("{} can be handled by {}", eventClass, availableBeans);
+        log.debug("{} can be handled by {}", eventClass, availableBeans);
         return availableBeans.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,

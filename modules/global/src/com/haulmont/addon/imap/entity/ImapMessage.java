@@ -23,7 +23,7 @@ import java.util.List;
 @Table(name = "IMAPCOMPONENT_IMAP_MESSAGE")
 @Entity(name = "imapcomponent$ImapMessage")
 public class ImapMessage extends StandardEntity {
-    private final static Logger LOG = LoggerFactory.getLogger(ImapMessage.class);
+    private final static Logger log = LoggerFactory.getLogger(ImapMessage.class);
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -91,7 +91,7 @@ public class ImapMessage extends StandardEntity {
         }
         try {
             if (!internalFlags.equals(this.internalFlags)) {
-                LOG.debug("Convert imap flags {} to raw string", internalFlags);
+                log.debug("Convert imap flags {} to raw string", internalFlags);
                 this.flags = OBJECT_MAPPER.writeValueAsString(internalFlags);
                 this.internalFlags = internalFlags;
             }
@@ -102,7 +102,7 @@ public class ImapMessage extends StandardEntity {
 
     public Flags getImapFlags() {
         try {
-            LOG.debug("Parse imap flags from raw string {}", flags);
+            log.debug("Parse imap flags from raw string {}", flags);
             this.internalFlags = OBJECT_MAPPER.readValue(this.flags, new TypeReference<List<ImapFlag>>() {});
         } catch (IOException e) {
             throw new RuntimeException("Can't parse flags from string " + flags, e);

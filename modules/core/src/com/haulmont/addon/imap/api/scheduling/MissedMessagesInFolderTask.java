@@ -34,8 +34,8 @@ public class MissedMessagesInFolderTask extends ExistingMessagesInFolderTask {
                 .filter(f -> Boolean.TRUE.equals(f.getCanHoldMessages()) && !f.getName().equals(cubaFolder.getName()))
                 .map(ImapFolderDto::getImapFolder)
                 .collect(Collectors.toList());
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Missed messages task will use folder {} to trigger MOVE event",
+        if (log.isDebugEnabled()) {
+            log.debug("Missed messages task will use folder {} to trigger MOVE event",
                     otherFolders.stream().map(IMAPFolder::getFullName).collect(Collectors.toList())
             );
         }
@@ -69,7 +69,7 @@ public class MissedMessagesInFolderTask extends ExistingMessagesInFolderTask {
         if (!cubaFolder.hasEvent(ImapEventType.EMAIL_MOVED) && !cubaFolder.hasEvent(ImapEventType.EMAIL_DELETED)) {
             return Collections.emptyList();
         }
-        LOG.debug("Handle missed messages {} for folder {}", missedMsgs, cubaFolder);
+        log.debug("Handle missed messages {} for folder {}", missedMsgs, cubaFolder);
 
         List<BaseImapEvent> result = new ArrayList<>(missedMsgs.size());
 
@@ -78,7 +78,7 @@ public class MissedMessagesInFolderTask extends ExistingMessagesInFolderTask {
                 .map(EmailDeletedImapEvent::new)
                 .forEach(result::add);
         if (!result.isEmpty()) {
-            LOG.debug("messages {} don't contain Message-ID header, they will be treated as deleted", result);
+            log.debug("messages {} don't contain Message-ID header, they will be treated as deleted", result);
         }
         Map<String, ImapMessage> messagesByIds = missedMsgs.stream()
                 .filter(msg -> msg.getMessageId() != null)
@@ -132,7 +132,7 @@ public class MissedMessagesInFolderTask extends ExistingMessagesInFolderTask {
             }
         }
 
-        LOG.debug("Handle missed messages for folder {}. Moved: {}, deleted: {}", cubaFolder, movedIds, messagesByIds);
+        log.debug("Handle missed messages for folder {}. Moved: {}, deleted: {}", cubaFolder, movedIds, messagesByIds);
 
         movedIds.forEach(messagesByIds::remove);
         result.addAll(messagesByIds.values().stream().map(EmailDeletedImapEvent::new).collect(Collectors.toList()));

@@ -20,14 +20,14 @@ import java.io.InputStream;
 @Component(ImapAttachmentsAPI.NAME)
 @SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapAttachments implements ImapAttachmentsAPI {
-    private final static Logger LOG = LoggerFactory.getLogger(ImapAttachments.class);
+    private final static Logger log = LoggerFactory.getLogger(ImapAttachments.class);
 
     @Inject
     private ImapHelper imapHelper;
 
     @Override
     public InputStream openStream(ImapMessageAttachment attachment) {
-        LOG.info("Open stream for attachment {}", attachment);
+        log.info("Open stream for attachment {}", attachment);
         ImapMessage msg = attachment.getImapMessage();
         ImapMailBox mailBox = msg.getFolder().getMailBox();
         String folderName = msg.getFolder().getName();
@@ -55,7 +55,7 @@ public class ImapAttachments implements ImapAttachmentsAPI {
 
     @Override
     public byte[] loadFile(ImapMessageAttachment attachment) {
-        LOG.info("load attachment {}", attachment);
+        log.info("load attachment {}", attachment);
         try (InputStream is = openStream(attachment)) {
             return IOUtils.toByteArray(is);
         } catch (IOException e) {

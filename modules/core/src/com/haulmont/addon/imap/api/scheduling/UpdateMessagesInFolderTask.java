@@ -29,7 +29,7 @@ class UpdateMessagesInFolderTask extends ExistingMessagesInFolderTask {
 
         List<BaseImapEvent> modificationEvents = new ArrayList<>(3);
         if (!Objects.equals(newFlags, oldFlags)) {
-            LOG.trace("Update message {}. Old flags: {}, new flags: {}", msg, oldFlags, newFlags);
+            log.trace("Update message {}. Old flags: {}, new flags: {}", msg, oldFlags, newFlags);
 
             HashMap<ImapFlag, Boolean> changedFlagsWithNewValue = new HashMap<>();
             if (isSeen(newFlags, oldFlags)) {

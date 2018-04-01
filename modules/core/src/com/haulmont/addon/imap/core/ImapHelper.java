@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 @SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapHelper {
 
-    private final static Logger LOG = LoggerFactory.getLogger(ImapHelper.class);
+    private final static Logger log = LoggerFactory.getLogger(ImapHelper.class);
 
     private static final String REFERENCES_HEADER = "References";
     private static final String IN_REPLY_TO_HEADER = "In-Reply-To";
@@ -77,7 +77,7 @@ public class ImapHelper {
     private Persistence persistence;
 
     public Store getStore(ImapMailBox box) throws MessagingException {
-        LOG.debug("Accessing imap store for {}", box);
+        log.debug("Accessing imap store for {}", box);
 
         MailboxKey key = mailboxKey(box);
         mailBoxLocks.putIfAbsent(key, new Object());
@@ -186,7 +186,7 @@ public class ImapHelper {
     }
 
     public <T> T doWithFolder(ImapMailBox mailBox, String folderFullName, FolderTask<T> task) {
-        LOG.debug("perform '{}' for {} of mailbox {}", task.getDescription(), folderFullName, mailBox);
+        log.debug("perform '{}' for {} of mailbox {}", task.getDescription(), folderFullName, mailBox);
         FolderKey key = new FolderKey(mailboxKey(mailBox), folderFullName);
         folderLocks.putIfAbsent(key, new Object());
         Object lock = folderLocks.get(key);
@@ -195,7 +195,7 @@ public class ImapHelper {
             Store store = getStore(mailBox);
             //noinspection SynchronizationOnLocalVariableOrMethodParameter
             synchronized (lock) {
-                LOG.trace("[{}->{}]lock acquired for '{}'", mailBox, folderFullName, task.getDescription());
+                log.trace("[{}->{}]lock acquired for '{}'", mailBox, folderFullName, task.getDescription());
                 folders.putIfAbsent(key, (IMAPFolder) store.getFolder(folderFullName));
                  folder = folders.get(key);
                 if (!folder.isOpen()) {
@@ -214,14 +214,14 @@ public class ImapHelper {
                 try {
                     folder.close(false);
                 } catch (MessagingException e) {
-                    LOG.warn("Can't close folder {} for mailBox {}:{}", folderFullName, mailBox.getHost(), mailBox.getPort());
+                    log.warn("Can't close folder {} for mailBox {}:{}", folderFullName, mailBox.getHost(), mailBox.getPort());
                 }
             }
         }
     }
 
     /*public <T> T doWithMsg(ImapMessage message, IMAPFolder imapFolder, Task<ImapMessage, T> task) {
-        LOG.debug("perform message task '{}' for {} of folder {}", task.getDescription(), message, imapFolder.getFullName());
+        log.debug("perform message task '{}' for {} of folder {}", task.getDescription(), message, imapFolder.getFullName());
         ImapFolder folder = message.getFolder();
         ImapMailBox mailBox = folder.getMailBox();
         MessageKey key = new MessageKey(
@@ -231,7 +231,7 @@ public class ImapHelper {
         msgLocks.putIfAbsent(key, new Object());
         Object lock = msgLocks.get(key);
         synchronized (lock) {
-            LOG.trace("[{}->{}]lock acquired for '{}'", imapFolder.getFullName(), message, task.getDescription());
+            log.trace("[{}->{}]lock acquired for '{}'", imapFolder.getFullName(), message, task.getDescription());
             try {
                 if (!imapFolder.isOpen()) {
                     imapFolder.open(Folder.READ_WRITE);
@@ -252,13 +252,13 @@ public class ImapHelper {
     }
 
     public List<MsgHeader> search(IMAPFolder folder, SearchTerm searchTerm) throws MessagingException {
-        LOG.debug("search messages in {} with {}", folder.getFullName(), searchTerm) ;
+        log.debug("search messages in {} with {}", folder.getFullName(), searchTerm) ;
         return getAllByUids( folder, (long[]) folder.doCommand(uidSearchCommand(searchTerm)) );
     }
 
     public List<MsgHeader> getAllByUids(IMAPFolder folder, long[] uids) throws MessagingException {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("get messages by uids {} in {}", Arrays.toString(uids), folder.getFullName());
+        if (log.isDebugEnabled()) {
+            log.debug("get messages by uids {} in {}", Arrays.toString(uids), folder.getFullName());
         }
         if (uids != null && uids.length > 0) {
             //noinspection unchecked
@@ -343,7 +343,7 @@ public class ImapHelper {
 
                         for (int i = 0; i < fr.getItemCount(); i++) {
                             Item item = fr.getItem(i);
-                            LOG.trace("Processing item#{}: {}", i, item.getClass().getName());
+                            log.trace("Processing item#{}: {}", i, item.getClass().getName());
                             if (item instanceof Flags) {
                                 flags = (Flags) item;
                             } else if (item instanceof UID) {
@@ -423,12 +423,12 @@ public class ImapHelper {
         try {
             socketFactory = new MailSSLSocketFactory();
             if (config.getTrustAllCertificates()) {
-                LOG.debug("Configure factory to trust all certificates");
+                log.debug("Configure factory to trust all certificates");
                 socketFactory.setTrustAllHosts(true);
             } else {
                 socketFactory.setTrustAllHosts(false);
                 if (box.getRootCertificate() != null) {
-                    LOG.debug("Configure factory to trust only known certificates and certificated from file#{}", box.getRootCertificate().getId());
+                    log.debug("Configure factory to trust only known certificates and certificated from file#{}", box.getRootCertificate().getId());
                     try ( InputStream rootCert = fileLoader.openStream(box.getRootCertificate()) ) {
                         socketFactory.setTrustManagers(new TrustManager[] {new UnifiedTrustManager(rootCert) });
                     } catch (FileStorageException | GeneralSecurityException | IOException e) {

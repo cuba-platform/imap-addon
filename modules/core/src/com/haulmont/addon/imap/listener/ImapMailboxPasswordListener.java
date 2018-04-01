@@ -15,7 +15,7 @@ import javax.inject.Inject;
 @Component("imapcomponent_MailboxPasswordListener")
 public class ImapMailboxPasswordListener implements BeforeInsertEntityListener<ImapMailBox>, BeforeUpdateEntityListener<ImapMailBox> {
 
-    private final static Logger LOG = LoggerFactory.getLogger(ImapMailboxPasswordListener.class);
+    private final static Logger log = LoggerFactory.getLogger(ImapMailboxPasswordListener.class);
 
     @Inject
     private Encryptor encryptor;
@@ -36,7 +36,7 @@ public class ImapMailboxPasswordListener implements BeforeInsertEntityListener<I
     }
 
     private void setEncryptedPassword(ImapMailBox entity) {
-        LOG.debug("Encrypt password for {}", entity);
+        log.debug("Encrypt password for {}", entity);
         String encryptedPassword = encryptor.getEncryptedPassword(entity);
         entity.getAuthentication().setPassword(encryptedPassword);
     }
