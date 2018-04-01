@@ -13,13 +13,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import javax.inject.Inject;
-import javax.mail.MessagingException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Component
+@Component(FolderRefresher.NAME)
+@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection", "SpringJavaInjectionPointsAutowiringInspection"})
 public class FolderRefresher {
+    static final String NAME = "imapcomponent_FolderRefresher";
+
     private final static Logger log = LoggerFactory.getLogger(FolderRefresher.class);
 
     @Inject
@@ -28,10 +30,9 @@ public class FolderRefresher {
     @Inject
     private Metadata metadata;
 
-    public boolean refreshFolders(ImapMailBox mailBox) throws MessagingException {
+    public void refreshFolders(ImapMailBox mailBox) {
         log.info("refresh folder for {}", mailBox);
         Collection<ImapFolderDto> folderDtos = imapService.fetchFolders(mailBox);
-        boolean refresh;
         List<ImapFolder> folders = mailBox.getFolders();
         if (CollectionUtils.isEmpty(folders)) {
             log.debug("There is no folders for {}. Will add all from IMAP server, fully enabling folders that can contain messages", mailBox);
@@ -43,20 +44,14 @@ public class FolderRefresher {
                         }
                     }).collect(Collectors.toList())
             );
-            refresh = true;
         } else {
             log.debug("There are folders for {}. Will add new from IMAP server and disable missing", mailBox);
-            refresh = mergeFolders(ImapFolderDto.flattenList(folderDtos), folders);
+            mergeFolders(ImapFolderDto.flattenList(folderDtos), folders);
         }
-        if (refresh) {
-            mailBox.getFolders().forEach(f -> f.setMailBox(mailBox));
-//            mailBox.getFolders().sort(Comparator.comparing(ImapFolder::getName));
-        }
-        return refresh;
+        mailBox.getFolders().forEach(f -> f.setMailBox(mailBox));
     }
 
-    private boolean mergeFolders(Collection<ImapFolderDto> folderDtos, List<ImapFolder> folders) {
-        boolean refresh;
+    private void mergeFolders(List<ImapFolderDto> folderDtos, List<ImapFolder> folders) {
         Map<String, ImapFolderDto> dtosByNames = folderDtos.stream()
                 .collect(Collectors.toMap(ImapFolderDto::getFullName, Function.identity()));
         Map<String, ImapFolder> foldersByNames = folders.stream().collect(
@@ -82,8 +77,8 @@ public class FolderRefresher {
         deletedFolders.forEach(folder -> folder.setDisabled(true));
         log.trace("New folders:{}", newFoldersWithParent.keySet());
         log.trace("Deleted folders:{}", deletedFolders);
-        refresh = !newFoldersWithParent.isEmpty() || !deletedFolders.isEmpty();
-        return refresh;
+        List<String> folderNames = folderDtos.stream().map(ImapFolderDto::getFullName).collect(Collectors.toList());
+        folders.sort(Comparator.comparingInt(f -> folderNames.indexOf(f.getName())));
     }
 
     private List<ImapFolder> folderWithChildren(ImapFolderDto dto) {

@@ -7,12 +7,12 @@
     <dsContext>
         <datasource id="mailBoxDs"
                     class="com.haulmont.addon.imap.entity.ImapMailBox"
-                    view="imap-mailbox-edit"/>
-        <hierarchicalDatasource id="imapFolderDs"
-                                allowCommit="false"
-                                class="com.haulmont.addon.imap.dto.ImapFolderDto"
-                                datasourceClass="com.haulmont.addon.imap.web.ds.ImapFolderDatasource"
-                                hierarchyProperty="parent"/>
+                    view="imap-mailbox-edit">
+            <hierarchicalDatasource id="imapFolderDs"
+                                    property="folders"
+                                    allowCommit="false"
+                                    hierarchyProperty="parent" />
+        </datasource>
     </dsContext>
     <layout>
         <treeTable id="imapFoldersTable"

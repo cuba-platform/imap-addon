@@ -2,6 +2,7 @@ package com.haulmont.addon.imap.core;
 
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.entity.*;
+import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.addon.imap.security.Encryptor;
 import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.cuba.core.EntityManager;
@@ -204,7 +205,7 @@ public class ImapHelper {
                 return task.isHasResult() ? result : null;
             }
         } catch (MessagingException e) {
-            throw new RuntimeException(
+            throw new ImapException(
                     String.format("error performing task '%s' for folder with key '%s'", task.getDescription(), key),
                     e
             );
@@ -397,7 +398,7 @@ public class ImapHelper {
 
                 return result;
             } catch (MessagingException e) {
-                throw new RuntimeException("can't perform fetch", e);
+                throw new ImapException("can't perform fetch", e);
             }
         };
     }

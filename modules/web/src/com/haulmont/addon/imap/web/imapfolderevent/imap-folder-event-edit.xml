@@ -13,7 +13,8 @@
     <dialogMode height="600" width="800"/>
 
     <layout expand="windowActions" spacing="true">
-        <lookupField datasource="imapFolderEventDs" property="event" width="300px"/>
+        <lookupField datasource="imapFolderEventDs" property="folder" width="300px" editable="false"/>
+        <lookupField datasource="imapFolderEventDs" property="event" width="300px" editable="false"/>
         <grid id="grid" spacing="true">
             <columns count="2"/>
             <rows>

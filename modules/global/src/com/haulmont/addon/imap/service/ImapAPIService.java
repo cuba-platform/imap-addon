@@ -7,16 +7,15 @@ import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 
-import javax.mail.MessagingException;
 import java.util.Collection;
 import java.util.UUID;
 
 public interface ImapAPIService {
     String NAME = "imapcomponent_ImapAPIService";
 
-    void testConnection(ImapMailBox box) throws MessagingException;
-    Collection<ImapFolderDto> fetchFolders(ImapMailBox box) throws MessagingException;
-    Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) throws MessagingException;
+    void testConnection(ImapMailBox box);
+    Collection<ImapFolderDto> fetchFolders(ImapMailBox box);
+    Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames);
 
     ImapMessageDto fetchMessage(ImapMessage message);
     Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages);

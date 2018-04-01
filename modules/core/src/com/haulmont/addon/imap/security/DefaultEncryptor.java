@@ -18,8 +18,10 @@ import java.security.GeneralSecurityException;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Base64;
 
-@Component
+@Component(DefaultEncryptor.NAME)
+@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection", "SpringJavaInjectionPointsAutowiringInspection"})
 public class DefaultEncryptor implements Encryptor {
+    static final String NAME = "imapcomponent_DefaultEncryptor";
 
     private final static Logger LOG = LoggerFactory.getLogger(DefaultEncryptor.class);
 
@@ -49,9 +51,12 @@ public class DefaultEncryptor implements Encryptor {
 
     @Override
     public String getEncryptedPassword(ImapMailBox mailBox) {
+        if (mailBox.getAuthentication().getPassword() == null) {
+            return null;
+        }
         LOG.debug("Encrypt password for {}", mailBox);
         try {
-            byte[] encrypted = getCipher(Cipher.ENCRYPT_MODE, mailBox)
+            byte[] encrypted = getCipher(Cipher.ENCRYPT_MODE)
                     .doFinal(saltedPassword(mailBox).getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(encrypted);
         } catch (Exception e) {
@@ -71,10 +76,13 @@ public class DefaultEncryptor implements Encryptor {
 
     @Override
     public String getPlainPassword(ImapMailBox mailBox) {
+        if (mailBox.getAuthentication().getPassword() == null) {
+            return null;
+        }
         LOG.debug("Decrypt password for {}", mailBox);
         try {
             byte[] password = Base64.getDecoder().decode(mailBox.getAuthentication().getPassword());
-            byte[] decrypted = getCipher(Cipher.DECRYPT_MODE, mailBox).doFinal(password);
+            byte[] decrypted = getCipher(Cipher.DECRYPT_MODE).doFinal(password);
             String saltedPassword = new String(decrypted, StandardCharsets.UTF_8);
             return saltedPassword.substring(16);
         } catch (Exception e) {
@@ -82,7 +90,7 @@ public class DefaultEncryptor implements Encryptor {
         }
     }
 
-    private Cipher getCipher(int mode, ImapMailBox mailBox) throws GeneralSecurityException {
+    private Cipher getCipher(int mode) throws GeneralSecurityException {
         Cipher cipher = Cipher.getInstance(ALGORITHM);
         if (iv != null) {
             cipher.init(mode, secretKey, getAlgorithmParameterSpec());

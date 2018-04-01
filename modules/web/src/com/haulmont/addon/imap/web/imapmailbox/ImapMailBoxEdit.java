@@ -1,6 +1,7 @@
 package com.haulmont.addon.imap.web.imapmailbox;
 
 import com.haulmont.addon.imap.entity.*;
+import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.addon.imap.web.imapmailbox.helper.FolderRefresher;
 import com.haulmont.bali.util.ParamsMap;
 import com.haulmont.addon.imap.entity.ImapAuthenticationMethod;
@@ -21,12 +22,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
-import javax.mail.MessagingException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     private final static Logger log = LoggerFactory.getLogger(ImapMailBoxEdit.class);
@@ -86,17 +87,14 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     public void checkTheConnection() {
         try {
-            boolean refresh = folderRefresher.refreshFolders(getItem());
-            log.debug("refreshed folders from IMAP, need to refresh datasource - {}", refresh);
+            folderRefresher.refreshFolders(getItem());
+            log.debug("refreshed folders from IMAP");
             setEnableForButtons(true);
-            if (refresh) {
-                foldersDs.refresh();
-//                foldersTable.repaint();
-            }
-            showNotification("Connection succeed", NotificationType.HUMANIZED);
-        } catch (MessagingException e) {
+            foldersDs.refresh();
+            showNotification(getMessage("connectionSucceed"), NotificationType.HUMANIZED);
+        } catch (ImapException e) {
             log.error("Connection Error", e);
-            showNotification("Connection failed", NotificationType.ERROR);
+            showNotification(getMessage("connectionFailed"), NotificationType.ERROR);
         }
     }
 
@@ -262,12 +260,12 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             hbox.setSpacing(true);
             if (folder.getEvents() != null) {
 
-                for (ImapFolderEvent event : folder.getEvents()) {
+                folder.getEvents().stream().sorted(Comparator.comparing(ImapFolderEvent::getEvent)).forEach(event -> {
                     Button button = componentsFactory.createComponent(Button.class);
                     button.setCaption(AppBeans.get(Messages.class).getMessage(event.getEvent()));
                     button.setAction(imapEventActions.get(event.getEvent()));
                     hbox.add(button);
-                }
+                });
             }
 
             return hbox;
@@ -287,7 +285,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         setTrashFolderVisibility();
         setProxyVisibility();
         if (!PersistenceHelper.isNew(getItem())) {
-            BackgroundTaskHandler taskHandler = backgroundWorker.handle(new FoldersRefreshTask());
+            BackgroundTaskHandler taskHandler = backgroundWorker.handle(new FoldersRefreshTask(getItem()));
             taskHandler.execute();
         }
     }
@@ -295,7 +293,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     @Override
     protected boolean preCommit() {
         if (!connectionEstablished) {
-            showNotification("Can't save mail box configuration without successful connection");
+            showNotification(getMessage("saveWithoutConnectionWarning"), NotificationType.TRAY);
         }
         return connectionEstablished;
     }
@@ -370,17 +368,23 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     private class FoldersRefreshTask extends BackgroundTask<Integer, Boolean> {
 
-        public FoldersRefreshTask() {
+        private ImapMailBox mailBox;
+
+        FoldersRefreshTask(ImapMailBox mailBox) {
             super(0, ImapMailBoxEdit.this);
+            this.mailBox = mailBox;
         }
 
         @Override
         public Boolean run(TaskLifeCycle<Integer> taskLifeCycle) {
             try {
-                return folderRefresher.refreshFolders(getItem());
-            } catch (MessagingException e) {
-                throw new RuntimeException("Can't refresh folders", e);
+                folderRefresher.refreshFolders(mailBox);
+                return true;
+            } catch (ImapException e) {
+                log.error("Connection Error", e);
+                showNotification(getMessage("connectionFailed"), NotificationType.ERROR);
             }
+            return false;
         }
 
         @Override
@@ -390,11 +394,10 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
         @Override
         public void done(Boolean refresh) {
-            log.debug("refreshed folders from IMAP, need to refresh datasource - {}", refresh);
-            setEnableForButtons(true);
+            log.debug("refreshed folders from IMAP, successfully - {}", refresh);
             if (refresh) {
+                setEnableForButtons(true);
                 foldersDs.refresh();
-//                foldersTable.repaint();
             }
         }
 

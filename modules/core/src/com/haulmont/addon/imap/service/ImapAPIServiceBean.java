@@ -8,6 +8,7 @@ import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
+import com.haulmont.addon.imap.exception.ImapException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,7 @@ import java.util.*;
 @SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapAPIServiceBean implements ImapAPIService {
 
-    private final static Logger LOG = LoggerFactory.getLogger(ImapAPIServiceBean.class);
+    private final static Logger log = LoggerFactory.getLogger(ImapAPIServiceBean.class);
 
     @Inject
     private ImapHelper imapHelper;
@@ -29,18 +30,23 @@ public class ImapAPIServiceBean implements ImapAPIService {
     private ImapAPI imapAPI;
 
     @Override
-    public void testConnection(ImapMailBox box) throws MessagingException {
-        LOG.info("Check connection for {}", box);
-        imapHelper.getStore(box);
+    public void testConnection(ImapMailBox box) throws ImapException {
+        log.info("Check connection for {}", box);
+        try {
+            imapHelper.getStore(box);
+        } catch (MessagingException e) {
+            throw new ImapException(e);
+        }
+
     }
 
     @Override
-    public Collection<ImapFolderDto> fetchFolders(ImapMailBox box) throws MessagingException {
+    public Collection<ImapFolderDto> fetchFolders(ImapMailBox box) {
         return imapAPI.fetchFolders(box);
     }
 
     @Override
-    public Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) throws MessagingException {
+    public Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) {
         return imapAPI.fetchFolders(box, folderNames);
     }
 
