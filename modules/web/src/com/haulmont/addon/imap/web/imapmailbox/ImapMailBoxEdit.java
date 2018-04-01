@@ -259,6 +259,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
         foldersTable.addGeneratedColumn("eventsInfo", folder -> {
             HBoxLayout hbox = componentsFactory.createComponent(HBoxLayout.class);
+            hbox.setSpacing(true);
             if (folder.getEvents() != null) {
 
                 for (ImapFolderEvent event : folder.getEvents()) {
