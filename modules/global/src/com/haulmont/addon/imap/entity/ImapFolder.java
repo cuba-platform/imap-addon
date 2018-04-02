@@ -45,6 +45,10 @@ public class ImapFolder extends StandardEntity {
     @JoinColumn(name = "PARENT_FOLDER_ID")
     protected ImapFolder parent;
 
+    @Transient
+    @MetaProperty
+    private Boolean unregistered = false;
+
     public ImapMailBox getMailBox() {
         return mailBox;
     }
@@ -112,6 +116,14 @@ public class ImapFolder extends StandardEntity {
 
     public void setParent(ImapFolder parent) {
         this.parent = parent;
+    }
+
+    public Boolean getUnregistered() {
+        return unregistered;
+    }
+
+    public void setUnregistered(Boolean unregistered) {
+        this.unregistered = unregistered;
     }
 
     @MetaProperty

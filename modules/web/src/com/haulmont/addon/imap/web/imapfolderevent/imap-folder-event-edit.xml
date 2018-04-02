@@ -7,14 +7,18 @@
     <dsContext>
         <datasource id="imapFolderEventDs"
                     class="com.haulmont.addon.imap.entity.ImapFolderEvent"
-                    view="_local"/>
+                    view="imap-folder-event-edit"/>
     </dsContext>
 
     <dialogMode height="600" width="800"/>
 
     <layout expand="windowActions" spacing="true">
-        <lookupField datasource="imapFolderEventDs" property="folder" width="300px" editable="false"/>
-        <lookupField datasource="imapFolderEventDs" property="event" width="300px" editable="false"/>
+        <fieldGroup datasource="imapFolderEventDs">
+            <column width="300px">
+                <field property="folder" editable="false"/>
+                <field property="event" editable="false"/>
+            </column>
+        </fieldGroup>
         <grid id="grid" spacing="true">
             <columns count="2"/>
             <rows>

@@ -56,4 +56,9 @@
         <property name="imapMessage"
                   view="imap-msg-full"/>
     </view>
+    <view class="com.haulmont.addon.imap.entity.ImapFolderEvent"
+          extends="_local"
+          name="imap-folder-event-edit">
+        <property name="folder" view="_minimal" />
+    </view>
 </views>

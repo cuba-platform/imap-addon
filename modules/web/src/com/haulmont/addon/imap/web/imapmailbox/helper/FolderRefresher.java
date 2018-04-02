@@ -30,39 +30,49 @@ public class FolderRefresher {
     @Inject
     private Metadata metadata;
 
-    public void refreshFolders(ImapMailBox mailBox) {
+    public enum State {
+        DELETED, NEW, UNCHANGED;
+    }
+
+    public LinkedHashMap<ImapFolder, State> refreshFolders(ImapMailBox mailBox) {
         log.info("refresh folder for {}", mailBox);
         Collection<ImapFolderDto> folderDtos = imapService.fetchFolders(mailBox);
         List<ImapFolder> folders = mailBox.getFolders();
+        LinkedHashMap<ImapFolder, State> result;
         if (CollectionUtils.isEmpty(folders)) {
             log.debug("There is no folders for {}. Will add all from IMAP server, fully enabling folders that can contain messages", mailBox);
-            mailBox.setFolders(folderDtos.stream()
+            result = new LinkedHashMap<>();
+            folderDtos.stream()
                     .flatMap(dto -> folderWithChildren(dto).stream())
                     .peek(f -> {
                         if (Boolean.TRUE.equals(f.getSelectable())) {
                             enableCompletely(f);
                         }
-                    }).collect(Collectors.toList())
-            );
+                    }).forEach(folder -> result.put(folder, State.UNCHANGED));
         } else {
             log.debug("There are folders for {}. Will add new from IMAP server and disable missing", mailBox);
-            mergeFolders(ImapFolderDto.flattenList(folderDtos), folders);
+            result = mergeFolders(ImapFolderDto.flattenList(folderDtos), folders);
         }
-        mailBox.getFolders().forEach(f -> f.setMailBox(mailBox));
+        result.keySet().forEach(f -> f.setMailBox(mailBox));
+
+        return result;
     }
 
-    private void mergeFolders(List<ImapFolderDto> folderDtos, List<ImapFolder> folders) {
+    private LinkedHashMap<ImapFolder, State> mergeFolders(List<ImapFolderDto> folderDtos, List<ImapFolder> folders) {
         Map<String, ImapFolderDto> dtosByNames = folderDtos.stream()
                 .collect(Collectors.toMap(ImapFolderDto::getFullName, Function.identity()));
         Map<String, ImapFolder> foldersByNames = folders.stream().collect(
                 Collectors.toMap(ImapFolder::getName, Function.identity()));
-        Map<ImapFolder, String> newFoldersWithParent = folderDtos.stream()
+        Map<ImapFolder, String> newFoldersWithParent = new HashMap<>(folderDtos.size());
+        folderDtos.stream()
                 .filter(dto -> !foldersByNames.containsKey(dto.getFullName()))
-                .collect(Collectors.toMap(
-                        this::mapDto,
-                        dto -> dto.getParent() != null ? dto.getParent().getFullName() : null)
+                .forEach(dto -> newFoldersWithParent.put(
+                        mapDto(dto),
+                        dto.getParent() != null ? dto.getParent().getFullName() : null)
                 );
-        folders.addAll(newFoldersWithParent.keySet());
+        List<ImapFolder> resultList = new ArrayList<>(folders.size() + newFoldersWithParent.size());
+        resultList.addAll(folders);
+        resultList.addAll(newFoldersWithParent.keySet());
         foldersByNames.putAll(newFoldersWithParent.keySet().stream().collect(
                 Collectors.toMap(ImapFolder::getName, Function.identity()))
         );
@@ -71,14 +81,23 @@ public class FolderRefresher {
                 folder.setParent(foldersByNames.get(parentName));
             }
         });
-        List<ImapFolder> deletedFolders = folders.stream()
+        List<ImapFolder> deletedFolders = resultList.stream()
                 .filter(folder -> !dtosByNames.containsKey(folder.getName()))
                 .collect(Collectors.toList());
-        deletedFolders.forEach(folder -> folder.setDisabled(true));
         log.trace("New folders:{}", newFoldersWithParent.keySet());
         log.trace("Deleted folders:{}", deletedFolders);
         List<String> folderNames = folderDtos.stream().map(ImapFolderDto::getFullName).collect(Collectors.toList());
-        folders.sort(Comparator.comparingInt(f -> folderNames.indexOf(f.getName())));
+        resultList.sort(Comparator.comparingInt(f -> folderNames.indexOf(f.getName())));
+
+        LinkedHashMap<ImapFolder, State> result = new LinkedHashMap<>(resultList.size());
+        resultList.forEach(folder -> result.put(
+                folder,
+                newFoldersWithParent.containsKey(folder)
+                        ? State.NEW
+                        : (deletedFolders.contains(folder) ? State.DELETED : State.UNCHANGED)
+        ));
+
+        return result;
     }
 
     private List<ImapFolder> folderWithChildren(ImapFolderDto dto) {

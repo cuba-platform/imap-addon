@@ -3,6 +3,7 @@ package com.haulmont.addon.imap.web.imapmailbox;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.cuba.gui.components.AbstractEditor;
+import com.haulmont.cuba.gui.components.SelectAction;
 import com.haulmont.cuba.gui.components.TreeTable;
 import com.haulmont.cuba.gui.data.Datasource;
 import com.haulmont.cuba.gui.data.HierarchicalDatasource;
@@ -37,6 +38,17 @@ public class ImapMailBoxTrashFolder extends AbstractEditor<ImapMailBox> {
                     .findFirst().ifPresent(trashFolder -> imapFoldersTable.setSelected(trashFolder));
 
         }
+
+        imapFolderDs.addItemChangeListener(e -> {
+            ImapFolder folder = e.getItem();
+            if (folder == null) {
+                return;
+            }
+            if (Boolean.TRUE.equals(folder.getDisabled()) ||
+                    !Boolean.TRUE.equals(folder.getSelectable())) {
+                imapFoldersTable.setSelected(e.getPrevItem());
+            }
+        });
 
         addCloseWithCommitListener(() -> {
             Set<ImapFolder> selected = imapFoldersTable.getSelected();

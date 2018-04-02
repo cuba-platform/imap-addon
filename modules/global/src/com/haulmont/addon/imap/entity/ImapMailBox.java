@@ -2,6 +2,7 @@ package com.haulmont.addon.imap.entity;
 
 import javax.persistence.*;
 
+import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.cuba.core.entity.StandardEntity;
 import com.haulmont.chile.core.annotations.Composition;
 import com.haulmont.cuba.core.entity.annotation.OnDelete;
@@ -72,7 +73,7 @@ public class ImapMailBox extends StandardEntity {
 
     @OnDelete(DeletePolicy.CASCADE)
     @Composition
-    @OneToMany(mappedBy = "mailBox", cascade = { CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
+    @OneToMany(mappedBy = "mailBox", cascade = CascadeType.ALL, orphanRemoval = true)
     protected List<ImapFolder> folders;
 
     public void setProxy(ImapProxy proxy) {

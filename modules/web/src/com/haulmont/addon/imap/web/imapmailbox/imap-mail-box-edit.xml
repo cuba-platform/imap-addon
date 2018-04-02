@@ -16,6 +16,8 @@
             <hierarchicalDatasource id="foldersDs"
                                     property="folders"
                                     hierarchyProperty="parent">
+                <collectionDatasource id="eventsDs"
+                                      property="events"/>
             </hierarchicalDatasource>
         </datasource>
     </dsContext>
@@ -96,6 +98,7 @@
                         <treeTable id="foldersTable"
                                    editable="true"
                                    height="100%"
+                                   sortable="false"
                                    width="100%">
                             <columns>
                                 <column id="name" editable="false"/>
