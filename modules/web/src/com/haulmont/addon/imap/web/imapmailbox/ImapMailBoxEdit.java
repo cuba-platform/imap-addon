@@ -206,10 +206,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                 }
 
                 eventsChanging.set(true);
-                if (toggleEvent(Boolean.TRUE.equals(e.getValue()), selectedFolder, eventType)) {
-                    //todo: repaint only selected folder column
-                    foldersTable.repaint();
-                }
+                toggleEvent(Boolean.TRUE.equals(e.getValue()), selectedFolder, eventType);
 
                 allEventsChkBox.setValue(eventCheckBoxes.keySet().stream().allMatch(CheckBox::isChecked));
 
@@ -237,8 +234,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                 checkbox.setValue(value);
                 toggleEvent(Boolean.TRUE.equals(e.getValue()), selectedFolder, eventType);
             });
-            //todo: repaint only selected folder column
-            foldersTable.repaint();
 
             eventsChanging.set(false);
         });
@@ -263,7 +258,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         });
     }
 
-    private boolean toggleEvent(boolean value, ImapFolder imapFolder, ImapEventType eventType) {
+    private void toggleEvent(boolean value, ImapFolder imapFolder, ImapEventType eventType) {
         if (value && !imapFolder.hasEvent(eventType)) {
             ImapFolderEvent imapEvent = metadata.create(ImapFolderEvent.class);
             imapEvent.setEvent(eventType);
@@ -275,15 +270,11 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             }
             events.add(imapEvent);
             foldersDs.modifyItem(imapFolder);
-            return true;
         } else if (!value && imapFolder.hasEvent(eventType)) {
             ImapFolderEvent event = imapFolder.getEvent(eventType);
             imapFolder.getEvents().remove(event);
             foldersDs.modifyItem(imapFolder);
-            return true;
         }
-
-        return false;
     }
 
     private void makeEventsInfoColumn() {
@@ -301,6 +292,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                         if (event == null) {
                             return;
                         }
+                        eventsDs.setItem(event);
                         openEditor(event, WindowManager.OpenType.DIALOG, Collections.emptyMap(), eventsDs);
                     }
                 }

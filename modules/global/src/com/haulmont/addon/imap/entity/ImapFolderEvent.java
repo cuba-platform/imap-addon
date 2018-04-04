@@ -1,12 +1,15 @@
 package com.haulmont.addon.imap.entity;
 
+import com.haulmont.chile.core.annotations.Composition;
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.StandardEntity;
+import com.haulmont.cuba.core.entity.annotation.OnDelete;
 import com.haulmont.cuba.core.entity.annotation.OnDeleteInverse;
 import com.haulmont.cuba.core.global.DeletePolicy;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
+import java.util.List;
 
 @NamePattern("%s|event")
 @Table(name = "IMAPCOMPONENT_IMAP_FOLDER_EVENT")
@@ -24,12 +27,11 @@ public class ImapFolderEvent extends StandardEntity {
     @NotNull
     protected String event;
 
-
-    @Column(name = "BEAN_NAME")
-    protected String beanName;
-
-    @Column(name = "METHOD_NAME")
-    protected String methodName;
+    @OnDelete(DeletePolicy.CASCADE)
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Composition
+    @OrderColumn(name = "HANDLING_ORDER")
+    private List<ImapEventHandler> eventHandlers;
 
     public ImapFolder getFolder() {
         return folder;
@@ -48,20 +50,11 @@ public class ImapFolderEvent extends StandardEntity {
         this.event = event == null ? null : event.getId();
     }
 
-
-    public String getBeanName() {
-        return beanName;
+    public List<ImapEventHandler> getEventHandlers() {
+        return eventHandlers;
     }
 
-    public void setBeanName(String beanName) {
-        this.beanName = beanName;
-    }
-
-    public String getMethodName() {
-        return methodName;
-    }
-
-    public void setMethodName(String methodName) {
-        this.methodName = methodName;
+    public void setEventHandlers(List<ImapEventHandler> eventHandlers) {
+        this.eventHandlers = eventHandlers;
     }
 }

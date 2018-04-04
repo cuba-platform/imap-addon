@@ -3,7 +3,6 @@ package com.haulmont.addon.imap.web.imapmailbox;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.cuba.gui.components.AbstractEditor;
-import com.haulmont.cuba.gui.components.SelectAction;
 import com.haulmont.cuba.gui.components.TreeTable;
 import com.haulmont.cuba.gui.data.Datasource;
 import com.haulmont.cuba.gui.data.HierarchicalDatasource;

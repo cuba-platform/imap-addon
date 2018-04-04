@@ -1,46 +1,45 @@
 package com.haulmont.addon.imap.web.imapfolderevent;
 
-import com.haulmont.addon.imap.entity.ImapEventType;
+import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.service.ImapService;
+import com.haulmont.cuba.core.global.AppBeans;
+import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.gui.components.*;
-import com.haulmont.addon.imap.entity.ImapFolderEvent;
+import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
-import org.apache.commons.lang.StringUtils;
+import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.*;
+import java.util.stream.Collectors;
 
+@SuppressWarnings("CdiInjectionPointsInspection")
 public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
 
     private final static Logger log = LoggerFactory.getLogger(ImapFolderEventEdit.class);
 
     @Inject
-    protected LookupField beanNameField;
-
-    @Inject
-    protected LookupField methodNameField;
-
-    @Inject
-    protected Label beanNameLabel;
-
-    @Inject
-    protected Label methodNameLabel;
-
-    @Inject
     protected Datasource<ImapFolderEvent> imapFolderEventDs;
 
     @Inject
-    protected ImapService service;
+    private CollectionDatasource<ImapEventHandler, UUID> handlersDs;
 
     @Inject
-    protected BoxLayout methodNameHbox;
+    private Table<ImapEventHandler> handlersTable;
 
-    private Map<String, List<String>> availableBeans;
+    @Inject
+    private Button addHandlerBtn;
 
-    //List holds an information about methods of selected bean
-    protected List<String> availableMethods = new ArrayList<>();
+    @Inject
+    private Button upHandlerBtn;
+
+    @Inject
+    private Button downHandlerBtn;
+
+    @Inject
+    private ImapService service;
 
     @Override
     protected void postInit() {
@@ -48,71 +47,212 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
 
         ImapFolderEvent folderEvent = getItem();
 
-        initBeans(folderEvent.getEvent());
-
-        String beanName = folderEvent.getBeanName();
-        if (StringUtils.isNotEmpty(beanName)) {
-            initMethods(beanName);
-        }
-
-        if (StringUtils.isNotEmpty(folderEvent.getMethodName())) {
-            setInitialMethodNameValue(folderEvent);
-        }
-
-        imapFolderEventDs.addItemPropertyChangeListener(event -> {
-            if (Objects.equals("event", event.getProperty())) {
-                initBeans(event.getItem().getEvent());
-            }
-        });
-
-        beanNameField.addValueChangeListener(e -> {
-            methodNameField.setValue(null);
-            if (e.getValue() == null) {
-                methodNameField.setOptionsList(Collections.emptyList());
-                methodNameField.setRequired(false);
-            } else {
-                initMethods(e.getValue().toString());
-                methodNameField.setRequired(true);
-            }
-        });
-
-        methodNameField.addValueChangeListener(e -> {
-            String methodName = (e.getValue() != null) ? e.getValue().toString() : null;
-            imapFolderEventDs.getItem().setMethodName(methodName);
-        });
-    }
-
-    private void initBeans(ImapEventType eventType) {
-        log.debug("Init beans for event {}", eventType);
-        availableBeans = eventType != null
+        ImapEventType eventType = folderEvent.getEvent();
+        Map<String, List<String>> availableBeans = eventType != null
                 ? service.getAvailableBeans(eventType.getEventClass()) : Collections.emptyMap();
-        beanNameField.setOptionsList(new ArrayList<>(availableBeans.keySet()));
-    }
+        List<String> beanNames = new ArrayList<>(availableBeans.keySet());
+        long maxHandlersCount = availableBeans.values().stream().mapToLong(Collection::size).sum();
 
-    private void initMethods(String beanName) {
-        log.debug("Init methods of bean {} for event {}", beanName, getItem());
-        availableMethods = availableBeans.get(beanName);
+        removeMissedHandlers(availableBeans);
+        enableAddButton(maxHandlersCount);
 
-        if (availableMethods != null) {
-            HashMap<String, Object> optionsMap = new HashMap<>();
-            for (String availableMethod : availableMethods) {
-                optionsMap.put(availableMethod, availableMethod);
-            }
-            methodNameField.setOptionsMap(optionsMap);
-        }
-    }
-
-    private void setInitialMethodNameValue(ImapFolderEvent event) {
-        log.debug("Set method name {} for event {}", event.getMethodName());
-        if (availableMethods == null) {
+        if (availableBeans.isEmpty()) {
+            handlersTable.getParent().setVisible(false);
             return;
         }
 
-        for (String availableMethod : availableMethods) {
-            if (event.getMethodName().equals(availableMethod)) {
-                methodNameField.setValue(availableMethod);
-                break;
+        Map<ImapEventHandler, LookupField> handlerMethodLookups = new HashMap<>();
+        if (folderEvent.getEventHandlers() != null) {
+            folderEvent.getEventHandlers().forEach(eventHandler ->
+                    handlerMethodLookups.put(eventHandler, makeBeanMethodLookup(availableBeans, eventHandler))
+            );
+        }
+
+        addHandlersCollectionChangeListeners(availableBeans, maxHandlersCount, handlerMethodLookups);
+        setHandlerChangeListeners(availableBeans, handlerMethodLookups);
+
+        generateColumns(availableBeans, beanNames, handlerMethodLookups);
+
+        addCloseWithCommitListener(() -> {
+
+            @SuppressWarnings("unchecked")
+            Datasource<ImapFolderEvent> parentDs = getParentDs();
+            if (parentDs != null && parentDs.getItem() != null) {
+                parentDs.getItem().setEventHandlers(folderEvent.getEventHandlers());
+                for (int i = 0; i < folderEvent.getEventHandlers().size(); i++) {
+                    folderEvent.getEventHandlers().get(i).setHandlingOrder(i);
+                }
+            }
+        });
+    }
+
+    private void generateColumns(Map<String, List<String>> availableBeans, List<String> beanNames, Map<ImapEventHandler, LookupField> handlerMethodLookups) {
+        handlersTable.addGeneratedColumn("beanName", eventHandler -> {
+            LookupField lookup = AppBeans.get(ComponentsFactory.class).createComponent(LookupField.class);
+            lookup.setDatasource(handlersTable.getItemDatasource(eventHandler), "beanName");
+            lookup.setWidth("250px");
+            lookup.setFrame(getFrame());
+            lookup.setOptionsList(beanNames);
+            return lookup;
+        });
+        handlersTable.addGeneratedColumn("methodName", eventHandler -> {
+            LookupField lookup = handlerMethodLookups.get(eventHandler);
+            lookup = lookup != null ? lookup : makeBeanMethodLookup(availableBeans, eventHandler);
+
+            lookup.setOptionsList(
+                    methodNames(availableBeans, eventHandler.getBeanName())
+            );
+
+            return lookup;
+        });
+    }
+
+    private void addHandlersCollectionChangeListeners(Map<String, List<String>> availableBeans, long maxHandlersCount, Map<ImapEventHandler, LookupField> handlerMethodLookups) {
+        handlersDs.addItemChangeListener(e -> {
+            ImapEventHandler handler = e.getItem();
+            if (handler == null) {
+                return;
+            }
+
+            List<ImapEventHandler> eventHandlers = getItem().getEventHandlers();
+            int index = eventHandlers.indexOf(handler);
+            upHandlerBtn.setEnabled(index != 0);
+            downHandlerBtn.setEnabled(index != eventHandlers.size() - 1);
+        });
+        handlersDs.addCollectionChangeListener(e -> {
+            if (e.getOperation() == CollectionDatasource.Operation.REMOVE) {
+                e.getItems().forEach(handlerMethodLookups::remove);
+                enableAddButton(maxHandlersCount);
+            } else if (e.getOperation() == CollectionDatasource.Operation.ADD) {
+                e.getItems().forEach(handler -> {
+                    if (!handlerMethodLookups.containsKey(handler)) {
+                        handlerMethodLookups.put(handler, makeBeanMethodLookup(availableBeans, handler));
+                    }
+                });
+                enableAddButton(maxHandlersCount);
+            }
+        });
+    }
+
+    private void removeMissedHandlers(Map<String, List<String>> availableBeans) {
+        List<ImapEventHandler> missedHandlers = handlersDs.getItems().stream()
+                .filter(bm ->
+                        !availableBeans.containsKey(bm.getBeanName()) || !availableBeans.get(bm.getBeanName()).contains(bm.getMethodName())
+                ).collect(Collectors.toList());
+        if (!missedHandlers.isEmpty()) {
+            List<String> beanMethods = missedHandlers.stream()
+                    .map(handler -> String.format("%s#%s", handler.getBeanName(), handler.getMethodName()))
+                    .collect(Collectors.toList());
+            showNotification(formatMessage("missedHandlersWarning", beanMethods), NotificationType.HUMANIZED);
+            missedHandlers.forEach(handlersDs::removeItem);
+        }
+    }
+
+    private void setHandlerChangeListeners(Map<String, List<String>> availableBeans, Map<ImapEventHandler, LookupField> handlerMethodLookups) {
+        handlersDs.addItemPropertyChangeListener(event -> {
+            ImapEventHandler item = event.getItem();
+            if (Objects.equals("beanName", event.getProperty())) {
+                /*LookupField methodLookup = handlerMethodLookups.get(item);
+                methodLookup.setOptionsList(
+                        methodNames(availableBeans, event.getValue() != null ? event.getValue().toString() : null)
+                );
+                methodLookup.setValue(null);*/
+                if (event.getValue() != null) {
+
+                    String beanName = event.getValue().toString();
+                    List<String> methods = availableBeans.get(beanName);
+                    if (handlersDs.getItems().stream()
+                            .filter(bm -> bm != item && beanName.equals(bm.getBeanName()))
+                            .count() == methods.size()) {
+
+                        showNotification(getMessage("beanNameConflictWarning"), NotificationType.HUMANIZED);
+                        item.setBeanName(event.getPrevValue() != null ? event.getPrevValue().toString() : null);
+                    } else {
+                        handlersDs.modifyItem(item);
+                        item.setMethodName(null);
+                    }
+
+                } else {
+                    handlersDs.modifyItem(item);
+                    item.setMethodName(null);
+                }
+            }
+            if (Objects.equals("methodName", event.getProperty()) && event.getValue() != null) {
+                String methodName = event.getValue().toString();
+                handlersDs.getItems().stream()
+                        .filter(bm -> bm != item && methodName.equals(bm.getMethodName()) && item.getBeanName().equals(bm.getBeanName()))
+                        .findFirst().ifPresent(bm -> {
+
+                    showNotification(getMessage("methodNameConflictWarning"), NotificationType.HUMANIZED);
+                    item.setMethodName(event.getPrevValue() != null ? event.getPrevValue().toString() : null);
+                });
+            }
+
+        });
+    }
+
+    private LookupField makeBeanMethodLookup(Map<String, List<String>> availableBeans, ImapEventHandler eventHandler) {
+        LookupField lookup = AppBeans.get(ComponentsFactory.class).createComponent(LookupField.class);
+        lookup.setDatasource(handlersTable.getItemDatasource(eventHandler), "methodName");
+        lookup.setWidth("250px");
+        String beanName = eventHandler.getBeanName();
+        lookup.setFrame(getFrame());
+        lookup.setOptionsList(methodNames(availableBeans, beanName));
+        return lookup;
+    }
+
+    private List<String> methodNames(Map<String, List<String>> availableBeans, String beanName) {
+        return Optional.ofNullable(beanName)
+                    .map(availableBeans::get)
+                    .orElse(Collections.emptyList());
+    }
+
+    public void addHandler() {
+        ImapEventHandler handler = AppBeans.get(Metadata.class).create(ImapEventHandler.class);
+        handler.setEvent(getItem());
+        handlersDs.addItem(handler);
+    }
+
+    public void removeHandler() {
+        if (handlersDs.getItem() != null) {
+            handlersDs.removeItem(handlersDs.getItem());
+        }
+    }
+
+    public void moveUpHandler() {
+        ImapEventHandler handler = handlersDs.getItem();
+        if (handler != null) {
+            List<ImapEventHandler> eventHandlers = getItem().getEventHandlers();
+            int index = eventHandlers.indexOf(handler);
+            if (index != 0) {
+                eventHandlers.remove(index);
+                eventHandlers.add(index - 1, handler);
+                handlersDs.refresh();
+                handlersDs.setItem(handler);
             }
         }
+    }
+
+    public void moveDownHandler() {
+        ImapEventHandler handler = handlersDs.getItem();
+        if (handler != null) {
+            List<ImapEventHandler> eventHandlers = getItem().getEventHandlers();
+            int index = eventHandlers.indexOf(handler);
+            if (index != eventHandlers.size() - 1) {
+                eventHandlers.add(index + 2, handler);
+                eventHandlers.remove(index);
+                handlersDs.refresh();
+                handlersDs.setItem(handler);
+            }
+        }
+    }
+
+    private void enableAddButton(long maxHandlersCount) {
+        addHandlerBtn.setEnabled(handlersDs.size() < maxHandlersCount);
+    }
+
+    @Override
+    protected boolean preCommit() {
+        return super.preCommit();
     }
 }

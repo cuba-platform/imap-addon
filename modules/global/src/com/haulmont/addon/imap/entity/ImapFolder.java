@@ -35,7 +35,7 @@ public class ImapFolder extends StandardEntity {
     protected Boolean selected = false;
 
     @Column(name = "SELECTABLE", nullable = false)
-    protected Boolean selectable;
+    protected Boolean selectable = false;
 
     @Column(name = "DISABLED")
     protected Boolean disabled;

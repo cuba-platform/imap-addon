@@ -4,7 +4,7 @@
           extends="_local"
           name="imap-folder-edit">
         <property name="events"
-                  view="_local"/>
+                  view="imap-folder-event-edit"/>
         <property name="mailBox"
                   view="_minimal"/>
         <property name="parent"
@@ -60,5 +60,6 @@
           extends="_local"
           name="imap-folder-event-edit">
         <property name="folder" view="_minimal" />
+        <property name="eventHandlers" view="_minimal" />
     </view>
 </views>

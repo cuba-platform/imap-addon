@@ -7,7 +7,10 @@
     <dsContext>
         <datasource id="imapFolderEventDs"
                     class="com.haulmont.addon.imap.entity.ImapFolderEvent"
-                    view="imap-folder-event-edit"/>
+                    allowCommit="false"
+                    view="imap-folder-event-edit">
+            <collectionDatasource id="handlersDs" property="eventHandlers" allowCommit="false"/>
+        </datasource>
     </dsContext>
 
     <dialogMode height="600" width="800"/>
@@ -19,35 +22,40 @@
                 <field property="event" editable="false"/>
             </column>
         </fieldGroup>
-        <grid id="grid" spacing="true">
-            <columns count="2"/>
-            <rows>
-                <row>
-                    <label id="beanNameLabel"
-                           align="MIDDLE_LEFT"
-                           value="msg://com.haulmont.cuba.core.entity/ScheduledTask.beanName"/>
-                    <hbox id="beanNameBox">
-                        <lookupField id="beanNameField"
-                                     datasource="imapFolderEventDs"
-                                     width="250px"
-                                     property="beanName" />
-                    </hbox>
-                </row>
-                <row>
-                    <label id="methodNameLabel"
-                           align="MIDDLE_LEFT"
-                           value="msg://com.haulmont.cuba.core.entity/ScheduledTask.methodName"/>
-                    <hbox id="methodNameHbox"
-                          spacing="true">
-                        <lookupField id="methodNameField"
-                                     align="MIDDLE_LEFT"
-                                     width="250px"
-                                     captionProperty="methodSignature"
-                                     requiredMessage="msg://validation.methodNameMissing" />
-                    </hbox>
-                </row>
-            </rows>
-        </grid>
+        <groupBox caption="msg://eventHandlersCaption">
+            <table id="handlersTable" editable="true" sortable="false" width="100%" height="100%">
+                <actions>
+                    <action id="add"
+                            caption="mainMsg://actions.Add"
+                            icon="icons/create.png"
+                            invoke="addHandler"/>
+                    <action id="remove"
+                            caption="mainMsg://actions.Remove"
+                            icon="icons/remove.png"
+                            invoke="removeHandler"
+                            trackSelection="true"/>
+                    <action id="up"
+                            caption="Up"
+                            invoke="moveUpHandler"
+                            trackSelection="true"/>
+                    <action id="down"
+                            caption="Down"
+                            invoke="moveDownHandler"
+                            trackSelection="true"/>
+                </actions>
+                <columns>
+                    <column id="beanName" caption="msg://beanNameCaption" />
+                    <column id="methodName" caption="msg://methodNameCaption" />
+                </columns>
+                <rows datasource="handlersDs"/>
+                <buttonsPanel>
+                    <button action="handlersTable.add" id="addHandlerBtn" />
+                    <button action="handlersTable.remove" />
+                    <button action="handlersTable.up" id="upHandlerBtn" />
+                    <button action="handlersTable.down" id="downHandlerBtn" />
+                </buttonsPanel>
+            </table>
+        </groupBox>
         <frame id="windowActions"
                screen="editWindowActions"/>
     </layout>

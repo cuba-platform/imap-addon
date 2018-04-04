@@ -9,6 +9,7 @@
         <class>com.haulmont.addon.imap.entity.ImapSimpleAuthentication</class>
         <class>com.haulmont.addon.imap.entity.ImapMessage</class>
         <class>com.haulmont.addon.imap.entity.ImapFolderEvent</class>
+        <class>com.haulmont.addon.imap.entity.ImapEventHandler</class>
         <class>com.haulmont.addon.imap.entity.ImapMessageAttachment</class>
         <class>com.haulmont.addon.imap.entity.ImapProxy</class>
     </persistence-unit>

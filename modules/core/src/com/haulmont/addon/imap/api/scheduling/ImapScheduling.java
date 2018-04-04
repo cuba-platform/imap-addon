@@ -19,6 +19,7 @@ import com.sun.mail.imap.IMAPFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import javax.inject.Inject;
 import java.lang.reflect.InvocationTargetException;
@@ -28,7 +29,7 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Component(ImapSchedulingAPI.NAME)
-@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
+@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection", "SpringJavaInjectionPointsAutowiringInspection"})
 public class ImapScheduling implements ImapSchedulingAPI {
 
     private final static Logger log = LoggerFactory.getLogger(ImapScheduling.class);
@@ -178,35 +179,49 @@ public class ImapScheduling implements ImapSchedulingAPI {
     void fireEvents(ImapFolder folder, Collection<? extends BaseImapEvent> imapEvents) {
         log.debug("Fire events {} for {}", imapEvents, folder);
         imapEvents.forEach(event -> {
+            events.publish(event);
+
             ImapEventType.getByEventType(event.getClass()).stream()
                     .map(folder::getEvent)
                     .filter(Objects::nonNull)
-                    .filter(folderEvent -> folderEvent.getMethodName() != null)
-                    .forEach(folderEvent -> invokeAttachedHandler(event, folderEvent));
+                    .map(ImapFolderEvent::getEventHandlers)
+                    .filter(handlers -> !CollectionUtils.isEmpty(handlers))
+                    .forEach(handlers -> invokeAttachedHandlers(event, folder, handlers));
 
-            events.publish(event);
         });
     }
 
-    private void invokeAttachedHandler(BaseImapEvent event, ImapFolderEvent folderEvent) {
-        log.trace("{}: invoking bean", folderEvent);
-        Object bean = AppBeans.get(folderEvent.getBeanName());
-        Class<? extends BaseImapEvent> eventClass = folderEvent.getEvent().getEventClass();
-        try {
-            authentication.begin();
-            List<Method> methods = Arrays.stream(bean.getClass().getMethods())
-                    .filter(m -> m.getName().equals(folderEvent.getMethodName()))
-                    .filter(m -> m.getParameterTypes().length == 1 && m.getParameterTypes()[0].isAssignableFrom(eventClass))
-                    .collect(Collectors.toList());
-            log.trace("{}: methods to invoke: {}", folderEvent, methods);
-            for (Method method : methods) {
-                method.invoke(bean, event);
+    private void invokeAttachedHandlers(BaseImapEvent event, ImapFolder folder, List<ImapEventHandler> handlers) {
+        log.trace("{}: invoking handlers {} for event {}", folder.getName(), handlers, event);
+
+        handlers.forEach(handler -> {
+            Object bean = AppBeans.get(handler.getBeanName());
+            if (bean == null) {
+                log.warn("No bean {} is available, check the folder {} configuration", handler.getBeanName(), folder);
+                return;
             }
-        } catch (InvocationTargetException | IllegalAccessException e) {
-            throw new RuntimeException("Can't invoke bean for imap folder event", e);
-        } finally {
-            authentication.end();
-        }
+            Class<? extends BaseImapEvent> eventClass = event.getClass();
+            try {
+                authentication.begin();
+                List<Method> methods = Arrays.stream(bean.getClass().getMethods())
+                        .filter(m -> m.getName().equals(handler.getMethodName()))
+                        .filter(m -> m.getParameterTypes().length == 1 && m.getParameterTypes()[0].isAssignableFrom(eventClass))
+                        .collect(Collectors.toList());
+                log.trace("{}: methods to invoke: {}", handler, methods);
+                if (methods.isEmpty()) {
+                    log.warn("No method {} for bean {} is available, check the folder {} configuration",
+                            handler.getMethodName(), handler.getBeanName(), folder);
+                }
+                for (Method method : methods) {
+                    method.invoke(bean, event);
+                }
+            } catch (InvocationTargetException | IllegalAccessException e) {
+                throw new RuntimeException("Can't invoke bean for imap folder event", e);
+            } finally {
+                authentication.end();
+            }
+        });
+
     }
 
     private boolean isRunning(ImapMailBox mailBox) {
