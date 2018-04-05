@@ -101,37 +101,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         }
     }
 
-    private void refreshFolders(LinkedHashMap<ImapFolder, FolderRefresher.State> foldersWithState) {
-        log.debug("refreshed folders from IMAP: {}", foldersWithState);
-
-        List<ImapFolder> folders = getItem().getFolders();
-        foldersWithState.forEach((folder, state) -> {
-            switch (state) {
-                case NEW:
-                    folder.setDisabled(false);
-                    folder.setUnregistered(true);
-                    break;
-                case DELETED:
-                    folder.setDisabled(true);
-                    folder.setUnregistered(false);
-                    break;
-                case UNCHANGED:
-                    folder.setDisabled(false);
-                    folder.setUnregistered(false);
-                    break;
-            }
-        });
-        if (folders == null) {
-            folders = new ArrayList<>(foldersWithState.keySet());
-            getItem().setFolders(folders);
-        } else {
-            folders.clear();
-            folders.addAll(foldersWithState.keySet());
-        }
-        setEnableForButtons(true);
-        foldersDs.refresh();
-    }
-
     public void selectTrashFolder() {
         ImapMailBox mailBox = getItem();
         log.debug("Open trash folder window for {}", mailBox);
@@ -146,6 +115,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     @Override
     public void init(Map<String, Object> params) {
+        getComponentNN("foldersPane").setVisible(false);
         setEnableForButtons(false);
         foldersTable.addGeneratedColumn("selected", folder -> {
             CheckBox checkBox = componentsFactory.createComponent(CheckBox.class);
@@ -411,6 +381,38 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             proxyParams.setVisible(newVisible);
             proxyParams.getParent().setVisible(newVisible);
         });
+    }
+
+    private void refreshFolders(LinkedHashMap<ImapFolder, FolderRefresher.State> foldersWithState) {
+        log.debug("refreshed folders from IMAP: {}", foldersWithState);
+
+        List<ImapFolder> folders = getItem().getFolders();
+        foldersWithState.forEach((folder, state) -> {
+            switch (state) {
+                case NEW:
+                    folder.setDisabled(false);
+                    folder.setUnregistered(true);
+                    break;
+                case DELETED:
+                    folder.setDisabled(true);
+                    folder.setUnregistered(false);
+                    break;
+                case UNCHANGED:
+                    folder.setDisabled(false);
+                    folder.setUnregistered(false);
+                    break;
+            }
+        });
+        if (folders == null) {
+            folders = new ArrayList<>(foldersWithState.keySet());
+            getItem().setFolders(folders);
+        } else {
+            folders.clear();
+            folders.addAll(foldersWithState.keySet());
+        }
+        setEnableForButtons(true);
+        foldersDs.refresh();
+        getComponentNN("foldersPane").setVisible(true);
     }
 
     private void setEnableForButtons(boolean enable) {

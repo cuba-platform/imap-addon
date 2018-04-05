@@ -21,8 +21,8 @@
             </hierarchicalDatasource>
         </datasource>
     </dsContext>
-    <layout expand="foldersPane"
-            spacing="true">
+    <layout expand="scrollBox" spacing="true">
+        <scrollBox id="scrollBox" spacing="true">
             <hbox spacing="true">
                 <groupBox caption="msg://connectionConfigurationCaption"
                           spacing="true"
@@ -140,6 +140,7 @@
                     </vbox>
                 </split>
             </hbox>
+        </scrollBox>
         <frame id="windowActions"
                screen="editWindowActions"/>
     </layout>
