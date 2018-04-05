@@ -14,15 +14,17 @@
             <datasource id="proxyDs"
                         property="proxy"/>
             <hierarchicalDatasource id="foldersDs"
-                                    property="folders"
-                                    hierarchyProperty="parent">
+                                    hierarchyProperty="parent"
+                                    property="folders">
                 <collectionDatasource id="eventsDs"
                                       property="events"/>
             </hierarchicalDatasource>
         </datasource>
     </dsContext>
-    <layout expand="scrollBox" spacing="true">
-        <scrollBox id="scrollBox" spacing="true">
+    <layout expand="scrollBox"
+            spacing="true">
+        <scrollBox id="scrollBox"
+                   spacing="true">
             <hbox spacing="true">
                 <groupBox caption="msg://connectionConfigurationCaption"
                           spacing="true"
@@ -48,7 +50,6 @@
                                 <checkBox id="useProxyChkBox"
                                           caption="msg://useProxyCaption"/>
                             </field>
-
                         </column>
                     </fieldGroup>
                     <button caption="msg://checkConnectionCaption"
@@ -77,15 +78,17 @@
                                 invoke="selectTrashFolder"/>
                     </groupBox>
                     <groupBox caption="msg://advancedConfigurationCaption"
-                              spacing="true"
-                              width="AUTO"
                               collapsable="true"
-                              collapsed="true">
+                              collapsed="true"
+                              spacing="true"
+                              width="AUTO">
                         <fieldGroup id="advancedParams"
                                     datasource="mailBoxDs">
                             <column width="250px">
-                                <field property="cubaFlag" description="msg://cubaFlagDescription"/>
-                                <field property="updateSliceSize" description="msg://updateSliceSizeDescription"/>
+                                <field description="msg://cubaFlagDescription"
+                                       property="cubaFlag"/>
+                                <field description="msg://updateSliceSizeDescription"
+                                       property="updateSliceSize"/>
                             </column>
                         </fieldGroup>
                     </groupBox>
@@ -95,42 +98,68 @@
                         <fieldGroup id="proxyParams"
                                     datasource="proxyDs">
                             <column width="250px">
-                                <field datasource="proxyDs" property="host" caption="msg://proxyHostCaption" id="proxyHostField"/>
-                                <field datasource="proxyDs" property="port" caption="msg://proxyPortCaption" id="proxyPortField"/>
-                                <field datasource="proxyDs" property="webProxy" caption="msg://proxyUseWebCaption" id="webProxyChkBox"/>
+                                <field id="proxyHostField"
+                                       caption="msg://proxyHostCaption"
+                                       datasource="proxyDs"
+                                       property="host"/>
+                                <field id="proxyPortField"
+                                       caption="msg://proxyPortCaption"
+                                       datasource="proxyDs"
+                                       property="port"/>
+                                <field id="webProxyChkBox"
+                                       caption="msg://proxyUseWebCaption"
+                                       datasource="proxyDs"
+                                       property="webProxy"/>
                             </column>
                         </fieldGroup>
                     </groupBox>
                 </vbox>
             </hbox>
-            <hbox id="foldersPane" margin="false,true,true,true" width="100%">
-                <split id="foldersSplit" width="100%" height="100%" orientation="horizontal" pos="70">
-                    <vbox id="tablePane" height="100%" margin="false;true;false;false">
+            <hbox id="foldersPane"
+                  margin="false,true,true,true"
+                  width="100%">
+                <split id="foldersSplit"
+                       height="100%"
+                       orientation="horizontal"
+                       pos="60"
+                       width="100%">
+                    <vbox id="tablePane"
+                          height="100%"
+                          margin="false,true,false,false">
                         <treeTable id="foldersTable"
                                    editable="true"
                                    height="100%"
                                    sortable="false"
                                    width="100%">
                             <columns>
-                                <column id="name" editable="false"/>
-                                <column id="selected" editable="true" caption="" width="5px"/>
-                                <column id="eventsInfo" editable="false" caption="Events" />
+                                <column id="name"/>
+                                <column id="selected"
+                                        caption=""
+                                        editable="true" />
+                                <column id="eventsInfo"
+                                        caption="Events"/>
                             </columns>
                             <rows datasource="foldersDs"/>
                         </treeTable>
                     </vbox>
-
-                    <vbox margin="false;false;false;true" height="100%">
-                        <groupBox width="100%" height="100%" caption="msg://eventsCaption">
-                            <vbox id="selectedFolderPanel" width="100%" height="100%" expand="editEventsContainer"
+                    <vbox height="100%"
+                          margin="false,false,false,true">
+                        <groupBox caption="msg://eventsCaption"
+                                  height="100%">
+                            <vbox id="selectedFolderPanel"
+                                  height="100%"
                                   visible="false">
-                                <scrollBox id="editEventsContainer" width="100%">
-                                    <grid id="editEventsGrid" width="100%" margin="true">
+                                <scrollBox id="editEventsContainer"
+                                           height="100%">
+                                    <grid id="editEventsGrid"
+                                          margin="true"
+                                          width="100%">
                                         <columns count="2"/>
                                         <rows>
                                             <row>
                                                 <label value="msg://allEvents"/>
-                                                <checkBox id="allEventsChkBox" align="MIDDLE_CENTER"/>
+                                                <checkBox id="allEventsChkBox"
+                                                          align="MIDDLE_CENTER"/>
                                             </row>
                                         </rows>
                                     </grid>

@@ -121,12 +121,15 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             CheckBox checkBox = componentsFactory.createComponent(CheckBox.class);
             checkBox.setDatasource(foldersTable.getItemDatasource(folder), "selected");
             checkBox.setEditable(Boolean.TRUE.equals(folder.getSelectable() && !Boolean.TRUE.equals(folder.getDisabled())));
+            checkBox.setFrame(getFrame());
+            checkBox.setWidth("20");
             return checkBox;
         });
 
         foldersTable.addGeneratedColumn("name", folder -> {
             Label label = componentsFactory.createComponent(Label.class);
             label.setHtmlEnabled(true);
+            label.setFrame(getFrame());
 
             if (Boolean.TRUE.equals(folder.getDisabled())) {
                 label.setValue("<strike>" + folder.getName() + "</strike>");
@@ -270,6 +273,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
         foldersTable.addGeneratedColumn("eventsInfo", folder -> {
             HBoxLayout hbox = componentsFactory.createComponent(HBoxLayout.class);
+            hbox.setFrame(getFrame());
             hbox.setSpacing(true);
             if (folder.getEvents() != null) {
 
