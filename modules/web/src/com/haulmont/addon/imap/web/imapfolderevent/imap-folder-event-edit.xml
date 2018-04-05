@@ -35,11 +35,11 @@
                             invoke="removeHandler"
                             trackSelection="true"/>
                     <action id="up"
-                            caption="Up"
+                            icon="icons/up.png"
                             invoke="moveUpHandler"
                             trackSelection="true"/>
                     <action id="down"
-                            caption="Down"
+                            icon="icons/down.png"
                             invoke="moveDownHandler"
                             trackSelection="true"/>
                 </actions>
