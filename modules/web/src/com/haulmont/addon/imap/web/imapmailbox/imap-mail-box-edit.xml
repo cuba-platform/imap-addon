@@ -63,8 +63,6 @@
                             <column width="250px">
                                 <field property="pollInterval"/>
                                 <field property="processingTimeout"/>
-                                <field property="cubaFlag"/>
-                                <field property="updateSliceSize"/>
                                 <field id="useTrashFolderChkBoxField">
                                     <checkBox id="useTrashFolderChkBox"
                                               caption="msg://useTrashFolderForRemovalCaption"/>
@@ -77,6 +75,19 @@
                         <button id="selectTrashFolderButton"
                                 caption="msg://selectTrashFolderCaption"
                                 invoke="selectTrashFolder"/>
+                    </groupBox>
+                    <groupBox caption="msg://advancedConfigurationCaption"
+                              spacing="true"
+                              width="AUTO"
+                              collapsable="true"
+                              collapsed="true">
+                        <fieldGroup id="advancedParams"
+                                    datasource="mailBoxDs">
+                            <column width="250px">
+                                <field property="cubaFlag" description="msg://cubaFlagDescription"/>
+                                <field property="updateSliceSize" description="msg://updateSliceSizeDescription"/>
+                            </column>
+                        </fieldGroup>
                     </groupBox>
                     <groupBox caption="msg://proxyConfigurationCaption"
                               spacing="true"
