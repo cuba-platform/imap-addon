@@ -54,7 +54,7 @@ public class Imap implements ImapAPI {
         log.debug("fetch folders for box {}", box);
 
         try {
-            Store store = imapHelper.getStore(box);
+            Store store = imapHelper.getStore(box, true);
 
             List<ImapFolderDto> result = new ArrayList<>();
 

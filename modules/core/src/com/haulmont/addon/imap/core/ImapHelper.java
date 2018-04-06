@@ -49,7 +49,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 @Component
-@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
+@SuppressWarnings("ALL")
 public class ImapHelper {
 
     private final static Logger log = LoggerFactory.getLogger(ImapHelper.class);
@@ -77,6 +77,10 @@ public class ImapHelper {
     private Persistence persistence;
 
     public Store getStore(ImapMailBox box) throws MessagingException {
+        return getStore(box, false);
+    }
+
+    public Store getStore(ImapMailBox box, boolean forceConnect) throws MessagingException {
         log.debug("Accessing imap store for {}", box);
 
         MailboxKey key = mailboxKey(box);
@@ -91,6 +95,10 @@ public class ImapHelper {
             }
 
             Store store = stores.get(key).getSecond();
+
+            if (forceConnect) { //todo: try to prevent excessive connection using some status flags of IMAP
+                store.close();
+            }
             if (!store.isConnected()) {
                 store.connect();
             }
