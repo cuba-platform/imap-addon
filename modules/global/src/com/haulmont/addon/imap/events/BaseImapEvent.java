@@ -1,6 +1,7 @@
 package com.haulmont.addon.imap.events;
 
 import com.haulmont.addon.imap.entity.ImapMessage;
+import org.apache.commons.lang.builder.ToStringBuilder;
 import org.springframework.context.ApplicationEvent;
 
 public abstract class BaseImapEvent extends ApplicationEvent {
@@ -16,10 +17,12 @@ public abstract class BaseImapEvent extends ApplicationEvent {
         return message;
     }
 
+
+
     @Override
     public String toString() {
-        return "BaseImapEvent{" +
-                "message=" + message +
-                '}';
+        return new ToStringBuilder(this).
+                append("message", message).
+                toString();
     }
 }

@@ -5,6 +5,7 @@ import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.AbstractNotPersistentEntity;
 import com.sun.mail.imap.IMAPFolder;
+import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -88,12 +89,12 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
 
     @Override
     public String toString() {
-        return "MailFolderDto{" +
-                "name='" + name + '\'' +
-                ", fullName='" + fullName + '\'' +
-                ", canHoldMessages=" + canHoldMessages +
-                ", children=" + children +
-                '}';
+        return new ToStringBuilder(this).
+                append("name", name).
+                append("fullName", fullName).
+                append("canHoldMessages", canHoldMessages).
+                append("children", children).
+                toString();
     }
 
     public static List<ImapFolderDto> flattenList(Collection<ImapFolderDto> folderDtos) {

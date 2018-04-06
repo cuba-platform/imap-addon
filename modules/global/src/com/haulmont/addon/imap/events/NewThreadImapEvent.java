@@ -8,10 +8,4 @@ public class NewThreadImapEvent extends BaseImapEvent {
         super(message);
     }
 
-    @Override
-    public String toString() {
-        return "NewThreadImapEvent{" +
-                "message=" + message +
-                '}';
-    }
 }

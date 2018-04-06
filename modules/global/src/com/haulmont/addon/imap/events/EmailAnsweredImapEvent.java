@@ -8,10 +8,4 @@ public class EmailAnsweredImapEvent extends BaseImapEvent {
         super(message);
     }
 
-    @Override
-    public String toString() {
-        return "EmailAnsweredImapEvent{" +
-                "message=" + message +
-                '}';
-    }
 }
