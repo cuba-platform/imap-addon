@@ -1,13 +1,15 @@
 package com.haulmont.addon.imap.api.scheduling;
 
 import com.haulmont.addon.imap.core.FolderTask;
-import com.haulmont.addon.imap.core.MsgHeader;
+import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.events.NewEmailImapEvent;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Transaction;
+import com.sun.mail.imap.IMAPFolder;
+import com.sun.mail.imap.IMAPMessage;
 
 import javax.mail.Flags;
 import javax.mail.Message;
@@ -35,31 +37,22 @@ class NewMessagesInFolderTask extends AbstractFolderTask {
                         true,
                         true,
                         f -> {
-                            List<MsgHeader> imapMessages = scheduling.imapHelper.search(
-                                    f, new NotTerm(new FlagTerm(cubaFlags(mailBox), true))
+                            List<IMAPMessage> imapMessages = scheduling.imapHelper.search(
+                                    f, new NotTerm(new FlagTerm(cubaFlags(mailBox), true)), mailBox
                             );
 
                             log.debug("[{}]handle events for new messages. New messages: {}", cubaFolder, imapMessages);
 
-                            //todo: optimization: should not fetch all message data by uid,
-                            // it is excessive since we have already what we need in msg headers
-                            Message[] messages = f.getMessagesByUID(imapMessages.stream().mapToLong(MsgHeader::getUid).toArray());
+
+                            List<NewEmailImapEvent> newEmailImapEvents = saveNewMessages(imapMessages, f);
+
                             if (Boolean.TRUE.equals(scheduling.config.getClearCustomFlags())) {
-                                log.trace("[{}]clear custom flags", cubaFolder);
-                                for (Message message : messages) {
+                                log.trace("[{}]clear custom flags on server", cubaFolder);
+                                for (Message message : imapMessages) {
                                     unsetCustomFlags(message);
                                 }
-                                imapMessages.forEach(msg -> {
-                                    Flags flags = msg.getFlags();
-                                    for (String userFlag : flags.getUserFlags()) {
-                                        flags.remove(userFlag);
-                                    }
-                                });
                             }
-
-                            List<NewEmailImapEvent> newEmailImapEvents = saveNewMessages(imapMessages);
-
-                            f.setFlags(messages, cubaFlags(mailBox), true);
+                            f.setFlags(imapMessages.toArray(new Message[0]), cubaFlags(mailBox), true);
                             return newEmailImapEvents;
                         }
                 )
@@ -77,15 +70,15 @@ class NewMessagesInFolderTask extends AbstractFolderTask {
         }
     }
 
-    private List<NewEmailImapEvent> saveNewMessages(List<MsgHeader> imapMessages) {
+    private List<NewEmailImapEvent> saveNewMessages(List<IMAPMessage> imapMessages, IMAPFolder folder) throws MessagingException {
         List<NewEmailImapEvent> newEmailImapEvents = new ArrayList<>(imapMessages.size());
         boolean toCommit = false;
         scheduling.authentication.begin();
         try (Transaction tx = scheduling.persistence.createTransaction()) {
             EntityManager em = scheduling.persistence.getEntityManager();
 
-            for (MsgHeader msg : imapMessages) {
-                ImapMessage newMessage = insertNewMessage(em, msg);
+            for (IMAPMessage msg : imapMessages) {
+                ImapMessage newMessage = insertNewMessage(em, msg, folder);
                 toCommit |= (newMessage != null);
 
                 if (newMessage != null) {
@@ -102,9 +95,16 @@ class NewMessagesInFolderTask extends AbstractFolderTask {
         return newEmailImapEvents;
     }
 
-    private ImapMessage insertNewMessage(EntityManager em, MsgHeader msg) {
-        msg.getFlags().add(mailBox.getCubaFlag());
-        long uid = msg.getUid();
+    private ImapMessage insertNewMessage(EntityManager em, IMAPMessage msg, IMAPFolder folder) throws MessagingException {
+        Flags flags = new Flags(msg.getFlags());
+        if (Boolean.TRUE.equals(scheduling.config.getClearCustomFlags())) {
+            log.trace("[{}]clear custom flags", cubaFolder);
+            for (String userFlag : flags.getUserFlags()) {
+                flags.remove(userFlag);
+            }
+        }
+        flags.add(mailBox.getCubaFlag());
+        long uid = folder.getUID(msg);
 
         int sameUids = em.createQuery(
                 "select m from imapcomponent$ImapMessage m where m.msgUid = :uid and m.folder.id = :mailFolderId"
@@ -120,11 +120,11 @@ class NewMessagesInFolderTask extends AbstractFolderTask {
             entity.setMsgUid(uid);
             entity.setFolder(cubaFolder);
             entity.setUpdateTs(new Date());
-            entity.setImapFlags(msg.getFlags());
-            entity.setCaption(msg.getCaption());
-            entity.setMessageId(msg.getMsgId());
-            entity.setReferenceId(msg.getRefId());
-            entity.setThreadId(msg.getThreadId());
+            entity.setImapFlags(flags);
+            entity.setCaption(scheduling.imapHelper.getSubject(msg));
+            entity.setMessageId(msg.getHeader(ImapHelper.MESSAGE_ID_HEADER, null));
+            entity.setReferenceId(scheduling.imapHelper.getRefId(msg));
+            entity.setThreadId(scheduling.imapHelper.getThreadId(msg));
             em.persist(entity);
             return entity;
         }

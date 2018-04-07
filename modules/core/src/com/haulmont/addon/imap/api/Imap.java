@@ -23,16 +23,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nonnull;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.mail.*;
 import javax.mail.internet.MimeUtility;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component(ImapAPI.NAME)
-@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
+@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection", "SpringJavaInjectionPointsAutowiringInspection"})
 public class Imap implements ImapAPI {
 
     private final static Logger log = LoggerFactory.getLogger(Imap.class);
@@ -48,6 +52,25 @@ public class Imap implements ImapAPI {
 
     @Inject
     private TimeSource timeSource;
+
+    private ExecutorService fetchMessagesExecutor = Executors.newFixedThreadPool(10, new ThreadFactory() {
+        private final AtomicInteger threadNumber = new AtomicInteger(1);
+        @Override
+        public Thread newThread(@Nonnull Runnable r) {
+            Thread thread = new Thread(r, "ImapFetchMessages-" + threadNumber.getAndIncrement());
+            thread.setDaemon(true);
+            return thread;
+        }
+    });
+
+    @PreDestroy
+    public void shutdownExecutor() {
+        try {
+            fetchMessagesExecutor.shutdownNow();
+        } catch (Exception e) {
+            log.warn("Exception while shutting down executor for fetching messages", e);
+        }
+    }
 
     @Override
     public Collection<ImapFolderDto> fetchFolders(ImapMailBox box) throws ImapException {
@@ -104,35 +127,52 @@ public class Imap implements ImapAPI {
     public Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages) {
         List<ImapMessageDto> mailMessageDtos = new ArrayList<>(messages.size());
         Map<ImapMailBox, List<ImapMessage>> byMailBox = messages.stream().collect(Collectors.groupingBy(msg -> msg.getFolder().getMailBox()));
-        byMailBox.entrySet().parallelStream().forEach(mailBoxGroup -> {
-            ImapMailBox mailBox = mailBoxGroup.getKey();
-            Map<String, List<ImapMessage>> byFolder = mailBoxGroup.getValue().stream()
-                    .collect(Collectors.groupingBy(msg -> msg.getFolder().getName()));
+        Collection<Future<?>> futures = new ArrayList<>(byMailBox.size());
+        byMailBox.forEach((mailBox, value) -> futures.add(
+                fetchMessagesExecutor.submit(() -> {
+                    Map<String, List<ImapMessage>> byFolder = value.stream()
+                            .collect(Collectors.groupingBy(msg -> msg.getFolder().getName()));
 
-            for (Map.Entry<String, List<ImapMessage>> folderGroup : byFolder.entrySet()) {
-                String folderName = folderGroup.getKey();
-                imapHelper.doWithFolder(
-                        mailBox,
-                        folderName,
-                        new FolderTask<>(
-                                "fetch messages",
-                                false,
-                                true,
-                                f -> {
-                                    for (ImapMessage message : folderGroup.getValue()) {
-                                        long uid = message.getMsgUid();
-                                        IMAPMessage nativeMessage = (IMAPMessage) f.getMessageByUID(uid);
-                                        if (nativeMessage == null) {
-                                            continue;
-                                        }
-                                        mailMessageDtos.add(toDto(mailBox, folderName, uid, nativeMessage));
-                                    }
-                                    return null;
-                                })
-                );
+                    for (Map.Entry<String, List<ImapMessage>> folderGroup : byFolder.entrySet()) {
+                        String folderName = folderGroup.getKey();
+                        imapHelper.doWithFolder(
+                                mailBox,
+                                folderName,
+                                new FolderTask<>(
+                                        "fetch messages",
+                                        false,
+                                        true,
+                                        f -> {
+                                            for (ImapMessage message : folderGroup.getValue()) {
+                                                long uid = message.getMsgUid();
+                                                IMAPMessage nativeMessage = (IMAPMessage) f.getMessageByUID(uid);
+                                                if (nativeMessage == null) {
+                                                    continue;
+                                                }
+                                                mailMessageDtos.add(toDto(mailBox, folderName, uid, nativeMessage));
+                                            }
+                                            return null;
+                                        })
+                        );
+                    }
+                })
+        ));
+
+        try {
+            for (Future<?> future : futures) {
+                future.get(15, TimeUnit.SECONDS);
             }
-
-        });
+        } catch (InterruptedException e) {
+            log.info("Fetching of messages was interrupted");
+            futures.forEach(task -> {
+                if (!task.isDone() && !task.isCancelled()) {
+                    task.cancel(true);
+                }
+            });
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException | TimeoutException e) {
+            throw new RuntimeException("Can't fetch messages", e);
+        }
 
         //todo: sort dto according to messages input
         return mailMessageDtos;

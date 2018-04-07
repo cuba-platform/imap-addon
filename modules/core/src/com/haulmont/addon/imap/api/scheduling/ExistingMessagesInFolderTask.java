@@ -1,7 +1,6 @@
 package com.haulmont.addon.imap.api.scheduling;
 
 import com.haulmont.addon.imap.core.FolderTask;
-import com.haulmont.addon.imap.core.MsgHeader;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
@@ -9,10 +8,10 @@ import com.haulmont.addon.imap.events.BaseImapEvent;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Transaction;
 import com.sun.mail.imap.IMAPFolder;
+import com.sun.mail.imap.IMAPMessage;
 
 import javax.mail.MessagingException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 abstract class ExistingMessagesInFolderTask extends AbstractFolderTask {
 
@@ -78,20 +77,21 @@ abstract class ExistingMessagesInFolderTask extends AbstractFolderTask {
                     .setViewName("imap-msg-full")
                     .getResultList();
 
-            List<MsgHeader> imapMessages = scheduling.imapHelper.getAllByUids(
-                    folder, messages.stream().mapToLong(ImapMessage::getMsgUid).toArray()
+            List<IMAPMessage> imapMessages = scheduling.imapHelper.getAllByUids(
+                    folder, messages.stream().mapToLong(ImapMessage::getMsgUid).toArray(), mailBox
             );
             log.trace("[{} for {}]batch messages from db: {}, from IMAP server: {}",
                     taskDescription(), cubaFolder, messages, imapMessages);
 
-            Map<Long, MsgHeader> headersByUid = new HashMap<>(imapMessages.size());
-            for (MsgHeader msg : imapMessages) {
-                headersByUid.put(msg.getUid(), msg);
+            Map<Long, IMAPMessage> msgsByUid = new HashMap<>(imapMessages.size());
+            for (IMAPMessage msg : imapMessages) {
+                msgsByUid.put(folder.getUID(msg), msg);
             }
 
-            List<BaseImapEvent> events = messages.stream()
-                    .flatMap(msg -> handleMessage(em, msg, headersByUid).stream())
-                    .collect(Collectors.toList());
+            List<BaseImapEvent> events = new ArrayList<>(messages.size());
+            for (ImapMessage msg : messages) {
+                events.addAll(handleMessage(em, msg, msgsByUid));
+            }
             tx.commit();
 
             return events;
@@ -102,7 +102,7 @@ abstract class ExistingMessagesInFolderTask extends AbstractFolderTask {
 
     }
 
-    protected abstract List<BaseImapEvent> handleMessage(EntityManager em, ImapMessage msg, Map<Long, MsgHeader> msgsByUid);
+    protected abstract List<BaseImapEvent> handleMessage(EntityManager em, ImapMessage msg, Map<Long, IMAPMessage> messagesByUid) throws MessagingException;
 
     protected abstract String taskDescription();
 

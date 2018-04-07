@@ -7,9 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.RecursiveAction;
 
-public abstract class AbstractFolderTask extends RecursiveAction {
+public abstract class AbstractFolderTask implements Runnable {
     protected final static Logger log = LoggerFactory.getLogger(ImapScheduling.class);
 
     final ImapFolder cubaFolder;
@@ -23,7 +22,7 @@ public abstract class AbstractFolderTask extends RecursiveAction {
     }
 
     @Override
-    protected void compute() {
+    public void run() {
         scheduling.fireEvents(cubaFolder, makeEvents());
     }
 

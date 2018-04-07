@@ -9,13 +9,21 @@ import com.sun.mail.imap.protocol.Item;
 import com.sun.mail.util.MailLogger;
 
 import javax.mail.FetchProfile;
+import javax.mail.UIDFolder;
 import java.io.IOException;
 import java.util.Properties;
 
 class ThreadExtension {
 
     static final String ITEM_NAME = "X-GM-THRID";
-    static final CubaProfileItem THREAD_ID_ITEM = new CubaProfileItem(ITEM_NAME);
+    static final String CAPABILITY_NAME = "X-GM-EXT-1";
+    private static final CubaProfileItem THREAD_ID_ITEM = new CubaProfileItem(ITEM_NAME);
+    static final FetchItem FETCH_ITEM = new FetchItem(ITEM_NAME, THREAD_ID_ITEM) {
+        @Override
+        public Object parseItem(FetchResponse r) throws ParsingException {
+            return new X_GM_THRID(r);
+        }
+    };
 
     static class CubaIMAPProtocol extends IMAPProtocol {
 
@@ -25,16 +33,8 @@ class ThreadExtension {
         }
         @Override
         public FetchItem[] getFetchItems() {
-            return new FetchItem[] {
-                    new FetchItem(ITEM_NAME, THREAD_ID_ITEM) {
-                        @Override
-                        public Object parseItem(FetchResponse r) throws ParsingException {
-                            return new X_GM_THRID(r);
-                        }
-                    }
-            };
+            return new FetchItem[] { FETCH_ITEM };
         }
-
     }
 
     static class X_GM_THRID implements Item {
@@ -52,8 +52,16 @@ class ThreadExtension {
     }
 
     static class CubaProfileItem extends FetchProfile.Item {
-        protected CubaProfileItem(String name) {
+        CubaProfileItem(String name) {
             super(name);
         }
+    }
+
+    static class FetchProfileItem extends FetchProfile.Item {
+        FetchProfileItem(String name) {
+            super(name);
+        }
+
+        public static final FetchProfileItem X_GM_THRID = new FetchProfileItem(ThreadExtension.ITEM_NAME);
     }
 }

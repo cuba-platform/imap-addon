@@ -10,10 +10,9 @@ import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.global.FileLoader;
 import com.haulmont.cuba.core.global.FileStorageException;
-import com.sun.mail.iap.Argument;
-import com.sun.mail.iap.Response;
 import com.sun.mail.imap.IMAPFolder;
-import com.sun.mail.imap.protocol.*;
+import com.sun.mail.imap.IMAPMessage;
+import com.sun.mail.imap.IMAPStore;
 import com.sun.mail.util.MailSSLSocketFactory;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
@@ -23,9 +22,7 @@ import org.springframework.util.Assert;
 
 import javax.inject.Inject;
 import javax.mail.*;
-import javax.mail.internet.InternetHeaders;
 import javax.mail.internet.MimeUtility;
-import javax.mail.search.SearchException;
 import javax.mail.search.SearchTerm;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -46,10 +43,9 @@ import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
 
+@SuppressWarnings({"SpringJavaInjectionPointsAutowiringInspection", "SpringJavaAutowiredFieldsWarningInspection", "CdiInjectionPointsInspection"})
 @Component
-@SuppressWarnings("ALL")
 public class ImapHelper {
 
     private final static Logger log = LoggerFactory.getLogger(ImapHelper.class);
@@ -57,10 +53,10 @@ public class ImapHelper {
     private static final String REFERENCES_HEADER = "References";
     private static final String IN_REPLY_TO_HEADER = "In-Reply-To";
     private static final String SUBJECT_HEADER = "Subject";
-    private static final String MESSAGE_ID_HEADER = "Message-ID";
+    public static final String MESSAGE_ID_HEADER = "Message-ID";
 
     private final ConcurrentMap<MailboxKey, Object> mailBoxLocks = new ConcurrentHashMap<>();
-    private final Map<MailboxKey, Pair<ConnectionsParams, Store>> stores = new HashMap<>();
+    private final Map<MailboxKey, Pair<ConnectionsParams, IMAPStore>> stores = new HashMap<>();
     private final ConcurrentMap<FolderKey, Object> folderLocks = new ConcurrentHashMap<>();
     private final Map<FolderKey, IMAPFolder> folders = new HashMap<>();
 
@@ -76,11 +72,11 @@ public class ImapHelper {
     @Inject
     private Persistence persistence;
 
-    public Store getStore(ImapMailBox box) throws MessagingException {
+    public IMAPStore getStore(ImapMailBox box) throws MessagingException {
         return getStore(box, false);
     }
 
-    public Store getStore(ImapMailBox box, boolean forceConnect) throws MessagingException {
+    public IMAPStore getStore(ImapMailBox box, boolean forceConnect) throws MessagingException {
         log.debug("Accessing imap store for {}", box);
 
         MailboxKey key = mailboxKey(box);
@@ -88,13 +84,13 @@ public class ImapHelper {
         Object lock = mailBoxLocks.get(key);
         //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (lock) {
-            Pair<ConnectionsParams, Store> mailboxStore = stores.get(key);
+            Pair<ConnectionsParams, IMAPStore> mailboxStore = stores.get(key);
             String persistedPassword = getPersistedPassword(box);
             if (mailboxStore == null || connectionParamsDiffer(mailboxStore.getFirst(), box, persistedPassword)) {
                 buildAndCacheStore(key, box, persistedPassword);
             }
 
-            Store store = stores.get(key).getSecond();
+            IMAPStore store = stores.get(key).getSecond();
 
             if (forceConnect) { //todo: try to prevent excessive connection using some status flags of IMAP
                 store.close();
@@ -163,7 +159,7 @@ public class ImapHelper {
 
         Session session = Session.getInstance(props, null);
 
-        Store store = session.getStore(protocol);
+        IMAPStore store = (IMAPStore) session.getStore(protocol);
         String passwordToConnect = decryptedPassword(box, persistedPassword);
         store.connect(box.getHost(), box.getPort(), box.getAuthentication().getUsername(), passwordToConnect);
 
@@ -230,187 +226,78 @@ public class ImapHelper {
         }
     }
 
-    /*public <T> T doWithMsg(ImapMessage message, IMAPFolder imapFolder, Task<ImapMessage, T> task) {
-        log.debug("perform message task '{}' for {} of folder {}", task.getDescription(), message, imapFolder.getFullName());
-        ImapFolder folder = message.getFolder();
-        ImapMailBox mailBox = folder.getMailBox();
-        MessageKey key = new MessageKey(
-                new FolderKey(mailboxKey(mailBox), folder.getName()),
-                message.getMsgUid()
-        );
-        msgLocks.putIfAbsent(key, new Object());
-        Object lock = msgLocks.get(key);
-        synchronized (lock) {
-            log.trace("[{}->{}]lock acquired for '{}'", imapFolder.getFullName(), message, task.getDescription());
-            try {
-                if (!imapFolder.isOpen()) {
-                    imapFolder.open(Folder.READ_WRITE);
-                }
-                T result = task.getAction().apply(message);
-                return task.isHasResult() ? result : null;
-            } catch (MessagingException e) {
-                throw new RuntimeException(
-                        String.format("error performing task '%s' for msg with key '%s'", task.getDescription(), key), e
-                );
-            }
-
-        }
-    }*/
-
     private MailboxKey mailboxKey(ImapMailBox mailBox) {
         return new MailboxKey(mailBox.getHost(), mailBox.getPort(), mailBox.getAuthentication().getUsername());
     }
 
-    public List<MsgHeader> search(IMAPFolder folder, SearchTerm searchTerm) throws MessagingException {
+    public List<IMAPMessage> search(IMAPFolder folder, SearchTerm searchTerm, ImapMailBox mailBox) throws MessagingException {
         log.debug("search messages in {} with {}", folder.getFullName(), searchTerm) ;
-        return getAllByUids( folder, (long[]) folder.doCommand(uidSearchCommand(searchTerm)) );
+
+        Message[] messages = folder.search(searchTerm);
+        return fetch(folder, mailBox, messages);
     }
 
-    public List<MsgHeader> getAllByUids(IMAPFolder folder, long[] uids) throws MessagingException {
+    public List<IMAPMessage> getAllByUids(IMAPFolder folder, long[] uids, ImapMailBox mailBox) throws MessagingException {
         if (log.isDebugEnabled()) {
             log.debug("get messages by uids {} in {}", Arrays.toString(uids), folder.getFullName());
         }
-        if (uids != null && uids.length > 0) {
-            //noinspection unchecked
-            return (List<MsgHeader>) folder.doCommand(uidFetchWithFlagsCommand(uids));
+
+        Message[] messages = folder.getMessagesByUID(uids);
+        return fetch(folder, mailBox, messages);
+    }
+
+    public String getRefId(IMAPMessage message) throws MessagingException {
+        String refHeader = message.getHeader(REFERENCES_HEADER, null);
+        if (refHeader == null) {
+            refHeader = message.getHeader(IN_REPLY_TO_HEADER, null);
+        } else {
+            refHeader = refHeader.split("\\s+")[0];
         }
-        return Collections.emptyList();
+        if (refHeader != null && refHeader.length() > 0) {
+            return refHeader;
+        }
+
+        return null;
     }
 
-    private IMAPFolder.ProtocolCommand uidSearchCommand(SearchTerm searchTerm) {
-        return protocol -> {
-            try {
-                Argument args = new SearchSequence().generateSequence(searchTerm, null);
-                args.writeAtom("ALL");
-
-                Response[] r = protocol.command("UID SEARCH", args);
-
-                Response response = r[r.length-1];
-                long[] matches = null;
-
-                // Grab all SEARCH responses
-                if (response.isOK()) { // command succesful
-                    List<Long> v = new ArrayList<>();
-                    long num;
-                    for (int i = 0, len = r.length; i < len; i++) {
-                        if (!(r[i] instanceof IMAPResponse))
-                            continue;
-
-                        IMAPResponse ir = (IMAPResponse)r[i];
-                        // There *will* be one SEARCH response.
-                        if (ir.keyEquals("SEARCH")) {
-                            while ((num = ir.readLong()) != -1) {
-                                v.add(num);
-                            }
-                            r[i] = null;
-                        }
-                    }
-
-                    // Copy the vector into 'matches'
-                    int vsize = v.size();
-                    matches = new long[vsize];
-                    for (int i = 0; i < vsize; i++) {
-                        matches[i] = v.get(i);
-                    }
-                }
-
-                // dispatch remaining untagged responses
-                protocol.notifyResponseHandlers(r);
-                protocol.handleResult(response);
-                return matches;
-            } catch (IOException | SearchException e) {
-                throw new RuntimeException("can't perform search with term " + searchTerm, e);
-            }
-
-        };
+    public Long getThreadId(IMAPMessage message) throws MessagingException {
+        Object threadItem = message.getItem(ThreadExtension.FETCH_ITEM);
+        return threadItem instanceof ThreadExtension.X_GM_THRID ? ((ThreadExtension.X_GM_THRID) threadItem).x_gm_thrid : null;
     }
 
-    private IMAPFolder.ProtocolCommand uidFetchWithFlagsCommand(long[] uids) {
-        return protocol -> {
-            try {
-                String uidsString = Arrays.stream(uids).mapToObj(String::valueOf).collect(Collectors.joining(","));
-                boolean hasThreadingExtension = protocol.hasCapability("X-GM-EXT-1");
-                String fetchUnits = "UID FLAGS " + buildMsgHeadersUnit(protocol);
-                if (hasThreadingExtension) {
-                    fetchUnits += " " + ThreadExtension.ITEM_NAME;
-                }
+    public String getSubject(IMAPMessage message) throws MessagingException {
+        String subject = message.getHeader(SUBJECT_HEADER, null);
+        if (subject != null && subject.length() > 0) {
+            return decode(subject);
+        } else {
+            return "(No Subject)";
+        }
+    }
 
-                Response[] responses = protocol.command(String.format("UID FETCH %s (%s)", uidsString, fetchUnits), null);
+    private List<IMAPMessage> fetch(IMAPFolder folder, ImapMailBox mailBox, Message[] messages) throws MessagingException {
+        Message[] nonNullMessages = Arrays.stream(messages).filter(Objects::nonNull).toArray(Message[]::new);
+        folder.fetch(nonNullMessages, headerProfile(mailBox));
+        List<IMAPMessage> result = new ArrayList<>(nonNullMessages.length);
+        for (Message message : nonNullMessages) {
+            result.add((IMAPMessage) message);
+        }
+        return result;
+    }
 
-                List<MsgHeader> result = new ArrayList<>();
-                for (Response response : responses) {
-                    if (!(response instanceof FetchResponse))
-                        continue;
+    private FetchProfile headerProfile(ImapMailBox mailBox) throws MessagingException {
+        FetchProfile profile = new FetchProfile();
+        profile.add(FetchProfile.Item.FLAGS);
+        profile.add(UIDFolder.FetchProfileItem.UID);
+        profile.add(REFERENCES_HEADER);
+        profile.add(IN_REPLY_TO_HEADER);
+        profile.add(SUBJECT_HEADER);
+        profile.add(MESSAGE_ID_HEADER);
 
-                    FetchResponse fr = (FetchResponse) response;
-                    if (fr.getItemCount() >= 2) {
-                        Flags flags = null;
-                        Long uid = null;
-                        Long threadId = null;
-                        String referenceId = null;
-                        String subject = null;
-                        String messageId = null;
+        if (getStore(mailBox).hasCapability(ThreadExtension.CAPABILITY_NAME)) {
+            profile.add(ThreadExtension.FetchProfileItem.X_GM_THRID);
+        }
 
-                        for (int i = 0; i < fr.getItemCount(); i++) {
-                            Item item = fr.getItem(i);
-                            log.trace("Processing item#{}: {}", i, item.getClass().getName());
-                            if (item instanceof Flags) {
-                                flags = (Flags) item;
-                            } else if (item instanceof UID) {
-                                uid = ((UID) item).uid;
-                            } else if (item instanceof ThreadExtension.X_GM_THRID) {
-                                threadId = ((ThreadExtension.X_GM_THRID) item).x_gm_thrid;
-                            } else if (item instanceof RFC822DATA || item instanceof BODY) {
-                                InputStream headerStream;
-                                boolean isHeader;
-                                if (item instanceof RFC822DATA) { // IMAP4
-                                    headerStream =
-                                            ((RFC822DATA) item).getByteArrayInputStream();
-                                    isHeader = ((RFC822DATA) item).isHeader();
-                                } else {    // IMAP4rev1
-                                    headerStream =
-                                            ((BODY) item).getByteArrayInputStream();
-                                    isHeader = ((BODY) item).isHeader();
-                                }
-                                if (isHeader) {
-                                    InternetHeaders h = new InternetHeaders();
-                                    h.load(headerStream);
-                                    String refHeader = h.getHeader(REFERENCES_HEADER, null);
-                                    if (refHeader == null) {
-                                        refHeader = h.getHeader(IN_REPLY_TO_HEADER, null);
-                                    } else {
-                                        refHeader = refHeader.split("\\s+")[0];
-                                    }
-                                    if (refHeader != null && refHeader.length() > 0) {
-                                        referenceId = refHeader;
-                                    }
-
-                                    String subjectHeader = h.getHeader(SUBJECT_HEADER, null);
-                                    if (subjectHeader != null && subjectHeader.length() > 0) {
-                                        subject = decode(subjectHeader);
-                                    } else {
-                                        subject = "(No Subject)";
-                                    }
-
-                                    messageId = h.getHeader(MESSAGE_ID_HEADER, null);
-
-                                }
-                            }
-                        }
-                        if (flags != null && uid != null) {
-                            result.add(new MsgHeader(uid, flags, subject, messageId, referenceId, threadId));
-                        }
-                    }
-                }
-
-                protocol.notifyResponseHandlers(responses);
-                protocol.handleResult(responses[responses.length - 1]);
-
-                return result;
-            } catch (MessagingException e) {
-                throw new ImapException("can't perform fetch", e);
-            }
-        };
+        return profile;
     }
 
     private String decode(String val) {
@@ -419,13 +306,6 @@ public class ImapHelper {
         } catch (UnsupportedEncodingException ex) {
             return val;
         }
-    }
-
-    private String buildMsgHeadersUnit(IMAPProtocol protocol) {
-        return
-                (protocol.isREV1() ? "BODY.PEEK[HEADER.FIELDS (" : "RFC822.HEADER.LINES (") +
-                REFERENCES_HEADER + " " + IN_REPLY_TO_HEADER + " " + SUBJECT_HEADER + " " + MESSAGE_ID_HEADER +
-                (protocol.isREV1() ? ")]" : ")");
     }
 
     private MailSSLSocketFactory getMailSSLSocketFactory(ImapMailBox box) throws MessagingException {
@@ -531,7 +411,7 @@ public class ImapHelper {
 
                 this.localTrustManager = createTrustManager(keyStore);
             } catch (NoSuchAlgorithmException | CertificateException | KeyStoreException | IOException e) {
-                e.printStackTrace(); //todo:
+                log.warn("Can't build SSL Trust Manager", e);
             }
         }
 

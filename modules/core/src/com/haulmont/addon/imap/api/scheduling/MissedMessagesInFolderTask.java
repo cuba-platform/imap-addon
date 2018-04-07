@@ -1,7 +1,6 @@
 package com.haulmont.addon.imap.api.scheduling;
 
 import com.haulmont.addon.imap.core.FolderTask;
-import com.haulmont.addon.imap.core.MsgHeader;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.ImapEventType;
 import com.haulmont.addon.imap.entity.ImapFolder;
@@ -42,9 +41,9 @@ public class MissedMessagesInFolderTask extends ExistingMessagesInFolderTask {
     }
 
     @Override
-    protected List<BaseImapEvent> handleMessage(EntityManager em, ImapMessage msg, Map<Long, MsgHeader> msgsByUid) {
-        MsgHeader newMsgHeader = msgsByUid.get(msg.getMsgUid());
-        if (newMsgHeader == null) {
+    protected List<BaseImapEvent> handleMessage(EntityManager em, ImapMessage msg, Map<Long, IMAPMessage> msgsByUid) {
+        IMAPMessage newMsg = msgsByUid.get(msg.getMsgUid());
+        if (newMsg == null) {
             missedMsgs.add(msg);
             em.remove(msg);
         }

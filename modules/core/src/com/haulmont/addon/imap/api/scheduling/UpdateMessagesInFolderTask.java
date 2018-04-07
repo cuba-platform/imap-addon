@@ -1,15 +1,16 @@
 package com.haulmont.addon.imap.api.scheduling;
 
 import com.haulmont.addon.imap.api.ImapFlag;
-import com.haulmont.addon.imap.core.MsgHeader;
 import com.haulmont.addon.imap.entity.ImapEventType;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.events.*;
 import com.haulmont.cuba.core.EntityManager;
+import com.sun.mail.imap.IMAPMessage;
 
 import javax.mail.Flags;
+import javax.mail.MessagingException;
 import java.util.*;
 
 class UpdateMessagesInFolderTask extends ExistingMessagesInFolderTask {
@@ -19,12 +20,12 @@ class UpdateMessagesInFolderTask extends ExistingMessagesInFolderTask {
     }
 
     @Override
-    protected List<BaseImapEvent> handleMessage(EntityManager em, ImapMessage msg, Map<Long, MsgHeader> msgsByUid) {
-        MsgHeader newMsgHeader = msgsByUid.get(msg.getMsgUid());
-        if (newMsgHeader == null) {
+    protected List<BaseImapEvent> handleMessage(EntityManager em, ImapMessage msg, Map<Long, IMAPMessage> msgsByUid) throws MessagingException {
+        IMAPMessage newMsg = msgsByUid.get(msg.getMsgUid());
+        if (newMsg == null) {
             return Collections.emptyList();
         }
-        Flags newFlags = newMsgHeader.getFlags();
+        Flags newFlags = newMsg.getFlags();
         Flags oldFlags = msg.getImapFlags();
 
         List<BaseImapEvent> modificationEvents = new ArrayList<>(3);
@@ -69,9 +70,9 @@ class UpdateMessagesInFolderTask extends ExistingMessagesInFolderTask {
             }
 
         }
-        msg.setReferenceId(newMsgHeader.getRefId());
+        msg.setReferenceId(scheduling.imapHelper.getRefId(newMsg));
         msg.setImapFlags(newFlags);
-        msg.setThreadId(newMsgHeader.getThreadId());  // todo: fire thread event
+        msg.setThreadId(scheduling.imapHelper.getThreadId(newMsg));  // todo: fire thread event
         msg.setUpdateTs(new Date());
         em.persist(msg);
 
