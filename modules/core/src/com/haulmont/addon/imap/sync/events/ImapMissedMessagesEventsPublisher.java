@@ -109,7 +109,7 @@ public class ImapMissedMessagesEventsPublisher extends ImapEventsPublisher {
     }
 
     private Collection<IMAPFolder> getOtherFolders(ImapFolder cubaFolder) {
-        ImapMailBox mailBox = cubaFolder.getMailBox();
+        ImapMailBox mailBox = getMailbox(cubaFolder.getMailBox().getId());
         List<String> otherFoldersNames = mailBox.getProcessableFolders().stream()
                 .filter(f -> !f.getName().equals(cubaFolder.getName()))
                 .map(ImapFolder::getName)
@@ -128,6 +128,19 @@ public class ImapMissedMessagesEventsPublisher extends ImapEventsPublisher {
             );
         }
         return otherFolders;
+    }
+
+    private ImapMailBox getMailbox(UUID id) {
+        authentication.begin();
+        try (Transaction ignored = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            return em.createQuery(
+                    "select distinct b from imapcomponent$ImapMailBox b where b.id = :id",
+                    ImapMailBox.class
+            ).setParameter("id", id).setViewName("imap-mailbox-edit").getSingleResult();
+        } finally {
+            authentication.end();
+        }
     }
 
     private List<ImapMessage> getMessages(ImapFolder cubaFolder, int iterNum) {
