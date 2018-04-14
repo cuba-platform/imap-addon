@@ -10,12 +10,14 @@ public class EmailFlagChangedImapEvent extends BaseImapEvent {
 
     private final Map<ImapFlag, Boolean> changedFlagsWithNewValue;
 
+    @SuppressWarnings("WeakerAccess")
     public EmailFlagChangedImapEvent(ImapMessage message, Map<ImapFlag, Boolean> changedFlagsWithNewValue) {
         super(message);
 
         this.changedFlagsWithNewValue = changedFlagsWithNewValue;
     }
 
+    @SuppressWarnings("unused")
     public Map<ImapFlag, Boolean> getChangedFlagsWithNewValue() {
         return changedFlagsWithNewValue;
     }

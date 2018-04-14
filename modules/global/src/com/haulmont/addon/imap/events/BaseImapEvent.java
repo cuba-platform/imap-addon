@@ -17,8 +17,6 @@ public abstract class BaseImapEvent extends ApplicationEvent {
         return message;
     }
 
-
-
     @Override
     public String toString() {
         return new ToStringBuilder(this).

@@ -13,11 +13,17 @@ public class ImapFlag implements Serializable {
     private final SystemFlag systemFlag;
     private final String name;
 
+    @SuppressWarnings("unused")
     public static final ImapFlag SEEN = new ImapFlag(SystemFlag.SEEN);
+    @SuppressWarnings("unused")
     public static final ImapFlag ANSWERED = new ImapFlag(SystemFlag.ANSWERED);
+    @SuppressWarnings("unused")
     public static final ImapFlag DRAFT = new ImapFlag(SystemFlag.DRAFT);
+    @SuppressWarnings("unused")
     public static final ImapFlag DELETED = new ImapFlag(SystemFlag.DELETED);
+    @SuppressWarnings("unused")
     public static final ImapFlag IMPORTANT = new ImapFlag(SystemFlag.IMPORTANT);
+    @SuppressWarnings("unused")
     public static final ImapFlag RECENT = new ImapFlag(SystemFlag.RECENT);
 
     public ImapFlag(String name) {
@@ -38,6 +44,7 @@ public class ImapFlag implements Serializable {
         return name;
     }
 
+    @SuppressWarnings("unused")
     public SystemFlag getSystemFlag() {
         return systemFlag;
     }
@@ -45,7 +52,6 @@ public class ImapFlag implements Serializable {
     public Flags imapFlags() {
         return systemFlag != null ? new Flags(systemFlag.systemFlag) : new Flags(name);
     }
-
 
     @Override
     public String toString() {

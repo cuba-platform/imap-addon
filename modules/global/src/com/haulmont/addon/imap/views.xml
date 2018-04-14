@@ -2,6 +2,13 @@
 <views xmlns="http://schemas.haulmont.com/cuba/view.xsd">
     <view class="com.haulmont.addon.imap.entity.ImapFolder"
           extends="_local"
+          name="imap-folder-connect">
+        <property name="mailBox"
+                  view="imap-mailBox-connect"/>
+    </view>
+
+    <view class="com.haulmont.addon.imap.entity.ImapFolder"
+          extends="_local"
           name="imap-folder-edit">
         <property name="events"
                   view="imap-folder-event-edit"/>
@@ -10,6 +17,13 @@
         <property name="parent"
                   view="_minimal"/>
     </view>
+    <view class="com.haulmont.addon.imap.entity.ImapFolder"
+          extends="imap-folder-edit"
+          name="imap-folder-full">
+        <property name="mailBox"
+                  view="imap-mailBox-connect"/>
+    </view>
+
     <view class="com.haulmont.addon.imap.entity.ImapMailBox"
           extends="_local"
           name="imap-mailbox-edit">

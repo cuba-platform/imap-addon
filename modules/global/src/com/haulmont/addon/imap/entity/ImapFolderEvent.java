@@ -41,7 +41,6 @@ public class ImapFolderEvent extends StandardEntity {
         this.folder = folder;
     }
 
-
     public ImapEventType getEvent() {
         return event == null ? null : ImapEventType.fromId(event);
     }

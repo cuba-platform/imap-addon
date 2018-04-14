@@ -1,7 +1,7 @@
 package com.haulmont.addon.imap.api;
 
-import com.haulmont.addon.imap.core.FolderTask;
 import com.haulmont.addon.imap.core.ImapHelper;
+import com.haulmont.addon.imap.core.Task;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
@@ -18,12 +18,15 @@ import java.io.IOException;
 import java.io.InputStream;
 
 @Component(ImapAttachmentsAPI.NAME)
-@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapAttachments implements ImapAttachmentsAPI {
     private final static Logger log = LoggerFactory.getLogger(ImapAttachments.class);
 
+    private final ImapHelper imapHelper;
+
     @Inject
-    private ImapHelper imapHelper;
+    public ImapAttachments(ImapHelper imapHelper) {
+        this.imapHelper = imapHelper;
+    }
 
     @Override
     public InputStream openStream(ImapMessageAttachment attachment) {
@@ -32,10 +35,9 @@ public class ImapAttachments implements ImapAttachmentsAPI {
         ImapMailBox mailBox = msg.getFolder().getMailBox();
         String folderName = msg.getFolder().getName();
 
-        return imapHelper.doWithFolder(mailBox, folderName, new FolderTask<>(
+        return imapHelper.doWithFolder(mailBox, folderName, new Task<>(
                 "fetch attachment content",
                 true,
-                false,
                 f -> {
                     //todo: this fetching can be optimised to fetch only attachments data
                     IMAPMessage imapMessage = (IMAPMessage) f.getMessageByUID(msg.getMsgUid());

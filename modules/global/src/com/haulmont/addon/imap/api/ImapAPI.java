@@ -7,7 +7,6 @@ import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.exception.ImapException;
 
-import javax.mail.MessagingException;
 import java.util.Collection;
 import java.util.UUID;
 

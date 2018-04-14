@@ -1,4 +1,4 @@
-package com.haulmont.addon.imap.security;
+package com.haulmont.addon.imap.crypto;
 
 import com.haulmont.addon.imap.entity.ImapMailBox;
 

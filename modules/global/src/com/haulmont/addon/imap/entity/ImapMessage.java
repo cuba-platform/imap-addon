@@ -40,11 +40,15 @@ public class ImapMessage extends StandardEntity {
 
     @NotNull
     @Column(name = "IS_ATL", nullable = false)
-    protected Boolean attachmentsLoaded = false;
+    private Boolean attachmentsLoaded = false;
 
     @NotNull
     @Column(name = "MSG_UID", nullable = false)
     protected Long msgUid;
+
+    @NotNull
+    @Column(name = "MSG_NUM", nullable = false)
+    private Integer msgNum;
 
     @Column(name = "THREAD_ID")
     protected Long threadId;
@@ -163,4 +167,11 @@ public class ImapMessage extends StandardEntity {
         return msgUid;
     }
 
+    public Integer getMsgNum() {
+        return msgNum;
+    }
+
+    public void setMsgNum(Integer msgNum) {
+        this.msgNum = msgNum;
+    }
 }

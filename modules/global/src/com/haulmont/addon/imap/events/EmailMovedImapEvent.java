@@ -7,16 +7,19 @@ public class EmailMovedImapEvent extends BaseImapEvent {
 
     private final String newFolderName;
 
+    @SuppressWarnings("WeakerAccess")
     public EmailMovedImapEvent(ImapMessage message, String newFolderName) {
         super(message);
 
         this.newFolderName = newFolderName;
     }
 
+    @SuppressWarnings("unused")
     public String getOldFolderName() {
         return message.getFolder().getName();
     }
 
+    @SuppressWarnings("unused")
     public String getNewFolderName() {
         return newFolderName;
     }

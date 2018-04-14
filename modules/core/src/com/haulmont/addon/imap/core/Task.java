@@ -1,9 +1,9 @@
 package com.haulmont.addon.imap.core;
 
 public class Task<IN, OUT> {
-    private String description;
-    private MessageFunction<IN, OUT> action;
-    private boolean hasResult;
+    private final String description;
+    private final MessageFunction<IN, OUT> action;
+    private final boolean hasResult;
 
     public Task(String description, boolean hasResult, MessageFunction<IN, OUT> action) {
         this.description = description;
@@ -11,28 +11,16 @@ public class Task<IN, OUT> {
         this.hasResult = hasResult;
     }
 
-    public String getDescription() {
+    String getDescription() {
         return description;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public MessageFunction<IN, OUT> getAction() {
+    MessageFunction<IN, OUT> getAction() {
         return action;
     }
 
-    public void setAction(MessageFunction<IN, OUT> action) {
-        this.action = action;
-    }
-
-    public boolean isHasResult() {
+    boolean isHasResult() {
         return hasResult;
-    }
-
-    public void setHasResult(boolean hasResult) {
-        this.hasResult = hasResult;
     }
 
 }

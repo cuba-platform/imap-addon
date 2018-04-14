@@ -26,7 +26,7 @@
         <scrollBox id="scrollBox"
                    spacing="true">
             <hbox spacing="true">
-                <groupBox caption="msg://connectionConfigurationCaption"
+                <groupBox caption="msg://basicConfigurationCaption"
                           spacing="true"
                           width="AUTO">
                     <fieldGroup id="mainParams"
@@ -46,40 +46,13 @@
                                                property="password"
                                                required="true"/>
                             </field>
-                            <field id="useProxyChkBoxField">
-                                <checkBox id="useProxyChkBox"
-                                          caption="msg://useProxyCaption"/>
-                            </field>
                         </column>
                     </fieldGroup>
                     <button caption="msg://checkConnectionCaption"
                             invoke="checkTheConnection"/>
                 </groupBox>
                 <vbox spacing="true">
-                    <groupBox caption="msg://pollingConfigurationCaption"
-                              spacing="true"
-                              width="AUTO">
-                        <fieldGroup id="pollingParams"
-                                    datasource="mailBoxDs">
-                            <column width="250px">
-                                <field property="pollInterval"/>
-                                <field property="processingTimeout"/>
-                                <field id="useTrashFolderChkBoxField">
-                                    <checkBox id="useTrashFolderChkBox"
-                                              caption="msg://useTrashFolderForRemovalCaption"/>
-                                </field>
-                                <field id="trashFolderNameField"
-                                       editable="false"
-                                       property="trashFolderName"/>
-                            </column>
-                        </fieldGroup>
-                        <button id="selectTrashFolderButton"
-                                caption="msg://selectTrashFolderCaption"
-                                invoke="selectTrashFolder"/>
-                    </groupBox>
                     <groupBox caption="msg://advancedConfigurationCaption"
-                              collapsable="true"
-                              collapsed="true"
                               spacing="true"
                               width="AUTO">
                         <fieldGroup id="advancedParams"
@@ -87,8 +60,26 @@
                             <column width="250px">
                                 <field description="msg://cubaFlagDescription"
                                        property="cubaFlag"/>
-                                <field description="msg://updateSliceSizeDescription"
-                                       property="updateSliceSize"/>
+                                <field id="useTrashFolderChkBoxField">
+                                    <checkBox id="useTrashFolderChkBox"
+                                              caption="msg://useTrashFolderForRemovalCaption"/>
+                                </field>
+                                <field id="trashFolderNameField" property="trashFolderName">
+                                    <hbox id="trashFolderPickerField">
+                                        <textField id="trashFolderTextField"
+                                                   datasource="mailBoxDs"
+                                                   property="trashFolderName"
+                                                   editable="false"/>
+                                        <button id="selectTrashFolderButton" align="MIDDLE_RIGHT"
+                                                description="msg://selectTrashFolderCaption"
+                                                icon="components/pickerfield/images/lookup-btn.png"
+                                                invoke="selectTrashFolder"/>
+                                    </hbox>
+                                </field>
+                                <field id="useProxyChkBoxField">
+                                    <checkBox id="useProxyChkBox"
+                                              caption="msg://useProxyCaption"/>
+                                </field>
                             </column>
                         </fieldGroup>
                     </groupBox>
@@ -135,7 +126,7 @@
                                 <column id="name"/>
                                 <column id="selected"
                                         caption=""
-                                        editable="true" />
+                                        editable="true"/>
                                 <column id="eventsInfo"
                                         caption="Events"/>
                             </columns>

@@ -1,7 +1,7 @@
-package com.haulmont.addon.imap.listener;
+package com.haulmont.addon.imap.entity.listener;
 
 import com.haulmont.addon.imap.entity.ImapMailBox;
-import com.haulmont.addon.imap.security.Encryptor;
+import com.haulmont.addon.imap.crypto.Encryptor;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.PersistenceTools;
 import com.haulmont.cuba.core.listener.BeforeInsertEntityListener;
@@ -13,15 +13,21 @@ import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 
 @Component("imapcomponent_MailboxPasswordListener")
-public class ImapMailboxPasswordListener implements BeforeInsertEntityListener<ImapMailBox>, BeforeUpdateEntityListener<ImapMailBox> {
+public class ImapMailboxPasswordListener implements BeforeInsertEntityListener<ImapMailBox>,
+                                                    BeforeUpdateEntityListener<ImapMailBox> {
 
     private final static Logger log = LoggerFactory.getLogger(ImapMailboxPasswordListener.class);
 
-    @Inject
-    private Encryptor encryptor;
+    private final Encryptor encryptor;
 
+    private final PersistenceTools persistenceTools;
+
+    @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    private PersistenceTools persistenceTools;
+    public ImapMailboxPasswordListener(Encryptor encryptor, PersistenceTools persistenceTools) {
+        this.encryptor = encryptor;
+        this.persistenceTools = persistenceTools;
+    }
 
     @Override
     public void onBeforeInsert(ImapMailBox entity, EntityManager entityManager) {

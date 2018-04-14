@@ -1,9 +1,10 @@
 package com.haulmont.addon.imap.core;
 
 import com.haulmont.addon.imap.config.ImapConfig;
+import com.haulmont.addon.imap.core.ext.ThreadExtension;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.exception.ImapException;
-import com.haulmont.addon.imap.security.Encryptor;
+import com.haulmont.addon.imap.crypto.Encryptor;
 import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
@@ -44,8 +45,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-@SuppressWarnings({"SpringJavaInjectionPointsAutowiringInspection", "SpringJavaAutowiredFieldsWarningInspection", "CdiInjectionPointsInspection"})
-@Component
+@Component("imapcomponent_ImapHelper")
 public class ImapHelper {
 
     private final static Logger log = LoggerFactory.getLogger(ImapHelper.class);
@@ -57,26 +57,25 @@ public class ImapHelper {
 
     private final ConcurrentMap<MailboxKey, Object> mailBoxLocks = new ConcurrentHashMap<>();
     private final Map<MailboxKey, Pair<ConnectionsParams, IMAPStore>> stores = new HashMap<>();
-    private final ConcurrentMap<FolderKey, Object> folderLocks = new ConcurrentHashMap<>();
-    private final Map<FolderKey, IMAPFolder> folders = new HashMap<>();
 
+    private final FileLoader fileLoader;
+
+    private final ImapConfig config;
+
+    private final Encryptor encryptor;
+
+    private final Persistence persistence;
+
+    @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    private FileLoader fileLoader;
-
-    @Inject
-    private ImapConfig config;
-
-    @Inject
-    private Encryptor encryptor;
-
-    @Inject
-    private Persistence persistence;
-
-    public IMAPStore getStore(ImapMailBox box) throws MessagingException {
-        return getStore(box, false);
+    public ImapHelper(FileLoader fileLoader, ImapConfig config, Encryptor encryptor, Persistence persistence) {
+        this.fileLoader = fileLoader;
+        this.config = config;
+        this.encryptor = encryptor;
+        this.persistence = persistence;
     }
 
-    public IMAPStore getStore(ImapMailBox box, boolean forceConnect) throws MessagingException {
+    public IMAPStore getStore(ImapMailBox box) throws MessagingException {
         log.debug("Accessing imap store for {}", box);
 
         MailboxKey key = mailboxKey(box);
@@ -92,15 +91,28 @@ public class ImapHelper {
 
             IMAPStore store = stores.get(key).getSecond();
 
-            if (forceConnect) { //todo: try to prevent excessive connection using some status flags of IMAP
-                store.close();
-            }
+            // folderListeners added to store works for renamed folders only if such folder is listened
+            // it can be resource wasting to have all folders listen to event, leave as force flag for now
             if (!store.isConnected()) {
                 store.connect();
             }
             return store;
         }
+    }
 
+    public IMAPStore getExclusiveStore(ImapMailBox mailBox) throws MessagingException {
+        return makeStore(mailBox, getPersistedPassword(mailBox), true);
+    }
+
+    public IMAPFolder getFolder(ImapFolder cubaFolder) throws MessagingException {
+        ImapMailBox mailBox = cubaFolder.getMailBox();
+
+        IMAPStore store = makeStore(mailBox, getPersistedPassword(mailBox), false);
+
+        IMAPFolder folder = (IMAPFolder) store.getFolder(cubaFolder.getName());
+        folder.open(Folder.READ_WRITE);
+
+        return folder;
     }
 
     private boolean connectionParamsDiffer(ConnectionsParams oldParams, ImapMailBox newConfig, String persistedPassword) {
@@ -134,23 +146,32 @@ public class ImapHelper {
     }
 
     private void buildAndCacheStore(MailboxKey key, ImapMailBox box, String persistedPassword) throws MessagingException {
-        String protocol = box.getSecureMode() == ImapSecureMode.TLS ? "imaps" : "imap";
+        IMAPStore store = makeStore(box, persistedPassword, true);
+
+        ConnectionsParams connectionsParams = new ConnectionsParams(box, enryptedPassword(box, persistedPassword));
+        stores.put(key, new Pair<>(connectionsParams, store));
+    }
+
+    private IMAPStore makeStore(ImapMailBox mailBox, String persistedPassword, boolean useTimeout) throws MessagingException {
+        String protocol = mailBox.getSecureMode() == ImapSecureMode.TLS ? "imaps" : "imap";
 
         Properties props = new Properties(System.getProperties());
         props.setProperty("mail.store.protocol", protocol);
-        props.setProperty("mail." + protocol + ".connectiontimeout", "5000");
-        props.setProperty("mail." + protocol + ".timeout", "5000");
-        if (box.getSecureMode() == ImapSecureMode.STARTTLS) {
+        if (useTimeout) {
+            props.setProperty("mail." + protocol + ".connectiontimeout", "5000");
+            props.setProperty("mail." + protocol + ".timeout", "5000");
+        }
+        if (mailBox.getSecureMode() == ImapSecureMode.STARTTLS) {
             props.setProperty("mail.imap.starttls.enable", "true");
         }
 //        props.setProperty("mail.debug", "true");
 
-        if (box.getSecureMode() != null) {
-            MailSSLSocketFactory socketFactory = getMailSSLSocketFactory(box);
+        if (mailBox.getSecureMode() != null) {
+            MailSSLSocketFactory socketFactory = getMailSSLSocketFactory(mailBox);
             props.put("mail." + protocol + ".ssl.socketFactory", socketFactory);
         }
 
-        ImapProxy proxy = box.getProxy();
+        ImapProxy proxy = mailBox.getProxy();
         if (proxy != null) {
             String proxyType = Boolean.TRUE.equals(proxy.getWebProxy()) ? "proxy" : "socks";
             props.put("mail." + protocol + "." + proxyType + ".host", proxy.getHost());
@@ -160,11 +181,10 @@ public class ImapHelper {
         Session session = Session.getInstance(props, null);
 
         IMAPStore store = (IMAPStore) session.getStore(protocol);
-        String passwordToConnect = decryptedPassword(box, persistedPassword);
-        store.connect(box.getHost(), box.getPort(), box.getAuthentication().getUsername(), passwordToConnect);
+        String passwordToConnect = decryptedPassword(mailBox, persistedPassword);
+        store.connect(mailBox.getHost(), mailBox.getPort(), mailBox.getAuthentication().getUsername(), passwordToConnect);
 
-        ConnectionsParams connectionsParams = new ConnectionsParams(box, enryptedPassword(box, persistedPassword));
-        stores.put(key, new Pair<>(connectionsParams, store));
+        return store;
     }
 
     private String decryptedPassword(ImapMailBox mailBox, String persistedPassword) {
@@ -191,39 +211,30 @@ public class ImapHelper {
         }
     }
 
-    public <T> T doWithFolder(ImapMailBox mailBox, String folderFullName, FolderTask<T> task) {
+    public <T> T doWithFolder(ImapMailBox mailBox, String folderFullName, Task<IMAPFolder, T> task) {
         log.debug("perform '{}' for {} of mailbox {}", task.getDescription(), folderFullName, mailBox);
         FolderKey key = new FolderKey(mailboxKey(mailBox), folderFullName);
-        folderLocks.putIfAbsent(key, new Object());
-        Object lock = folderLocks.get(key);
-        IMAPFolder folder = null;
         try {
             Store store = getStore(mailBox);
-            //noinspection SynchronizationOnLocalVariableOrMethodParameter
-            synchronized (lock) {
-                log.trace("[{}->{}]lock acquired for '{}'", mailBox, folderFullName, task.getDescription());
-                folders.putIfAbsent(key, (IMAPFolder) store.getFolder(folderFullName));
-                 folder = folders.get(key);
-                if (!folder.isOpen()) {
-                    folder.open(Folder.READ_WRITE);
-                }
-                T result = task.getAction().apply(folder);
-                return task.isHasResult() ? result : null;
+            log.trace("[{}->{}]lock acquired for '{}'", mailBox, folderFullName, task.getDescription());
+            IMAPFolder folder = (IMAPFolder) store.getFolder(folderFullName);
+            if (!folder.isOpen()) {
+                folder.open(Folder.READ_WRITE);
             }
+            T result = task.getAction().apply(folder);
+            return task.isHasResult() ? result : null;
         } catch (MessagingException e) {
             throw new ImapException(
                     String.format("error performing task '%s' for folder with key '%s'", task.getDescription(), key),
                     e
             );
-        } finally {
-            if (task.isCloseFolder() && folder != null && folder.isOpen()) {
-                try {
-                    folder.close(false);
-                } catch (MessagingException e) {
-                    log.warn("Can't close folder {} for mailBox {}:{}", folderFullName, mailBox.getHost(), mailBox.getPort());
-                }
-            }
         }
+    }
+
+    public Flags cubaFlags(ImapMailBox mailBox) {
+        Flags cubaFlags = new Flags();
+        cubaFlags.add(mailBox.getCubaFlag());
+        return cubaFlags;
     }
 
     private MailboxKey mailboxKey(ImapMailBox mailBox) {
@@ -235,6 +246,21 @@ public class ImapHelper {
 
         Message[] messages = folder.search(searchTerm);
         return fetch(folder, mailBox, messages);
+    }
+
+    public List<IMAPMessage> searchMessageIds(IMAPFolder folder, SearchTerm searchTerm) throws MessagingException {
+        log.debug("search messages in {} with {}", folder.getFullName(), searchTerm) ;
+
+        Message[] messages = folder.search(searchTerm);
+        FetchProfile fetchProfile = new FetchProfile();
+        fetchProfile.add(MESSAGE_ID_HEADER);
+        return fetch(folder, fetchProfile, messages);
+    }
+
+    public List<IMAPMessage> fetchUids(IMAPFolder folder, Message[] messages) throws MessagingException {
+        FetchProfile fetchProfile = new FetchProfile();
+        fetchProfile.add(UIDFolder.FetchProfileItem.UID);
+        return fetch(folder, fetchProfile, messages);
     }
 
     public List<IMAPMessage> getAllByUids(IMAPFolder folder, long[] uids, ImapMailBox mailBox) throws MessagingException {
@@ -275,8 +301,12 @@ public class ImapHelper {
     }
 
     private List<IMAPMessage> fetch(IMAPFolder folder, ImapMailBox mailBox, Message[] messages) throws MessagingException {
+        return fetch(folder, headerProfile(mailBox), messages);
+    }
+
+    private List<IMAPMessage> fetch(IMAPFolder folder, FetchProfile fetchProfile, Message[] messages) throws MessagingException {
         Message[] nonNullMessages = Arrays.stream(messages).filter(Objects::nonNull).toArray(Message[]::new);
-        folder.fetch(nonNullMessages, headerProfile(mailBox));
+        folder.fetch(nonNullMessages, fetchProfile);
         List<IMAPMessage> result = new ArrayList<>(nonNullMessages.length);
         for (Message message : nonNullMessages) {
             result.add((IMAPMessage) message);

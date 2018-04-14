@@ -3,40 +3,13 @@ package com.haulmont.addon.imap.core;
 import java.util.Objects;
 
 public class MailboxKey {
-    private String host;
-    private int port;
-    private String userName;
+    private final String host;
+    private final int port;
+    private final String userName;
 
-    public MailboxKey() {
-    }
-
-    public MailboxKey(String host, int port, String userName) {
+    MailboxKey(String host, int port, String userName) {
         this.host = host;
         this.port = port;
-        this.port = port;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
         this.userName = userName;
     }
 

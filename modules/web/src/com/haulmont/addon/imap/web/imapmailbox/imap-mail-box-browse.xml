@@ -34,7 +34,6 @@
                 <column id="host"/>
                 <column id="port"/>
                 <column id="secureMode"/>
-                <column id="pollInterval"/>
             </columns>
             <rows datasource="mailBoxesDs"/>
             <rowsCount/>

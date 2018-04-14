@@ -20,7 +20,7 @@ public class ImapEventHandler extends StandardEntity {
     protected ImapFolderEvent event;
 
     @Column(name = "HANDLING_ORDER", nullable = false)
-    protected Integer handlingOrder;
+    private Integer handlingOrder;
 
     @Column(name = "BEAN_NAME", nullable = false)
     @NotNull
@@ -37,7 +37,6 @@ public class ImapEventHandler extends StandardEntity {
     public Integer getHandlingOrder() {
         return handlingOrder;
     }
-
 
     public ImapFolderEvent getEvent() {
         return event;

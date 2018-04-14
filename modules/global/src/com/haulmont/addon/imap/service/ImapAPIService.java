@@ -10,6 +10,7 @@ import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import java.util.Collection;
 import java.util.UUID;
 
+@SuppressWarnings("unused")
 public interface ImapAPIService {
     String NAME = "imapcomponent_ImapAPIService";
 

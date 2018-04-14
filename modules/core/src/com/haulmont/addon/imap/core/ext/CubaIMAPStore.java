@@ -1,4 +1,4 @@
-package com.haulmont.addon.imap.core;
+package com.haulmont.addon.imap.core.ext;
 
 import com.sun.mail.iap.ProtocolException;
 import com.sun.mail.imap.IMAPStore;

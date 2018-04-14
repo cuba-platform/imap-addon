@@ -38,16 +38,19 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private FieldGroup mainParams;
 
     @Inject
-    private FieldGroup pollingParams;
+    private FieldGroup advancedParams;
 
     @Inject
     private FieldGroup proxyParams;
 
     @Inject
-    private Button selectTrashFolderButton;
+    private TextField trashFolderTextField;
 
     @Inject
     private CheckBox useTrashFolderChkBox;
+
+    @Inject
+    private Button selectTrashFolderButton;
 
     @Inject
     private CheckBox useProxyChkBox;
@@ -292,14 +295,13 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     @Override
     protected void initNewItem(ImapMailBox item) {
         item.setAuthenticationMethod(ImapAuthenticationMethod.SIMPLE);
-        item.setPollInterval(10 * 60);
         item.setAuthentication(metadata.create(ImapSimpleAuthentication.class));
     }
 
     @Override
     protected void postInit() {
         setCertificateVisibility();
-        setTrashFolderVisibility();
+        setTrashFolderControls();
         setProxyVisibility();
         ImapMailBox mailBox = getItem();
         if (!PersistenceHelper.isNew(mailBox)) {
@@ -334,19 +336,19 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         });
     }
 
-    private void setTrashFolderVisibility() {
-        FieldGroup.FieldConfig trashFolderNameField = this.pollingParams.getFieldNN("trashFolderNameField");
+    private void setTrashFolderControls() {
+        FieldGroup.FieldConfig trashFolderNameField = this.advancedParams.getFieldNN("trashFolderNameField");
         boolean visible = getItem().getTrashFolderName() != null;
         log.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
+        trashFolderTextField.setRequired(visible);
         trashFolderNameField.setVisible(visible);
-        selectTrashFolderButton.setVisible(visible);
         useTrashFolderChkBox.setValue(visible);
 
         useTrashFolderChkBox.addValueChangeListener(e -> {
             boolean newVisible = Boolean.TRUE.equals(e.getValue());
             log.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
+            trashFolderTextField.setRequired(newVisible);
             trashFolderNameField.setVisible(newVisible);
-            selectTrashFolderButton.setVisible(newVisible);
 
             if (!newVisible) {
                 getItem().setTrashFolderName(null);

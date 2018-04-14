@@ -27,19 +27,19 @@ public class ImapMessageAttachment extends StandardEntity {
     @Temporal(TemporalType.TIME)
     @NotNull
     @Column(name = "CREATED_TS", nullable = false)
-    protected Date createdTs;
+    private Date createdTs;
 
     @NotNull
     @Column(name = "ORDER_NUMBER", nullable = false)
-    protected Integer orderNumber;
+    private Integer orderNumber;
 
     @NotNull
     @Column(name = "NAME", nullable = false)
-    protected String name;
+    private String name;
 
     @NotNull
     @Column(name = "FILE_SIZE", nullable = false)
-    protected Long fileSize;
+    private Long fileSize;
 
     public void setImapMessage(ImapMessage imapMessage) {
         this.imapMessage = imapMessage;

@@ -1,4 +1,4 @@
-package com.haulmont.addon.imap.security;
+package com.haulmont.addon.imap.crypto;
 
 import com.haulmont.addon.imap.config.ImapEncryptionConfig;
 import com.haulmont.addon.imap.entity.ImapMailBox;
@@ -19,7 +19,6 @@ import java.security.spec.AlgorithmParameterSpec;
 import java.util.Base64;
 
 @Component(DefaultEncryptor.NAME)
-@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection", "SpringJavaInjectionPointsAutowiringInspection"})
 public class DefaultEncryptor implements Encryptor {
     static final String NAME = "imapcomponent_DefaultEncryptor";
 
@@ -27,12 +26,17 @@ public class DefaultEncryptor implements Encryptor {
 
     private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
 
-    @Inject
-    private ImapEncryptionConfig imapConfig;
+    private final ImapEncryptionConfig imapConfig;
 
     private SecretKey secretKey;
 
     private byte[] iv;
+
+    @SuppressWarnings("CdiInjectionPointsInspection")
+    @Inject
+    public DefaultEncryptor(ImapEncryptionConfig imapConfig) {
+        this.imapConfig = imapConfig;
+    }
 
     @PostConstruct
     void initKey() {

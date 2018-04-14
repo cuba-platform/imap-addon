@@ -15,6 +15,7 @@ public class ImapSimpleAuthentication extends ImapAuthentication {
     @Column(name = "PASSWORD", nullable = false)
     protected String password;
 
+    @SuppressWarnings("unused")
     public void setUsername(String username) {
         this.username = username;
     }

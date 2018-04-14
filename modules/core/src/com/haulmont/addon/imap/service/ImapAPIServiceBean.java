@@ -18,16 +18,19 @@ import javax.mail.*;
 import java.util.*;
 
 @Service(ImapAPIService.NAME)
-@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapAPIServiceBean implements ImapAPIService {
 
     private final static Logger log = LoggerFactory.getLogger(ImapAPIServiceBean.class);
 
-    @Inject
-    private ImapHelper imapHelper;
+    private final ImapHelper imapHelper;
+
+    private final ImapAPI imapAPI;
 
     @Inject
-    private ImapAPI imapAPI;
+    public ImapAPIServiceBean(ImapHelper imapHelper, ImapAPI imapAPI) {
+        this.imapHelper = imapHelper;
+        this.imapAPI = imapAPI;
+    }
 
     @Override
     public void testConnection(ImapMailBox box) throws ImapException {

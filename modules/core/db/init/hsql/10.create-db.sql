@@ -38,11 +38,8 @@ create table IMAPCOMPONENT_IMAP_MAIL_BOX (
     AUTHENTICATION_METHOD varchar(50) not null,
     AUTHENTICATION_ID varchar(36),
     PROXY_ID varchar(36),
-    POLL_INTERVAL integer not null,
-    PROCESSING_TIMEOUT integer,
     CUBA_FLAG varchar(255),
     TRASH_FOLDER_NAME varchar(255),
-    UPDATE_SLICE_SIZE integer not null,
     --
     primary key (ID)
 )^
@@ -79,6 +76,7 @@ create table IMAPCOMPONENT_IMAP_MESSAGE (
     FLAGS longvarchar,
     IS_ATL boolean not null,
     MSG_UID bigint not null,
+    MSG_NUM integer not null,
     THREAD_ID bigint,
     REFERENCE_ID varchar(255),
     MESSAGE_ID varchar(255),

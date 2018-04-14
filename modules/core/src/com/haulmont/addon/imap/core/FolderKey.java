@@ -4,31 +4,12 @@ import java.util.Objects;
 
 public class FolderKey {
 
-    private MailboxKey mailboxKey;
+    private final MailboxKey mailboxKey;
 
-    private String folderFullName;
+    private final String folderFullName;
 
-    public FolderKey() {
-    }
-
-    public FolderKey(MailboxKey mailboxKey, String folderFullName) {
+    FolderKey(MailboxKey mailboxKey, String folderFullName) {
         this.mailboxKey = mailboxKey;
-        this.folderFullName = folderFullName;
-    }
-
-    public MailboxKey getMailboxKey() {
-        return mailboxKey;
-    }
-
-    public void setMailboxKey(MailboxKey mailboxKey) {
-        this.mailboxKey = mailboxKey;
-    }
-
-    public String getFolderFullName() {
-        return folderFullName;
-    }
-
-    public void setFolderFullName(String folderFullName) {
         this.folderFullName = folderFullName;
     }
 

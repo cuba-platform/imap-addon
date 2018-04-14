@@ -15,7 +15,7 @@ import com.haulmont.cuba.core.entity.FileDescriptor;
 import javax.validation.constraints.NotNull;
 import com.haulmont.cuba.core.entity.annotation.Listeners;
 
-@Listeners("imapcomponent_MailboxPasswordListener")
+@Listeners({"imapcomponent_MailboxPasswordListener", "imapcomponent_ImapMailboxFlagListener"})
 @NamePattern("%s:%s|host,port")
 @Table(name = "IMAPCOMPONENT_IMAP_MAIL_BOX")
 @Entity(name = "imapcomponent$ImapMailBox")
@@ -42,7 +42,7 @@ public class ImapMailBox extends StandardEntity {
     protected FileDescriptor clientCertificate;
 
     @Column(name = "AUTHENTICATION_METHOD", nullable = false)
-    protected String authenticationMethod;
+    private String authenticationMethod;
 
     @Composition
     @OnDelete(DeletePolicy.CASCADE)
@@ -55,21 +55,11 @@ public class ImapMailBox extends StandardEntity {
     @JoinColumn(name = "PROXY_ID")
     protected ImapProxy proxy;
 
-    @Column(name = "POLL_INTERVAL", nullable = false)
-    protected Integer pollInterval;
-
-    @Column(name = "PROCESSING_TIMEOUT")
-    protected Integer processingTimeout = 30;
-
     @Column(name = "CUBA_FLAG")
     protected String cubaFlag = "cuba-imap";
 
     @Column(name = "TRASH_FOLDER_NAME")
     protected String trashFolderName;
-
-    @NotNull
-    @Column(name = "UPDATE_SLICE_SIZE", nullable = false)
-    protected Integer updateSliceSize = 1000;
 
     @OnDelete(DeletePolicy.CASCADE)
     @Composition
@@ -105,22 +95,6 @@ public class ImapMailBox extends StandardEntity {
 
     public void setAuthentication(ImapSimpleAuthentication authentication) {
         this.authentication = authentication;
-    }
-
-    public void setUpdateSliceSize(Integer updateSliceSize) {
-        this.updateSliceSize = updateSliceSize;
-    }
-
-    public Integer getUpdateSliceSize() {
-        return updateSliceSize;
-    }
-
-    public void setProcessingTimeout(Integer processingTimeout) {
-        this.processingTimeout = processingTimeout;
-    }
-
-    public Integer getProcessingTimeout() {
-        return processingTimeout;
     }
 
     public void setCubaFlag(String cubaFlag) {
@@ -185,14 +159,6 @@ public class ImapMailBox extends StandardEntity {
 
     public String getHost() {
         return host;
-    }
-
-    public void setPollInterval(Integer pollInterval) {
-        this.pollInterval = pollInterval;
-    }
-
-    public Integer getPollInterval() {
-        return pollInterval;
     }
 
 }
