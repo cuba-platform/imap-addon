@@ -66,6 +66,18 @@ public class ImapMailBox extends StandardEntity {
     @OneToMany(mappedBy = "mailBox", cascade = CascadeType.ALL, orphanRemoval = true)
     protected List<ImapFolder> folders;
 
+    @Column(name = "EVENTS_GENERATOR_CLASS")
+    protected String eventsGeneratorClass;
+
+    public void setEventsGeneratorClass(String eventsGeneratorClass) {
+        this.eventsGeneratorClass = eventsGeneratorClass;
+    }
+
+    public String getEventsGeneratorClass() {
+        return eventsGeneratorClass;
+    }
+
+
     public void setProxy(ImapProxy proxy) {
         this.proxy = proxy;
     }

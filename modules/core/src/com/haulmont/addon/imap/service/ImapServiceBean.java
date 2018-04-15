@@ -1,20 +1,20 @@
 package com.haulmont.addon.imap.service;
 
 import com.haulmont.addon.imap.events.BaseImapEvent;
+import com.haulmont.addon.imap.sync.events.ImapEventsGenerator;
+import com.haulmont.addon.imap.sync.events.standard.ImapStandardEventsGenerator;
 import com.haulmont.cuba.core.app.AbstractBeansMetadata;
 import com.haulmont.cuba.core.app.scheduled.MethodInfo;
 import com.haulmont.cuba.core.app.scheduled.MethodParameterInfo;
 import com.haulmont.cuba.core.global.AppBeans;
+import com.haulmont.cuba.core.sys.AppContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service(ImapService.NAME)
@@ -60,5 +60,15 @@ public class ImapServiceBean implements ImapService {
                         Map.Entry::getKey,
                         e -> e.getValue().stream().map(MethodInfo::getName).collect(Collectors.toList())
                 ));
+    }
+
+    @Override
+    public Map<String, String> getAvailableEventsGenerators() {
+        Map<String, ImapEventsGenerator> eventsGenerators = AppContext.getApplicationContext()
+                .getBeansOfType(ImapEventsGenerator.class);
+        return eventsGenerators.entrySet().stream()
+                .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(), e.getValue().getClass().getName()))
+                .filter(e -> !e.getValue().equals(ImapStandardEventsGenerator.class.getName()))
+                .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
     }
 }

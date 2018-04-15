@@ -2,9 +2,7 @@ package com.haulmont.addon.imap.sync.listener;
 
 import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.entity.ImapFolder;
-import com.haulmont.addon.imap.sync.events.ImapMissedMessagesEventsPublisher;
-import com.haulmont.addon.imap.sync.events.ImapNewMessagesEventsPublisher;
-import com.haulmont.addon.imap.sync.events.ImapUpdateMessagesEventsPublisher;
+import com.haulmont.addon.imap.sync.events.ImapEvents;
 import com.haulmont.addon.imap.exception.ImapException;
 import com.sun.mail.imap.IMAPFolder;
 import org.slf4j.Logger;
@@ -36,11 +34,7 @@ public class ImapFolderListener {
 
     private final ImapHelper imapHelper;
 
-    private final ImapNewMessagesEventsPublisher newMessagesEventsPublisher;
-
-    private final ImapMissedMessagesEventsPublisher missedMessagesEventsPublisher;
-
-    private final ImapUpdateMessagesEventsPublisher updateMessagesEventsPublisher;
+    private final ImapEvents imapEvents;
 
     private ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final AtomicInteger threadNumber = new AtomicInteger(1);
@@ -58,14 +52,10 @@ public class ImapFolderListener {
 
     @Inject
     public ImapFolderListener(ImapHelper imapHelper,
-                              ImapNewMessagesEventsPublisher newMessagesEventsPublisher,
-                              ImapMissedMessagesEventsPublisher missedMessagesEventsPublisher,
-                              ImapUpdateMessagesEventsPublisher updateMessagesEventsPublisher) {
+                              ImapEvents imapEvents) {
 
         this.imapHelper = imapHelper;
-        this.newMessagesEventsPublisher = newMessagesEventsPublisher;
-        this.missedMessagesEventsPublisher = missedMessagesEventsPublisher;
-        this.updateMessagesEventsPublisher = updateMessagesEventsPublisher;
+        this.imapEvents = imapEvents;
     }
 
     public void unsubscribe(@Nonnull ImapFolder folder) {
@@ -122,7 +112,7 @@ public class ImapFolderListener {
                 if (e.getMessages().length > 0) {
                     IMAPFolder imapFolder = (IMAPFolder) e.getSource();
                     imapFolder.isOpen();
-                    executor.submit(() -> newMessagesEventsPublisher.handle(folder, imapFolder));
+                    executor.submit(() -> imapEvents.handleNewMessages(folder, e.getMessages()));
                 }
 
             }
@@ -132,7 +122,7 @@ public class ImapFolderListener {
                 if (e.getMessages().length > 0) {
                     IMAPFolder imapFolder = (IMAPFolder) e.getSource();
                     imapFolder.isOpen();
-                    executor.submit(() -> missedMessagesEventsPublisher.handle(folder, imapFolder, e.getMessages()));
+                    executor.submit(() -> imapEvents.handleMissedMessages(folder, e.getMessages()));
                 }
             }
         };
@@ -149,10 +139,8 @@ public class ImapFolderListener {
         FolderObjects(ImapFolder cubaFolder) {
             this.cubaFolder = cubaFolder;
             this.countListener = makeListener(cubaFolder);
-            this.messageChangedListener = e -> {
-                IMAPFolder imapFolder = (IMAPFolder) e.getMessage().getFolder();
-                updateMessagesEventsPublisher.handle(this.cubaFolder, imapFolder, new Message[] { e.getMessage() });
-            };
+            this.messageChangedListener = e ->
+                    imapEvents.handleChangedMessages(this.cubaFolder, new Message[] { e.getMessage() });
         }
 
         void listen() {

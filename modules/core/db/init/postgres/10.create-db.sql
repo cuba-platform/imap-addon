@@ -40,6 +40,7 @@ create table IMAPCOMPONENT_IMAP_MAIL_BOX (
     PROXY_ID uuid,
     CUBA_FLAG varchar(255),
     TRASH_FOLDER_NAME varchar(255),
+    EVENTS_GENERATOR_CLASS varchar(255),
     --
     primary key (ID)
 )^

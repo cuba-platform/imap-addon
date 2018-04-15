@@ -76,6 +76,15 @@
                                                 invoke="selectTrashFolder"/>
                                     </hbox>
                                 </field>
+                                <field id="useCustomEventsGeneratorChkBoxField">
+                                    <checkBox id="useCustomEventsGeneratorChkBox"
+                                              caption="msg://useCustomEventsGeneratorCaption"/>
+                                </field>
+                                <field id="customEventsGeneratorClassField" property="eventsGeneratorClass">
+                                    <lookupField id="customEventsGeneratorClassLookup"
+                                                 datasource="mailBoxDs"
+                                                 property="eventsGeneratorClass"/>
+                                </field>
                                 <field id="useProxyChkBoxField">
                                     <checkBox id="useProxyChkBox"
                                               caption="msg://useProxyCaption"/>

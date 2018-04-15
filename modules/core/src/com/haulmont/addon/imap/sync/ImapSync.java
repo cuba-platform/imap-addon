@@ -3,9 +3,7 @@ package com.haulmont.addon.imap.sync;
 import com.haulmont.addon.imap.api.ImapAPI;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.*;
-import com.haulmont.addon.imap.sync.events.ImapMissedMessagesEventsPublisher;
-import com.haulmont.addon.imap.sync.events.ImapNewMessagesEventsPublisher;
-import com.haulmont.addon.imap.sync.events.ImapUpdateMessagesEventsPublisher;
+import com.haulmont.addon.imap.sync.events.ImapEvents;
 import com.haulmont.addon.imap.sync.listener.ImapFolderEvent;
 import com.haulmont.addon.imap.sync.listener.ImapFolderListener;
 import com.haulmont.cuba.core.EntityManager;
@@ -33,17 +31,9 @@ public class ImapSync implements AppContext.Listener, Ordered {
     private final static Logger log = LoggerFactory.getLogger(ImapSync.class);
 
     private final Persistence persistence;
-
-    private final ImapNewMessagesEventsPublisher newMessagesPublisher;
-
-    private final ImapUpdateMessagesEventsPublisher updateMessagesPublisher;
-
-    private final ImapMissedMessagesEventsPublisher missedMessagesEventsPublisher;
-
+    private final ImapEvents imapEvents;
     private final Authentication authentication;
-
     private final ImapAPI imapAPI;
-
     private final ImapFolderListener imapFolderListener;
 
     private ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
@@ -72,17 +62,13 @@ public class ImapSync implements AppContext.Listener, Ordered {
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public ImapSync(Persistence persistence,
-                    ImapNewMessagesEventsPublisher newMessagesPublisher,
-                    ImapUpdateMessagesEventsPublisher updateMessagesPublisher,
-                    ImapMissedMessagesEventsPublisher missedMessagesEventsPublisher,
+                    ImapEvents imapEvents,
                     Authentication authentication,
                     ImapAPI imapAPI,
                     ImapFolderListener imapFolderListener) {
 
         this.persistence = persistence;
-        this.newMessagesPublisher = newMessagesPublisher;
-        this.updateMessagesPublisher = updateMessagesPublisher;
-        this.missedMessagesEventsPublisher = missedMessagesEventsPublisher;
+        this.imapEvents = imapEvents;
         this.authentication = authentication;
         this.imapAPI = imapAPI;
         this.imapFolderListener = imapFolderListener;
@@ -177,6 +163,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
             ImapFolder cubaFolder = getFolder(folderId);
             if (cubaFolder != null) {
                 fullSyncTask(cubaFolder, type);
+                imapFolderListener.subscribe(cubaFolder);
             }
             ImapFolderSyncAction nextAction = new ImapFolderSyncAction(folderId, type);
             fullSyncRefreshers.remove(nextAction);
@@ -259,19 +246,19 @@ public class ImapSync implements AppContext.Listener, Ordered {
 
                 runnable = () -> {
                     log.info("Search new messages for {}", cubaFolder);
-                    newMessagesPublisher.handle(cubaFolder);
+                    imapEvents.handleNewMessages(cubaFolder);
                 };
                 break;
             case MISSED:
                 runnable = () -> {
                     log.info("Track deleted/moved messages for {}", cubaFolder);
-                    missedMessagesEventsPublisher.handle(cubaFolder);
+                    imapEvents.handleMissedMessages(cubaFolder);
                 };
                 break;
             case CHANGED:
                 runnable = () -> {
                     log.info("Update messages for {}", cubaFolder);
-                    updateMessagesPublisher.handle(cubaFolder);
+                    imapEvents.handleChangedMessages(cubaFolder);
                 };
         }
 

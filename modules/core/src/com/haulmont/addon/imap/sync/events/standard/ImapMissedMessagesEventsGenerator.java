@@ -1,6 +1,8 @@
-package com.haulmont.addon.imap.sync.events;
+package com.haulmont.addon.imap.sync.events.standard;
 
 import com.haulmont.addon.imap.api.ImapAPI;
+import com.haulmont.addon.imap.config.ImapConfig;
+import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.core.Task;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.ImapFolder;
@@ -10,12 +12,12 @@ import com.haulmont.addon.imap.events.BaseImapEvent;
 import com.haulmont.addon.imap.events.EmailDeletedImapEvent;
 import com.haulmont.addon.imap.events.EmailMovedImapEvent;
 import com.haulmont.addon.imap.exception.ImapException;
-import com.haulmont.addon.imap.sync.ImapFolderSyncAction;
-import com.haulmont.addon.imap.sync.ImapFolderSyncEvent;
 import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.cuba.core.EntityManager;
+import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Query;
 import com.haulmont.cuba.core.Transaction;
+import com.haulmont.cuba.security.app.Authentication;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import org.slf4j.Logger;
@@ -35,37 +37,59 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Component("imapcomponent_ImapMissedMessagesEventsPublisher")
-public class ImapMissedMessagesEventsPublisher extends ImapEventsPublisher {
+@Component("imapcomponent_ImapMissedMessagesEventsGenerator")
+public class ImapMissedMessagesEventsGenerator {
 
-    private final static Logger log = LoggerFactory.getLogger(ImapMissedMessagesEventsPublisher.class);
+    private final static Logger log = LoggerFactory.getLogger(ImapMissedMessagesEventsGenerator.class);
+
+    private static final String TASK_DESCRIPTION = "moved and deleted messages";
 
     private final ImapAPI imapAPI;
+    private final ImapHelper imapHelper;
+    private final Authentication authentication;
+    private final Persistence persistence;
+    private final ImapConfig imapConfig;
 
+    @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapMissedMessagesEventsPublisher(ImapAPI imapAPI) {
+    public ImapMissedMessagesEventsGenerator(ImapAPI imapAPI,
+                                             ImapHelper imapHelper,
+                                             Authentication authentication,
+                                             Persistence persistence,
+                                             ImapConfig imapConfig) {
         this.imapAPI = imapAPI;
+        this.imapHelper = imapHelper;
+        this.authentication = authentication;
+        this.persistence = persistence;
+        this.imapConfig = imapConfig;
     }
 
-    public void handle(@Nonnull ImapFolder cubaFolder) {
-        events.publish(new ImapFolderSyncEvent(
-                new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.MISSED))
-        );
+    Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder) {
         Collection<IMAPFolder> otherFolders = getOtherFolders(cubaFolder);
-        imapHelper.doWithFolder(cubaFolder.getMailBox(), cubaFolder.getName(), new Task<>(
-                taskDescription(),
-                false,
+        return imapHelper.doWithFolder(cubaFolder.getMailBox(), cubaFolder.getName(), new Task<>(
+                TASK_DESCRIPTION,
+                true,
                 imapFolder -> {
-                    doHandle(cubaFolder, imapFolder, otherFolders);
-                    return null;
+                    int i = 0;
+                    List<ImapMessage> batchMessages;
+                    Collection<BaseImapEvent> imapEvents = new ArrayList<>();
+                    //todo: process batches in parallel ?
+                    do {
+                        batchMessages = getMessages(cubaFolder, i++);
+
+                        imapEvents.addAll(generate(cubaFolder, batchMessages, otherFolders, imapFolder));
+                    } while (batchMessages.size() == imapConfig.getUpdateBatchSize());
+
+                    return imapEvents;
                 }
         ));
     }
 
-    public void handle(@Nonnull ImapFolder cubaFolder, IMAPFolder imapFolder, Message[] deletedMessages) {
-        events.publish(new ImapFolderSyncEvent(
-                new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.MISSED))
-        );
+    Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder,
+                                       @Nonnull Collection<IMAPMessage> missedMessages) {
+        if (missedMessages.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         Collection<IMAPFolder> otherFolders = getOtherFolders(cubaFolder);
 
@@ -81,7 +105,7 @@ public class ImapMissedMessagesEventsPublisher extends ImapEventsPublisher {
             )
                     .setParameter("mailFolderId", cubaFolder)
                     .setParameter("msgNums",
-                            Arrays.stream(deletedMessages)
+                            missedMessages.stream()
                                     .map(Message::getMessageNumber)
                                     .collect(Collectors.toList())
                     )
@@ -90,82 +114,15 @@ public class ImapMissedMessagesEventsPublisher extends ImapEventsPublisher {
         } finally {
             authentication.end();
         }
-        Collection<BaseImapEvent> imapEvents = makeEvents(cubaFolder, messages, otherFolders, imapFolder);
-        fireEvents(cubaFolder, imapEvents);
+        return generate(
+                cubaFolder, messages, otherFolders, (IMAPFolder) missedMessages.iterator().next().getFolder()
+        );
     }
 
-    private void doHandle(ImapFolder cubaFolder, IMAPFolder imapFolder, Collection<IMAPFolder> otherFolders) {
-        int i = 0;
-        List<ImapMessage> batchMessages;
-        Collection<BaseImapEvent> imapEvents = new ArrayList<>();
-        //todo: process batches in parallel ?
-        do {
-            batchMessages = getMessages(cubaFolder, i++);
-
-            imapEvents.addAll(makeEvents(cubaFolder, batchMessages, otherFolders, imapFolder));
-        } while (batchMessages.size() == imapConfig.getUpdateBatchSize());
-
-        fireEvents(cubaFolder, imapEvents);
-    }
-
-    private Collection<IMAPFolder> getOtherFolders(ImapFolder cubaFolder) {
-        ImapMailBox mailBox = getMailbox(cubaFolder.getMailBox().getId());
-        List<String> otherFoldersNames = mailBox.getProcessableFolders().stream()
-                .filter(f -> !f.getName().equals(cubaFolder.getName()))
-                .map(ImapFolder::getName)
-                .collect(Collectors.toList());
-        if (mailBox.getTrashFolderName() != null) {
-            otherFoldersNames.add(mailBox.getTrashFolderName());
-        }
-        String[] folderNames = otherFoldersNames.toArray(new String[0]);
-        Collection<IMAPFolder> otherFolders = imapAPI.fetchFolders(mailBox, folderNames).stream()
-                .filter(f -> Boolean.TRUE.equals(f.getCanHoldMessages()))
-                .map(ImapFolderDto::getImapFolder)
-                .collect(Collectors.toList());
-        if (log.isDebugEnabled()) {
-            log.debug("Missed messages task will use folder {} to trigger MOVE event",
-                    otherFolders.stream().map(IMAPFolder::getFullName).collect(Collectors.toList())
-            );
-        }
-        return otherFolders;
-    }
-
-    private ImapMailBox getMailbox(UUID id) {
-        authentication.begin();
-        try (Transaction ignored = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-            return em.createQuery(
-                    "select distinct b from imapcomponent$ImapMailBox b where b.id = :id",
-                    ImapMailBox.class
-            ).setParameter("id", id).setViewName("imap-mailbox-edit").getSingleResult();
-        } finally {
-            authentication.end();
-        }
-    }
-
-    private List<ImapMessage> getMessages(ImapFolder cubaFolder, int iterNum) {
-        authentication.begin();
-        try (Transaction ignored = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-
-            return em.createQuery(
-                    "select m from imapcomponent$ImapMessage m where m.folder.id = :mailFolderId order by m.msgNum",
-                    ImapMessage.class
-            )
-                    .setParameter("mailFolderId", cubaFolder)
-                    .setFirstResult(iterNum * imapConfig.getUpdateBatchSize())
-                    .setMaxResults(imapConfig.getUpdateBatchSize())
-                    .setViewName("imap-msg-full")
-                    .getResultList();
-        } finally {
-            authentication.end();
-        }
-    }
-
-    private Collection<BaseImapEvent> makeEvents(ImapFolder cubaFolder,
-                                                 List<ImapMessage> cubaMessages,
-                                                 Collection<IMAPFolder> otherFolders,
-                                                 IMAPFolder imapFolder) {
+    private Collection<BaseImapEvent> generate(ImapFolder cubaFolder,
+                                               List<ImapMessage> cubaMessages,
+                                               Collection<IMAPFolder> otherFolders,
+                                               IMAPFolder imapFolder) {
         try {
             List<IMAPMessage> imapMessages = imapHelper.getAllByUids(
                     imapFolder,
@@ -173,7 +130,7 @@ public class ImapMissedMessagesEventsPublisher extends ImapEventsPublisher {
                     cubaFolder.getMailBox()
             );
             log.trace("[updating messages flags for {}]batch messages from db: {}, from IMAP server: {}",
-                    taskDescription(), cubaFolder, cubaMessages, imapMessages);
+                    TASK_DESCRIPTION, cubaFolder, cubaMessages, imapMessages);
 
             Map<Long, IMAPMessage> msgsByUid = new HashMap<>(imapMessages.size());
             for (IMAPMessage imapMessage : imapMessages) {
@@ -189,9 +146,10 @@ public class ImapMissedMessagesEventsPublisher extends ImapEventsPublisher {
         }
     }
 
-    private Collection<BaseImapEvent> handleMissedMessages(ImapFolder cubaFolder,
-                                                           Collection<ImapMessage> missedMessages,
-                                                           Collection<IMAPFolder> otherFolders) {
+    @SuppressWarnings("WeakerAccess")
+    protected Collection<BaseImapEvent> handleMissedMessages(ImapFolder cubaFolder,
+                                                             Collection<ImapMessage> missedMessages,
+                                                             Collection<IMAPFolder> otherFolders) {
         if (missedMessages.isEmpty()) {
             return Collections.emptyList();
         }
@@ -254,6 +212,61 @@ public class ImapMissedMessagesEventsPublisher extends ImapEventsPublisher {
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
+    protected Collection<IMAPFolder> getOtherFolders(ImapFolder cubaFolder) {
+        ImapMailBox mailBox = getMailbox(cubaFolder.getMailBox().getId());
+        List<String> otherFoldersNames = mailBox.getProcessableFolders().stream()
+                .filter(f -> !f.getName().equals(cubaFolder.getName()))
+                .map(ImapFolder::getName)
+                .collect(Collectors.toList());
+        if (mailBox.getTrashFolderName() != null) {
+            otherFoldersNames.add(mailBox.getTrashFolderName());
+        }
+        String[] folderNames = otherFoldersNames.toArray(new String[0]);
+        Collection<IMAPFolder> otherFolders = imapAPI.fetchFolders(mailBox, folderNames).stream()
+                .filter(f -> Boolean.TRUE.equals(f.getCanHoldMessages()))
+                .map(ImapFolderDto::getImapFolder)
+                .collect(Collectors.toList());
+        if (log.isDebugEnabled()) {
+            log.debug("Missed messages task will use folder {} to trigger MOVE event",
+                    otherFolders.stream().map(IMAPFolder::getFullName).collect(Collectors.toList())
+            );
+        }
+        return otherFolders;
+    }
+
+    private ImapMailBox getMailbox(UUID id) {
+        authentication.begin();
+        try (Transaction ignored = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            return em.createQuery(
+                    "select distinct b from imapcomponent$ImapMailBox b where b.id = :id",
+                    ImapMailBox.class
+            ).setParameter("id", id).setViewName("imap-mailbox-edit").getSingleResult();
+        } finally {
+            authentication.end();
+        }
+    }
+
+    private List<ImapMessage> getMessages(ImapFolder cubaFolder, int iterNum) {
+        authentication.begin();
+        try (Transaction ignored = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+
+            return em.createQuery(
+                    "select m from imapcomponent$ImapMessage m where m.folder.id = :mailFolderId order by m.msgNum",
+                    ImapMessage.class
+            )
+                    .setParameter("mailFolderId", cubaFolder)
+                    .setFirstResult(iterNum * imapConfig.getUpdateBatchSize())
+                    .setMaxResults(imapConfig.getUpdateBatchSize())
+                    .setViewName("imap-msg-full")
+                    .getResultList();
+        } finally {
+            authentication.end();
+        }
+    }
+
     private void recalculateMessageNums(EntityManager em, ImapFolder cubaFolder, List<Integer> ascMessageNums) {
         for (int i = 0; i < ascMessageNums.size(); i++) {
             String queryString = "update imapcomponent$ImapMessage m set m.msgNum = m.msgNum-" + (i + 1) +
@@ -275,18 +288,18 @@ public class ImapMissedMessagesEventsPublisher extends ImapEventsPublisher {
     private Map<String, BaseImapEvent> findMessagesInOtherFolders(Stream<IMAPFolder> otherFolders,
                                                                   Map<String, ImapMessage> missedMessagesByIds) {
         return otherFolders.parallel()
-                    .flatMap(imapFolder -> {
-                        Collection<String> foundMessageIds = findMessageIds(imapFolder, missedMessagesByIds.keySet());
-                        return foundMessageIds.stream().map(id -> new Pair<>(id, imapFolder.getFullName()));
-                    })
-                    .collect(Collectors.toMap(
-                            Pair::getFirst,
-                            pair -> {
-                                ImapMessage message = missedMessagesByIds.get(pair.getFirst());
-                                return new EmailMovedImapEvent(message, pair.getSecond());
-                            },
-                            (event1, event2) -> event2
-                    ));
+                .flatMap(imapFolder -> {
+                    Collection<String> foundMessageIds = findMessageIds(imapFolder, missedMessagesByIds.keySet());
+                    return foundMessageIds.stream().map(id -> new Pair<>(id, imapFolder.getFullName()));
+                })
+                .collect(Collectors.toMap(
+                        Pair::getFirst,
+                        pair -> {
+                            ImapMessage message = missedMessagesByIds.get(pair.getFirst());
+                            return new EmailMovedImapEvent(message, pair.getSecond());
+                        },
+                        (event1, event2) -> event2
+                ));
     }
 
     private Collection<String> findMessageIds(IMAPFolder imapFolder, Collection<String> messageIds) {
@@ -321,10 +334,6 @@ public class ImapMissedMessagesEventsPublisher extends ImapEventsPublisher {
                 }
             }
         }
-    }
-
-    private String taskDescription() {
-        return "moved and deleted messages";
     }
 
 }

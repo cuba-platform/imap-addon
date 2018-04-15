@@ -2,6 +2,7 @@ package com.haulmont.addon.imap.web.imapmailbox;
 
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.exception.ImapException;
+import com.haulmont.addon.imap.service.ImapService;
 import com.haulmont.addon.imap.web.imapmailbox.helper.FolderRefresher;
 import com.haulmont.bali.util.ParamsMap;
 import com.haulmont.addon.imap.entity.ImapAuthenticationMethod;
@@ -50,6 +51,12 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private CheckBox useTrashFolderChkBox;
 
     @Inject
+    private CheckBox useCustomEventsGeneratorChkBox;
+
+    @Inject
+    private LookupField customEventsGeneratorClassLookup;
+
+    @Inject
     private Button selectTrashFolderButton;
 
     @Inject
@@ -91,6 +98,9 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     @Inject
     private ComponentsFactory componentsFactory;
 
+    @Inject
+    private ImapService service;
+
     private boolean connectionEstablished = false;
 
     public void checkTheConnection() {
@@ -120,6 +130,12 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     public void init(Map<String, Object> params) {
         getComponentNN("foldersPane").setVisible(false);
         setEnableForButtons(false);
+
+        setupFolders();
+        setupEvents();
+    }
+
+    private void setupFolders() {
         foldersTable.addGeneratedColumn("selected", folder -> {
             CheckBox checkBox = componentsFactory.createComponent(CheckBox.class);
             checkBox.setDatasource(foldersTable.getItemDatasource(folder), "selected");
@@ -146,8 +162,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         });
 
         makeEventsInfoColumn();
-
-        setupEvents();
     }
 
     private void setupEvents() {
@@ -191,7 +205,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             eventCheckBoxes.put(checkBox, eventType);
             editEventsGrid.add(checkBox, 1, i + 1);
         }
-
 
         allEventsChkBox.addValueChangeListener(e -> {
             if (eventsChanging.get()) {
@@ -302,6 +315,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     protected void postInit() {
         setCertificateVisibility();
         setTrashFolderControls();
+        setEventGeneratorControls();
         setProxyVisibility();
         ImapMailBox mailBox = getItem();
         if (!PersistenceHelper.isNew(mailBox)) {
@@ -337,23 +351,54 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     }
 
     private void setTrashFolderControls() {
-        FieldGroup.FieldConfig trashFolderNameField = this.advancedParams.getFieldNN("trashFolderNameField");
+        FieldGroup.FieldConfig field = this.advancedParams.getFieldNN("trashFolderNameField");
         boolean visible = getItem().getTrashFolderName() != null;
         log.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
         trashFolderTextField.setRequired(visible);
-        trashFolderNameField.setVisible(visible);
+        field.setVisible(visible);
         useTrashFolderChkBox.setValue(visible);
 
         useTrashFolderChkBox.addValueChangeListener(e -> {
             boolean newVisible = Boolean.TRUE.equals(e.getValue());
             log.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
             trashFolderTextField.setRequired(newVisible);
-            trashFolderNameField.setVisible(newVisible);
+            field.setVisible(newVisible);
 
             if (!newVisible) {
                 getItem().setTrashFolderName(null);
             }
         });
+    }
+
+    private void setEventGeneratorControls() {
+        Map<String, String> availableEventsGenerators = service.getAvailableEventsGenerators();
+        FieldGroup.FieldConfig field = this.advancedParams.getFieldNN("customEventsGeneratorClassField");
+        String eventsGeneratorClass = getItem().getEventsGeneratorClass();
+        boolean visible = eventsGeneratorClass != null
+                && availableEventsGenerators.values().stream().anyMatch(clz -> clz.equals(eventsGeneratorClass));
+        log.debug("Set visibility of custom event generator controls for {} to {}", getItem(), visible);
+        customEventsGeneratorClassLookup.setRequired(visible);
+        field.setVisible(visible);
+        useCustomEventsGeneratorChkBox.setValue(visible);
+
+        if (eventsGeneratorClass != null && !visible) {
+            log.warn("No such bean {} for event generator interface, discard it", eventsGeneratorClass);
+            useCustomEventsGeneratorChkBox.setEditable(false);
+            useCustomEventsGeneratorChkBox.setEnabled(false);
+            getItem().setEventsGeneratorClass(null);
+        } else {
+            customEventsGeneratorClassLookup.setOptionsMap(availableEventsGenerators);
+            useCustomEventsGeneratorChkBox.addValueChangeListener(e -> {
+                boolean newVisible = Boolean.TRUE.equals(e.getValue());
+                log.debug("Set visibility of custom event generator controls for {} to {}", getItem(), visible);
+                customEventsGeneratorClassLookup.setRequired(newVisible);
+                field.setVisible(newVisible);
+
+                if (!newVisible) {
+                    getItem().setEventsGeneratorClass(null);
+                }
+            });
+        }
     }
 
     private void setProxyVisibility() {

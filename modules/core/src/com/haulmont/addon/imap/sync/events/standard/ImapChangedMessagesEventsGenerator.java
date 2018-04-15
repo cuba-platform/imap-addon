@@ -1,6 +1,8 @@
-package com.haulmont.addon.imap.sync.events;
+package com.haulmont.addon.imap.sync.events.standard;
 
 import com.haulmont.addon.imap.api.ImapFlag;
+import com.haulmont.addon.imap.config.ImapConfig;
+import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.core.Task;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
@@ -10,10 +12,10 @@ import com.haulmont.addon.imap.events.EmailAnsweredImapEvent;
 import com.haulmont.addon.imap.events.EmailFlagChangedImapEvent;
 import com.haulmont.addon.imap.events.EmailSeenImapEvent;
 import com.haulmont.addon.imap.exception.ImapException;
-import com.haulmont.addon.imap.sync.ImapFolderSyncAction;
-import com.haulmont.addon.imap.sync.ImapFolderSyncEvent;
 import com.haulmont.cuba.core.EntityManager;
+import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
+import com.haulmont.cuba.security.app.Authentication;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import org.slf4j.Logger;
@@ -21,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
+import javax.inject.Inject;
 import javax.mail.Flags;
 import javax.mail.Folder;
 import javax.mail.Message;
@@ -28,79 +31,47 @@ import javax.mail.MessagingException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Component("imapcomponent_ImapUpdateMessagesEventsPublisher")
-public class ImapUpdateMessagesEventsPublisher extends ImapEventsPublisher {
+@Component("imapcomponent_ImapChangedMessagesEventsGenerator")
+public class ImapChangedMessagesEventsGenerator {
+    private final static Logger log = LoggerFactory.getLogger(ImapChangedMessagesEventsGenerator.class);
 
-    private final static Logger log = LoggerFactory.getLogger(ImapUpdateMessagesEventsPublisher.class);
+    private static final String TASK_DESCRIPTION = "updating messages flags";
 
-    public void handle(@Nonnull ImapFolder cubaFolder) {
-        events.publish(new ImapFolderSyncEvent(
-                new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.CHANGED))
-        );
-        Collection<BaseImapEvent> imapEvents = makeEvents(cubaFolder);
-        fireEvents(cubaFolder, imapEvents);
+    private final ImapHelper imapHelper;
+    private final Authentication authentication;
+    private final Persistence persistence;
+    private final ImapConfig imapConfig;
+
+    @SuppressWarnings("CdiInjectionPointsInspection")
+    @Inject
+    public ImapChangedMessagesEventsGenerator(ImapHelper imapHelper,
+                                              Authentication authentication,
+                                              Persistence persistence,
+                                              ImapConfig imapConfig) {
+        this.imapHelper = imapHelper;
+        this.authentication = authentication;
+        this.persistence = persistence;
+        this.imapConfig = imapConfig;
     }
 
-    public void handle(@Nonnull ImapFolder cubaFolder, IMAPFolder imapFolder, Message[] updatedMessages) {
-        events.publish(new ImapFolderSyncEvent(
-                new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.CHANGED))
-        );
-
-        try {
-            if (!imapFolder.isOpen()) {
-                imapFolder.open(Folder.READ_WRITE);
-            }
-            List<IMAPMessage> imapMessages = imapHelper.fetchUids(imapFolder, updatedMessages);
-            Map<Long, IMAPMessage> msgsByUid = new HashMap<>(imapMessages.size());
-            for (IMAPMessage msg : imapMessages) {
-                msgsByUid.put(imapFolder.getUID(msg), msg);
-            }
-
-
-            Collection<ImapMessage> messages = getMessages(cubaFolder, updatedMessages);
-
-            authentication.begin();
-            try (Transaction tx = persistence.createTransaction()) {
-                EntityManager em = persistence.getEntityManager();
-
-                Collection<BaseImapEvent> imapEvents = new ArrayList<>(messages.size());
-                for (ImapMessage msg : messages) {
-                    List<BaseImapEvent> msgEvents = handleMessage(em, msg, msgsByUid);
-                    if (!msgEvents.isEmpty()) {
-                        imapEvents.addAll(msgEvents);
-                    }
-                }
-                fireEvents(cubaFolder, imapEvents);
-                tx.commit();
-
-            } finally {
-                authentication.end();
-            }
-        } catch (MessagingException e) {
-            throw new ImapException(e);
-        }
-    }
-
-
-
-    private Collection<BaseImapEvent> makeEvents(ImapFolder cubaFolder) {
-
+    public Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder) {
         int batchSize = imapConfig.getUpdateBatchSize();
         ImapMailBox mailBox = cubaFolder.getMailBox();
         long windowSize = Math.min(getCount(cubaFolder), batchSize);
         log.debug("[{} for {}]handle events for existing messages using windowSize {} and batchSize {}",
-                taskDescription(), cubaFolder, windowSize, batchSize);
+                TASK_DESCRIPTION, cubaFolder, windowSize, batchSize);
+
         List<BaseImapEvent> modificationEvents = new ArrayList<>((int) windowSize);
         for (int i = 0; i < windowSize; i += batchSize) {
             int thisBatchSize = (int) Math.min(batchSize, windowSize - i);
             log.trace("[{} for {}]handle batch#{} with size {}",
-                    taskDescription(), cubaFolder, i, thisBatchSize);
+                    TASK_DESCRIPTION, cubaFolder, i, thisBatchSize);
 
             Collection<BaseImapEvent> batchResult = imapHelper.doWithFolder(
                     mailBox,
                     cubaFolder.getName(),
                     new Task<>(
-                            taskDescription(),
+                            TASK_DESCRIPTION,
                             true,
                             f -> handleBatch(f, batchSize, cubaFolder)
                     )
@@ -108,6 +79,32 @@ public class ImapUpdateMessagesEventsPublisher extends ImapEventsPublisher {
             modificationEvents.addAll(batchResult);
         }
         return modificationEvents;
+    }
+
+    public Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder,
+                                              @Nonnull Collection<IMAPMessage> changedMessages) {
+        if (changedMessages.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        IMAPFolder imapFolder = (IMAPFolder) changedMessages.iterator().next().getFolder();
+
+        try {
+            if (!imapFolder.isOpen()) {
+                imapFolder.open(Folder.READ_WRITE);
+            }
+            List<IMAPMessage> imapMessages = imapHelper.fetchUids(imapFolder, changedMessages.toArray(new Message[0]));
+            Map<Long, IMAPMessage> msgsByUid = new HashMap<>(imapMessages.size());
+            for (IMAPMessage msg : imapMessages) {
+                msgsByUid.put(imapFolder.getUID(msg), msg);
+            }
+
+            Collection<ImapMessage> messages = getMessages(cubaFolder, changedMessages);
+
+            return generate(messages, msgsByUid);
+        } catch (MessagingException e) {
+            throw new ImapException(e);
+        }
     }
 
     private long getCount(ImapFolder cubaFolder) {
@@ -129,13 +126,18 @@ public class ImapUpdateMessagesEventsPublisher extends ImapEventsPublisher {
                 folder, messages.stream().mapToLong(ImapMessage::getMsgUid).toArray(), cubaFolder.getMailBox()
         );
         log.trace("[updating messages flags for {}]batch messages from db: {}, from IMAP server: {}",
-                taskDescription(), cubaFolder, messages, imapMessages);
+                TASK_DESCRIPTION, cubaFolder, messages, imapMessages);
 
         Map<Long, IMAPMessage> msgsByUid = new HashMap<>(imapMessages.size());
         for (IMAPMessage msg : imapMessages) {
             msgsByUid.put(folder.getUID(msg), msg);
         }
 
+        return generate(messages, msgsByUid);
+    }
+
+    private Collection<BaseImapEvent> generate(Collection<ImapMessage> messages,
+                                               Map<Long, IMAPMessage> msgsByUid) throws MessagingException {
         authentication.begin();
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
@@ -154,10 +156,9 @@ public class ImapUpdateMessagesEventsPublisher extends ImapEventsPublisher {
         } finally {
             authentication.end();
         }
-
     }
 
-    private Collection<ImapMessage> getMessages(@Nonnull ImapFolder cubaFolder, Message[] updatedMessages) {
+    private Collection<ImapMessage> getMessages(@Nonnull ImapFolder cubaFolder, Collection<IMAPMessage> changedMessages) {
         authentication.begin();
         try (Transaction ignore = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
@@ -168,7 +169,7 @@ public class ImapUpdateMessagesEventsPublisher extends ImapEventsPublisher {
             )
                     .setParameter("mailFolderId", cubaFolder)
                     .setParameter("msgNums",
-                            Arrays.stream(updatedMessages)
+                            changedMessages.stream()
                                     .map(Message::getMessageNumber)
                                     .collect(Collectors.toList())
                     )
@@ -208,6 +209,26 @@ public class ImapUpdateMessagesEventsPublisher extends ImapEventsPublisher {
         Flags newFlags = newMsg.getFlags();
         Flags oldFlags = msg.getImapFlags();
 
+        List<BaseImapEvent> modificationEvents = generate(msg, newFlags, oldFlags);
+        msg.setImapFlags(newFlags);
+        msg.setThreadId(imapHelper.getThreadId(newMsg));  // todo: fire thread event
+        msg.setUpdateTs(new Date());
+        msg.setMsgNum(newMsg.getMessageNumber());
+
+        em.createQuery("update imapcomponent$ImapMessage m set m.msgNum = :msgNum, m.threadId = :threadId, " +
+                "m.updateTs = :updateTs, m.flags = :flags where m.id = :id")
+                .setParameter("msgNum", newMsg.getMessageNumber())
+                .setParameter("threadId", imapHelper.getThreadId(newMsg))
+                .setParameter("updateTs", new Date())
+                .setParameter("flags", msg.getFlags())
+                .setParameter("id", msg.getId())
+                .executeUpdate();
+
+        return modificationEvents;
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    protected List<BaseImapEvent> generate(ImapMessage msg, Flags newFlags, Flags oldFlags) {
         List<BaseImapEvent> modificationEvents = new ArrayList<>(3);
         if (!Objects.equals(newFlags, oldFlags)) {
             log.trace("Update message {}. Old flags: {}, new flags: {}", msg, oldFlags, newFlags);
@@ -248,20 +269,6 @@ public class ImapUpdateMessagesEventsPublisher extends ImapEventsPublisher {
             modificationEvents.add(new EmailFlagChangedImapEvent(msg, changedFlagsWithNewValue));
 
         }
-        msg.setImapFlags(newFlags);
-        msg.setThreadId(imapHelper.getThreadId(newMsg));  // todo: fire thread event
-        msg.setUpdateTs(new Date());
-        msg.setMsgNum(newMsg.getMessageNumber());
-
-        em.createQuery("update imapcomponent$ImapMessage m set m.msgNum = :msgNum, m.threadId = :threadId, " +
-                "m.updateTs = :updateTs, m.flags = :flags where m.id = :id")
-                .setParameter("msgNum", newMsg.getMessageNumber())
-                .setParameter("threadId", imapHelper.getThreadId(newMsg))
-                .setParameter("updateTs", new Date())
-                .setParameter("flags", msg.getFlags())
-                .setParameter("id", msg.getId())
-                .executeUpdate();
-
         return modificationEvents;
     }
 
@@ -275,7 +282,4 @@ public class ImapUpdateMessagesEventsPublisher extends ImapEventsPublisher {
                 && newflags.contains(Flags.Flag.ANSWERED);
     }
 
-    private String taskDescription() {
-        return "updating messages flags";
-    }
 }

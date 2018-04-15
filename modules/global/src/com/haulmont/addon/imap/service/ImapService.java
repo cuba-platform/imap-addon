@@ -14,4 +14,10 @@ public interface ImapService {
      */
     Map<String, List<String>> getAvailableBeans(Class<? extends BaseImapEvent> eventClass);
 
+    /**
+     * Return bean names and class names of custom IMAP Event Generators
+     * @return  map of bean name to class name
+     */
+    Map<String, String> getAvailableEventsGenerators();
+
 }
