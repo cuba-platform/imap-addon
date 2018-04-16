@@ -54,7 +54,8 @@ public class ImapChangedMessagesEventsGenerator {
         this.imapConfig = imapConfig;
     }
 
-    public Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder) {
+    @SuppressWarnings("WeakerAccess")
+    protected Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder) {
         int batchSize = imapConfig.getUpdateBatchSize();
         ImapMailBox mailBox = cubaFolder.getMailBox();
         long windowSize = Math.min(getCount(cubaFolder), batchSize);
@@ -81,7 +82,8 @@ public class ImapChangedMessagesEventsGenerator {
         return modificationEvents;
     }
 
-    public Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder,
+    @SuppressWarnings("WeakerAccess")
+    protected Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder,
                                               @Nonnull Collection<IMAPMessage> changedMessages) {
         if (changedMessages.isEmpty()) {
             return Collections.emptyList();
@@ -207,9 +209,8 @@ public class ImapChangedMessagesEventsGenerator {
             return Collections.emptyList();
         }
         Flags newFlags = newMsg.getFlags();
-        Flags oldFlags = msg.getImapFlags();
 
-        List<BaseImapEvent> modificationEvents = generate(msg, newFlags, oldFlags);
+        List<BaseImapEvent> modificationEvents = generate(msg, newMsg);
         msg.setImapFlags(newFlags);
         msg.setThreadId(imapHelper.getThreadId(newMsg));  // todo: fire thread event
         msg.setUpdateTs(new Date());
@@ -228,48 +229,55 @@ public class ImapChangedMessagesEventsGenerator {
     }
 
     @SuppressWarnings("WeakerAccess")
-    protected List<BaseImapEvent> generate(ImapMessage msg, Flags newFlags, Flags oldFlags) {
-        List<BaseImapEvent> modificationEvents = new ArrayList<>(3);
-        if (!Objects.equals(newFlags, oldFlags)) {
-            log.trace("Update message {}. Old flags: {}, new flags: {}", msg, oldFlags, newFlags);
+    protected List<BaseImapEvent> generate(ImapMessage msg, IMAPMessage newMsg) {
+        try {
+            Flags newFlags = newMsg.getFlags();
+            Flags oldFlags = msg.getImapFlags();
 
-            HashMap<ImapFlag, Boolean> changedFlagsWithNewValue = new HashMap<>();
-            if (isSeen(newFlags, oldFlags)) {
-                modificationEvents.add(new EmailSeenImapEvent(msg));
-            }
+            List<BaseImapEvent> modificationEvents = new ArrayList<>(3);
+            if (!Objects.equals(newFlags, oldFlags)) {
+                log.trace("Update message {}. Old flags: {}, new flags: {}", msg, oldFlags, newFlags);
 
-            if (isAnswered(newFlags, oldFlags)) { //todo: handle answered event based on refs
-                modificationEvents.add(new EmailAnsweredImapEvent(msg));
-            }
-
-            for (String userFlag : oldFlags.getUserFlags()) {
-                if (!newFlags.contains(userFlag)) {
-                    changedFlagsWithNewValue.put(new ImapFlag(userFlag), false);
+                HashMap<ImapFlag, Boolean> changedFlagsWithNewValue = new HashMap<>();
+                if (isSeen(newFlags, oldFlags)) {
+                    modificationEvents.add(new EmailSeenImapEvent(msg));
                 }
-            }
 
-            for (Flags.Flag systemFlag : oldFlags.getSystemFlags()) {
-                if (!newFlags.contains(systemFlag)) {
-                    changedFlagsWithNewValue.put(new ImapFlag(ImapFlag.SystemFlag.valueOf(systemFlag)), false);
+                if (isAnswered(newFlags, oldFlags)) { //todo: handle answered event based on refs
+                    modificationEvents.add(new EmailAnsweredImapEvent(msg));
                 }
-            }
 
-            for (String userFlag : newFlags.getUserFlags()) {
-                if (!oldFlags.contains(userFlag)) {
-                    changedFlagsWithNewValue.put(new ImapFlag(userFlag), true);
+                for (String userFlag : oldFlags.getUserFlags()) {
+                    if (!newFlags.contains(userFlag)) {
+                        changedFlagsWithNewValue.put(new ImapFlag(userFlag), false);
+                    }
                 }
-            }
 
-            for (Flags.Flag systemFlag : newFlags.getSystemFlags()) {
-                if (!oldFlags.contains(systemFlag)) {
-                    changedFlagsWithNewValue.put(new ImapFlag(ImapFlag.SystemFlag.valueOf(systemFlag)), true);
+                for (Flags.Flag systemFlag : oldFlags.getSystemFlags()) {
+                    if (!newFlags.contains(systemFlag)) {
+                        changedFlagsWithNewValue.put(new ImapFlag(ImapFlag.SystemFlag.valueOf(systemFlag)), false);
+                    }
                 }
+
+                for (String userFlag : newFlags.getUserFlags()) {
+                    if (!oldFlags.contains(userFlag)) {
+                        changedFlagsWithNewValue.put(new ImapFlag(userFlag), true);
+                    }
+                }
+
+                for (Flags.Flag systemFlag : newFlags.getSystemFlags()) {
+                    if (!oldFlags.contains(systemFlag)) {
+                        changedFlagsWithNewValue.put(new ImapFlag(ImapFlag.SystemFlag.valueOf(systemFlag)), true);
+                    }
+                }
+
+                modificationEvents.add(new EmailFlagChangedImapEvent(msg, changedFlagsWithNewValue));
+
             }
-
-            modificationEvents.add(new EmailFlagChangedImapEvent(msg, changedFlagsWithNewValue));
-
+            return modificationEvents;
+        } catch (MessagingException e) {
+            throw new ImapException(e);
         }
-        return modificationEvents;
     }
 
     private boolean isSeen(Flags newflags, Flags oldFlags) {

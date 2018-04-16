@@ -5,7 +5,6 @@ import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.core.Task;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMessage;
-import com.haulmont.addon.imap.events.BaseImapEvent;
 import com.haulmont.addon.imap.events.NewEmailImapEvent;
 import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.cuba.core.EntityManager;
@@ -52,7 +51,8 @@ public class ImapNewMessagesEventsGenerator {
         this.metadata = metadata;
     }
 
-    public Collection<NewEmailImapEvent> generate(@Nonnull ImapFolder cubaFolder) {
+    @SuppressWarnings("WeakerAccess")
+    protected Collection<NewEmailImapEvent> generate(@Nonnull ImapFolder cubaFolder) {
         return imapHelper.doWithFolder(cubaFolder.getMailBox(), cubaFolder.getName(), new Task<>(
                 "fetch new messages",
                 true,
@@ -60,7 +60,8 @@ public class ImapNewMessagesEventsGenerator {
         ));
     }
 
-    public Collection<NewEmailImapEvent> generate(@Nonnull ImapFolder cubaFolder, @Nonnull Collection<IMAPMessage> newMessages) {
+    @SuppressWarnings("WeakerAccess")
+    protected Collection<NewEmailImapEvent> generate(@Nonnull ImapFolder cubaFolder, @Nonnull Collection<IMAPMessage> newMessages) {
         if (newMessages.isEmpty()) {
             return Collections.emptyList();
         }
@@ -69,10 +70,6 @@ public class ImapNewMessagesEventsGenerator {
     }
 
     private Collection<NewEmailImapEvent> generate(@Nonnull ImapFolder cubaFolder, @Nonnull IMAPFolder imapFolder) {
-        /*events.publish(new ImapFolderSyncEvent(
-                new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.NEW))
-        );*/
-
         log.debug("[{}]handle events for new messages", cubaFolder);
         try {
             List<IMAPMessage> imapMessages = imapHelper.search(

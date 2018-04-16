@@ -14,14 +14,21 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
 
     public static final String NAME = "imapcomponent_ImapStandardEventsGenerator";
 
-    @Inject
-    private ImapNewMessagesEventsGenerator newMessagesEventsGenerator;
+    private final ImapNewMessagesEventsGenerator newMessagesEventsGenerator;
+
+    private final ImapMissedMessagesEventsGenerator missedMessagesEventsGenerator;
+
+    private final ImapChangedMessagesEventsGenerator changedMessagesEventsGenerator;
 
     @Inject
-    private ImapMissedMessagesEventsGenerator missedMessagesEventsGenerator;
+    public ImapStandardEventsGenerator(ImapNewMessagesEventsGenerator newMessagesEventsGenerator,
+                                       ImapMissedMessagesEventsGenerator missedMessagesEventsGenerator,
+                                       ImapChangedMessagesEventsGenerator changedMessagesEventsGenerator) {
 
-    @Inject
-    private ImapChangedMessagesEventsGenerator changedMessagesEventsGenerator;
+        this.newMessagesEventsGenerator = newMessagesEventsGenerator;
+        this.missedMessagesEventsGenerator = missedMessagesEventsGenerator;
+        this.changedMessagesEventsGenerator = changedMessagesEventsGenerator;
+    }
 
     @Override
     public Collection<? extends BaseImapEvent> generateForNewMessages(ImapFolder cubaFolder) {

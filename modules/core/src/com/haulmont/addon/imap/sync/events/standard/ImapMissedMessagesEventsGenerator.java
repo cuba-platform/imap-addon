@@ -64,7 +64,8 @@ public class ImapMissedMessagesEventsGenerator {
         this.imapConfig = imapConfig;
     }
 
-    Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder) {
+    @SuppressWarnings("WeakerAccess")
+    protected Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder) {
         Collection<IMAPFolder> otherFolders = getOtherFolders(cubaFolder);
         return imapHelper.doWithFolder(cubaFolder.getMailBox(), cubaFolder.getName(), new Task<>(
                 TASK_DESCRIPTION,
@@ -85,7 +86,8 @@ public class ImapMissedMessagesEventsGenerator {
         ));
     }
 
-    Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder,
+    @SuppressWarnings("WeakerAccess")
+    protected Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder,
                                        @Nonnull Collection<IMAPMessage> missedMessages) {
         if (missedMessages.isEmpty()) {
             return Collections.emptyList();
