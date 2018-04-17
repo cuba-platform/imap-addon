@@ -1,10 +1,17 @@
 package com.haulmont.addon.imap.sync.events.standard;
 
+import com.google.common.collect.ImmutableMap;
+import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.core.Task;
+import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.ImapFolder;
+import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
+import com.haulmont.addon.imap.events.BaseImapEvent;
+import com.haulmont.addon.imap.events.EmailAnsweredImapEvent;
+import com.haulmont.addon.imap.events.EmailFlagChangedImapEvent;
 import com.haulmont.addon.imap.events.NewEmailImapEvent;
 import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.cuba.core.EntityManager;
@@ -26,33 +33,37 @@ import javax.mail.MessagingException;
 import javax.mail.search.FlagTerm;
 import javax.mail.search.NotTerm;
 import java.util.*;
+import java.util.stream.Collectors;
 
-@Component("imapcomponent_ImapNewMessagesEventsGenerator")
-public class ImapNewMessagesEventsGenerator {
-    private final static Logger log = LoggerFactory.getLogger(ImapNewMessagesEventsGenerator.class);
+@Component("imapcomponent_ImapNewMessagesEvents")
+public class ImapNewMessagesEvents {
+    private final static Logger log = LoggerFactory.getLogger(ImapNewMessagesEvents.class);
 
     private final ImapHelper imapHelper;
     private final ImapConfig imapConfig;
     private final Authentication authentication;
     private final Persistence persistence;
+    private final ImapDao dao;
     private final Metadata metadata;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapNewMessagesEventsGenerator(ImapHelper imapHelper,
-                                          ImapConfig imapConfig,
-                                          Authentication authentication,
-                                          Persistence persistence,
-                                          Metadata metadata) {
+    public ImapNewMessagesEvents(ImapHelper imapHelper,
+                                 ImapConfig imapConfig,
+                                 Authentication authentication,
+                                 Persistence persistence,
+                                 ImapDao dao,
+                                 Metadata metadata) {
         this.imapHelper = imapHelper;
         this.imapConfig = imapConfig;
         this.authentication = authentication;
         this.persistence = persistence;
+        this.dao = dao;
         this.metadata = metadata;
     }
 
     @SuppressWarnings("WeakerAccess")
-    protected Collection<NewEmailImapEvent> generate(@Nonnull ImapFolder cubaFolder) {
+    protected Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder) {
         return imapHelper.doWithFolder(cubaFolder.getMailBox(), cubaFolder.getName(), new Task<>(
                 "fetch new messages",
                 true,
@@ -61,7 +72,7 @@ public class ImapNewMessagesEventsGenerator {
     }
 
     @SuppressWarnings("WeakerAccess")
-    protected Collection<NewEmailImapEvent> generate(@Nonnull ImapFolder cubaFolder, @Nonnull Collection<IMAPMessage> newMessages) {
+    protected Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder, @Nonnull Collection<IMAPMessage> newMessages) {
         if (newMessages.isEmpty()) {
             return Collections.emptyList();
         }
@@ -69,17 +80,18 @@ public class ImapNewMessagesEventsGenerator {
         return generate(cubaFolder, (IMAPFolder) newMessages.iterator().next().getFolder());
     }
 
-    private Collection<NewEmailImapEvent> generate(@Nonnull ImapFolder cubaFolder, @Nonnull IMAPFolder imapFolder) {
+    private Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder, @Nonnull IMAPFolder imapFolder) {
         log.debug("[{}]handle events for new messages", cubaFolder);
         try {
+            ImapMailBox mailBox = cubaFolder.getMailBox();
             List<IMAPMessage> imapMessages = imapHelper.search(
                     imapFolder,
-                    new NotTerm(new FlagTerm(imapHelper.cubaFlags(cubaFolder.getMailBox()), true)),
-                    cubaFolder.getMailBox()
+                    new NotTerm(new FlagTerm(imapHelper.cubaFlags(mailBox), true)),
+                    mailBox
             );
             log.debug("[{}]handle events for new messages. New messages: {}", cubaFolder, imapMessages);
 
-            Collection<NewEmailImapEvent> newEmailImapEvents = saveNewMessages(
+            Collection<BaseImapEvent> imapEvents = saveNewMessages(
                     imapMessages, imapFolder, cubaFolder
             );
 
@@ -91,10 +103,12 @@ public class ImapNewMessagesEventsGenerator {
             }
             imapFolder.setFlags(
                     imapMessages.toArray(new Message[0]),
-                    imapHelper.cubaFlags(cubaFolder.getMailBox()),
+                    imapHelper.cubaFlags(mailBox),
                     true
             );
-            return newEmailImapEvents;
+
+            imapHelper.setAnsweredFlag(mailBox, imapEvents);
+            return imapEvents;
         } catch (MessagingException e) {
             throw new ImapException(e);
         }
@@ -111,22 +125,23 @@ public class ImapNewMessagesEventsGenerator {
         }
     }
 
-    private Collection<NewEmailImapEvent> saveNewMessages(Collection<IMAPMessage> imapMessages,
+    private Collection<BaseImapEvent> saveNewMessages(Collection<IMAPMessage> imapMessages,
                                                       IMAPFolder imapFolder,
                                                       ImapFolder cubaFolder) throws MessagingException {
 
-        Collection<NewEmailImapEvent> newEmailImapEvents = new ArrayList<>(imapMessages.size());
-        boolean toCommit = false;
+        Collection<NewEmailImapEvent> newMessageEvents = new ArrayList<>(imapMessages.size());
+
         authentication.begin();
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
+            boolean toCommit = false;
 
             for (IMAPMessage msg : imapMessages) {
                 ImapMessage newMessage = insertNewMessage(em, msg, imapFolder, cubaFolder);
                 toCommit |= (newMessage != null);
 
                 if (newMessage != null) {
-                    newEmailImapEvents.add(new NewEmailImapEvent(newMessage));
+                    newMessageEvents.add(new NewEmailImapEvent(newMessage));
                 }
             }
             if (toCommit) {
@@ -136,7 +151,48 @@ public class ImapNewMessagesEventsGenerator {
         } finally {
             authentication.end();
         }
-        return newEmailImapEvents;
+
+        Collection<BaseImapEvent> imapEvents = new ArrayList<>(newMessageEvents);
+        imapEvents.addAll(generateAnsweredEvents(cubaFolder, newMessageEvents));
+
+        return imapEvents;
+    }
+
+    private Collection<BaseImapEvent> generateAnsweredEvents(ImapFolder cubaFolder,
+                                                             Collection<NewEmailImapEvent> newMessageEvents) {
+
+        authentication.begin();
+        try (Transaction tx = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            boolean toCommit = false;
+
+            Collection<BaseImapEvent> imapEvents = new ArrayList<>();
+            for (NewEmailImapEvent newMessageEvent : newMessageEvents) {
+                ImapMessage message = newMessageEvent.getMessage();
+                if (message.getReferenceId() != null) {
+                    ImapMessage parentMessage = dao.findMessageByImapMessageId(
+                            cubaFolder.getMailBox().getId(), message.getReferenceId()
+                    );
+                    if (parentMessage != null) {
+                        boolean added = dao.addFlag(parentMessage, ImapFlag.ANSWERED, em);
+                        toCommit |= added;
+
+                        if (added) {
+                            imapEvents.add(new EmailAnsweredImapEvent(parentMessage));
+                            imapEvents.add(new EmailFlagChangedImapEvent(parentMessage, ImmutableMap.of(ImapFlag.ANSWERED, true)));
+                        }
+                    }
+                }
+            }
+
+            if (toCommit) {
+                tx.commit();
+            }
+
+            return imapEvents;
+        } finally {
+            authentication.end();
+        }
     }
 
     private ImapMessage insertNewMessage(EntityManager em, IMAPMessage msg,

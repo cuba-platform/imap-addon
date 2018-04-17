@@ -4,6 +4,7 @@ import com.haulmont.addon.imap.api.ImapAPI;
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.core.Task;
+import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
@@ -37,10 +38,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Component("imapcomponent_ImapMissedMessagesEventsGenerator")
-public class ImapMissedMessagesEventsGenerator {
+@Component("imapcomponent_ImapMissedMessagesEvents")
+public class ImapMissedMessagesEvents {
 
-    private final static Logger log = LoggerFactory.getLogger(ImapMissedMessagesEventsGenerator.class);
+    private final static Logger log = LoggerFactory.getLogger(ImapMissedMessagesEvents.class);
 
     private static final String TASK_DESCRIPTION = "moved and deleted messages";
 
@@ -48,19 +49,22 @@ public class ImapMissedMessagesEventsGenerator {
     private final ImapHelper imapHelper;
     private final Authentication authentication;
     private final Persistence persistence;
+    private final ImapDao dao;
     private final ImapConfig imapConfig;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapMissedMessagesEventsGenerator(ImapAPI imapAPI,
-                                             ImapHelper imapHelper,
-                                             Authentication authentication,
-                                             Persistence persistence,
-                                             ImapConfig imapConfig) {
+    public ImapMissedMessagesEvents(ImapAPI imapAPI,
+                                    ImapHelper imapHelper,
+                                    Authentication authentication,
+                                    Persistence persistence,
+                                    ImapDao dao,
+                                    ImapConfig imapConfig) {
         this.imapAPI = imapAPI;
         this.imapHelper = imapHelper;
         this.authentication = authentication;
         this.persistence = persistence;
+        this.dao = dao;
         this.imapConfig = imapConfig;
     }
 
@@ -88,31 +92,21 @@ public class ImapMissedMessagesEventsGenerator {
 
     @SuppressWarnings("WeakerAccess")
     protected Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder,
-                                       @Nonnull Collection<IMAPMessage> missedMessages) {
+                                                 @Nonnull Collection<IMAPMessage> missedMessages) {
         if (missedMessages.isEmpty()) {
             return Collections.emptyList();
         }
 
         Collection<IMAPFolder> otherFolders = getOtherFolders(cubaFolder);
 
-        List<ImapMessage> messages;
+        Collection<ImapMessage> messages;
 
         authentication.begin();
         try (Transaction ignored = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-
-            messages = em.createQuery(
-                    "select m from imapcomponent$ImapMessage m where m.folder.id = :mailFolderId and m.msgNum in :msgNums",
-                    ImapMessage.class
-            )
-                    .setParameter("mailFolderId", cubaFolder)
-                    .setParameter("msgNums",
-                            missedMessages.stream()
-                                    .map(Message::getMessageNumber)
-                                    .collect(Collectors.toList())
-                    )
-                    .setViewName("imap-msg-full")
-                    .getResultList();
+            messages = dao.findMessagesByImapNums(
+                    cubaFolder.getId(),
+                    missedMessages.stream().map(Message::getMessageNumber).collect(Collectors.toList())
+            );
         } finally {
             authentication.end();
         }
@@ -122,7 +116,7 @@ public class ImapMissedMessagesEventsGenerator {
     }
 
     private Collection<BaseImapEvent> generate(ImapFolder cubaFolder,
-                                               List<ImapMessage> cubaMessages,
+                                               Collection<ImapMessage> cubaMessages,
                                                Collection<IMAPFolder> otherFolders,
                                                IMAPFolder imapFolder) {
         try {
@@ -239,12 +233,8 @@ public class ImapMissedMessagesEventsGenerator {
 
     private ImapMailBox getMailbox(UUID id) {
         authentication.begin();
-        try (Transaction ignored = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-            return em.createQuery(
-                    "select distinct b from imapcomponent$ImapMailBox b where b.id = :id",
-                    ImapMailBox.class
-            ).setParameter("id", id).setViewName("imap-mailbox-edit").getSingleResult();
+        try {
+            return dao.findMailBox(id);
         } finally {
             authentication.end();
         }

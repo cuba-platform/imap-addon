@@ -3,16 +3,13 @@ package com.haulmont.addon.imap.api;
 import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.core.MessageFunction;
 import com.haulmont.addon.imap.core.Task;
+import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.exception.ImapException;
-import com.haulmont.cuba.core.EntityManager;
-import com.haulmont.cuba.core.Persistence;
-import com.haulmont.cuba.core.Transaction;
-import com.haulmont.cuba.core.TypedQuery;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.TimeSource;
 import com.sun.mail.imap.IMAPFolder;
@@ -41,11 +38,8 @@ public class Imap implements ImapAPI {
     private final static Logger log = LoggerFactory.getLogger(Imap.class);
 
     private final ImapHelper imapHelper;
-
-    private final Persistence persistence;
-
+    private final ImapDao dao;
     private final Metadata metadata;
-
     private final TimeSource timeSource;
 
     private ExecutorService fetchMessagesExecutor = Executors.newFixedThreadPool(10, new ThreadFactory() {
@@ -60,9 +54,9 @@ public class Imap implements ImapAPI {
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public Imap(ImapHelper imapHelper, Persistence persistence, Metadata metadata, TimeSource timeSource) {
+    public Imap(ImapHelper imapHelper, ImapDao dao, Metadata metadata, TimeSource timeSource) {
         this.imapHelper = imapHelper;
-        this.persistence = persistence;
+        this.dao = dao;
         this.metadata = metadata;
         this.timeSource = timeSource;
     }
@@ -196,50 +190,26 @@ public class Imap implements ImapAPI {
     @Override
     public Collection<ImapMessageAttachment> fetchAttachments(UUID messageId) {
         log.info("fetch attachments for message with id {}", messageId);
-        ImapMessage msg;
-        try (Transaction ignored = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-            msg = em.find(ImapMessage.class, messageId, "imap-msg-full");
-            if (msg == null) {
-                throw new RuntimeException("Can't find msg#" + messageId);
-            }
+        ImapMessage msg = dao.findMessageById(messageId);
+        if (msg == null) {
+            throw new RuntimeException("Can't find msg#" + messageId);
         }
 
         if (Boolean.TRUE.equals(msg.getAttachmentsLoaded())) {
             log.debug("attachments for message {} were loaded, reading from database", msg);
-            try (Transaction ignored = persistence.createTransaction()) {
-                EntityManager em = persistence.getEntityManager();
-                TypedQuery<ImapMessageAttachment> query = em.createQuery(
-                        "select a from imapcomponent$ImapMessageAttachment a where a.imapMessage.id = :msg",
-                        ImapMessageAttachment.class
-                ).setParameter("msg", messageId).setViewName("imap-msg-attachment-full");
-                return query.getResultList();
-            }
+            return dao.findAttachments(messageId);
         }
 
         log.debug("attachments for message {} were not loaded, reading from IMAP server and cache in database", msg);
         ImapMailBox mailBox = msg.getFolder().getMailBox();
         String folderName = msg.getFolder().getName();
 
-        ImapMessage finalMsg = msg;
         return imapHelper.doWithFolder(mailBox, folderName, new Task<>(
                         "extracting attachments", true, f -> {
 
-                    IMAPMessage imapMsg = (IMAPMessage) f.getMessageByUID(finalMsg.getMsgUid());
-
+                    IMAPMessage imapMsg = (IMAPMessage) f.getMessageByUID(msg.getMsgUid());
                     Collection<ImapMessageAttachment> attachments = makeAttachments(imapMsg);
-
-                    try (Transaction tx = persistence.createTransaction()) {
-                        log.trace("storing {} for message {} and mark loaded", attachments, finalMsg);
-                        EntityManager em = persistence.getEntityManager();
-                        attachments.forEach(it -> {
-                            it.setImapMessage(finalMsg);
-                            em.persist(it);
-                        });
-                        em.createQuery("update imapcomponent$ImapMessage m set m.attachmentsLoaded = true where m.id = :msg")
-                                .setParameter("msg", messageId).executeUpdate();
-                        tx.commit();
-                    }
+                    dao.saveAttachments(msg, attachments);
 
                     return attachments;
                 })

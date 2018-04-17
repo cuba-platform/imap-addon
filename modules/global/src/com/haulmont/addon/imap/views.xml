@@ -58,17 +58,12 @@
     <view class="com.haulmont.addon.imap.entity.ImapMessage"
           extends="_local"
           name="imap-msg-full">
-        <property name="folder"
-                  view="_minimal">
-            <property name="mailBox"
-                      view="imap-mailBox-connect"/>
-        </property>
+        <property name="folder" view="imap-folder-full" />
     </view>
     <view class="com.haulmont.addon.imap.entity.ImapMessageAttachment"
           extends="_local"
           name="imap-msg-attachment-full">
-        <property name="imapMessage"
-                  view="imap-msg-full"/>
+        <property name="imapMessage" view="imap-msg-full"/>
     </view>
     <view class="com.haulmont.addon.imap.entity.ImapFolderEvent"
           extends="_local"

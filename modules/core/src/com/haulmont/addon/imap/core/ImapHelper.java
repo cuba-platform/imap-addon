@@ -2,13 +2,13 @@ package com.haulmont.addon.imap.core;
 
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ext.ThreadExtension;
+import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.*;
+import com.haulmont.addon.imap.events.BaseImapEvent;
+import com.haulmont.addon.imap.events.EmailAnsweredImapEvent;
 import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.addon.imap.crypto.Encryptor;
 import com.haulmont.bali.datastruct.Pair;
-import com.haulmont.cuba.core.EntityManager;
-import com.haulmont.cuba.core.Persistence;
-import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.global.FileLoader;
 import com.haulmont.cuba.core.global.FileStorageException;
 import com.sun.mail.imap.IMAPFolder;
@@ -44,6 +44,7 @@ import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 @Component("imapcomponent_ImapHelper")
 public class ImapHelper {
@@ -59,20 +60,17 @@ public class ImapHelper {
     private final Map<MailboxKey, Pair<ConnectionsParams, IMAPStore>> stores = new HashMap<>();
 
     private final FileLoader fileLoader;
-
     private final ImapConfig config;
-
     private final Encryptor encryptor;
-
-    private final Persistence persistence;
+    private final ImapDao dao;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapHelper(FileLoader fileLoader, ImapConfig config, Encryptor encryptor, Persistence persistence) {
+    public ImapHelper(FileLoader fileLoader, ImapConfig config, Encryptor encryptor, ImapDao dao) {
         this.fileLoader = fileLoader;
         this.config = config;
         this.encryptor = encryptor;
-        this.persistence = persistence;
+        this.dao = dao;
     }
 
     public IMAPStore getStore(ImapMailBox box) throws MessagingException {
@@ -84,7 +82,7 @@ public class ImapHelper {
         //noinspection SynchronizationOnLocalVariableOrMethodParameter
         synchronized (lock) {
             Pair<ConnectionsParams, IMAPStore> mailboxStore = stores.get(key);
-            String persistedPassword = getPersistedPassword(box);
+            String persistedPassword = dao.getPersistedPassword(box);
             if (mailboxStore == null || connectionParamsDiffer(mailboxStore.getFirst(), box, persistedPassword)) {
                 buildAndCacheStore(key, box, persistedPassword);
             }
@@ -101,13 +99,13 @@ public class ImapHelper {
     }
 
     public IMAPStore getExclusiveStore(ImapMailBox mailBox) throws MessagingException {
-        return makeStore(mailBox, getPersistedPassword(mailBox), true);
+        return makeStore(mailBox, dao.getPersistedPassword(mailBox), true);
     }
 
     public IMAPFolder getFolder(ImapFolder cubaFolder) throws MessagingException {
         ImapMailBox mailBox = cubaFolder.getMailBox();
 
-        IMAPStore store = makeStore(mailBox, getPersistedPassword(mailBox), false);
+        IMAPStore store = makeStore(mailBox, dao.getPersistedPassword(mailBox), false);
 
         IMAPFolder folder = (IMAPFolder) store.getFolder(cubaFolder.getName());
         folder.open(Folder.READ_WRITE);
@@ -203,14 +201,6 @@ public class ImapHelper {
         return password;
     }
 
-    private String getPersistedPassword(ImapMailBox mailBox) {
-        try (Transaction ignored = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-            ImapSimpleAuthentication persisted = em.find(ImapSimpleAuthentication.class, mailBox.getAuthentication().getId());
-            return persisted != null ? persisted.getPassword() : null;
-        }
-    }
-
     public <T> T doWithFolder(ImapMailBox mailBox, String folderFullName, Task<IMAPFolder, T> task) {
         log.debug("perform '{}' for {} of mailbox {}", task.getDescription(), folderFullName, mailBox);
         FolderKey key = new FolderKey(mailboxKey(mailBox), folderFullName);
@@ -261,6 +251,29 @@ public class ImapHelper {
         FetchProfile fetchProfile = new FetchProfile();
         fetchProfile.add(UIDFolder.FetchProfileItem.UID);
         return fetch(folder, fetchProfile, messages);
+    }
+
+    public void setAnsweredFlag(ImapMailBox mailBox, Collection<BaseImapEvent> imapEvents) {
+        Map<ImapFolder, List<ImapMessage>> answeredMessagesByFolder = imapEvents.stream()
+                .filter(event -> event instanceof EmailAnsweredImapEvent)
+                .map(BaseImapEvent::getMessage)
+                .collect(Collectors.groupingBy(ImapMessage::getFolder));
+        for (Map.Entry<ImapFolder, List<ImapMessage>> folderReplies : answeredMessagesByFolder.entrySet()) {
+            doWithFolder(
+                    mailBox,
+                    folderReplies.getKey().getName(),
+                    new Task<>("set answered flag", false, folder -> {
+                        long[] uids = folderReplies.getValue().stream().mapToLong(ImapMessage::getMsgUid).toArray();
+                        Message[] messages = folder.getMessagesByUID(uids);
+                        folder.setFlags(
+                                messages,
+                                new Flags(Flags.Flag.ANSWERED),
+                                true
+                        );
+                        return null;
+                    })
+            );
+        }
     }
 
     public List<IMAPMessage> getAllByUids(IMAPFolder folder, long[] uids, ImapMailBox mailBox) throws MessagingException {

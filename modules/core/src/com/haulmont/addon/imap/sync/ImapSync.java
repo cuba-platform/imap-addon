@@ -1,15 +1,12 @@
 package com.haulmont.addon.imap.sync;
 
 import com.haulmont.addon.imap.api.ImapAPI;
+import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.sync.events.ImapEvents;
 import com.haulmont.addon.imap.sync.listener.ImapFolderEvent;
 import com.haulmont.addon.imap.sync.listener.ImapFolderListener;
-import com.haulmont.cuba.core.EntityManager;
-import com.haulmont.cuba.core.Persistence;
-import com.haulmont.cuba.core.Transaction;
-import com.haulmont.cuba.core.TypedQuery;
 import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.security.app.Authentication;
 import org.slf4j.Logger;
@@ -30,7 +27,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
 
     private final static Logger log = LoggerFactory.getLogger(ImapSync.class);
 
-    private final Persistence persistence;
+    private final ImapDao dao;
     private final ImapEvents imapEvents;
     private final Authentication authentication;
     private final ImapAPI imapAPI;
@@ -61,13 +58,13 @@ public class ImapSync implements AppContext.Listener, Ordered {
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapSync(Persistence persistence,
+    public ImapSync(ImapDao dao,
                     ImapEvents imapEvents,
                     Authentication authentication,
                     ImapAPI imapAPI,
                     ImapFolderListener imapFolderListener) {
 
-        this.persistence = persistence;
+        this.dao = dao;
         this.imapEvents = imapEvents;
         this.authentication = authentication;
         this.imapAPI = imapAPI;
@@ -82,15 +79,10 @@ public class ImapSync implements AppContext.Listener, Ordered {
     @Override
     public void applicationStarted() {
         authentication.begin();
-        try (Transaction ignored = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-            TypedQuery<ImapMailBox> query = em.createQuery(
-                    "select distinct b from imapcomponent$ImapMailBox b",
-                    ImapMailBox.class
-            ).setViewName("imap-mailbox-edit");
+        try {
             Collection<ImapFolder> allListenedFolders = new ArrayList<>();
             Collection<Future<?>> tasks = new ArrayList<>();
-            query.getResultList().forEach(mailBox -> {
+            dao.findMailBoxes().forEach(mailBox -> {
                 log.debug("{}: synchronizing", mailBox);
                 Collection<ImapFolderDto> allFolders = imapAPI.fetchFolders(mailBox);
                 Collection<ImapFolder> processableFolders = mailBox.getProcessableFolders();
@@ -222,13 +214,8 @@ public class ImapSync implements AppContext.Listener, Ordered {
 
     private ImapFolder getFolder(UUID folderId) {
         authentication.begin();
-        try (Transaction ignored = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-            TypedQuery<ImapFolder> query = em.createQuery(
-                    "select f from imapcomponent$ImapFolder f where f.id = :id",
-                    ImapFolder.class
-            ).setParameter("id", folderId).setViewName("imap-folder-full");
-            return query.getFirstResult();
+        try {
+            return dao.findFolder(folderId);
         } finally {
             authentication.end();
         }

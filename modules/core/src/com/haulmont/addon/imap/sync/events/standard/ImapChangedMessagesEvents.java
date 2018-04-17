@@ -1,9 +1,11 @@
 package com.haulmont.addon.imap.sync.events.standard;
 
+import com.google.common.collect.ImmutableMap;
 import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.core.Task;
+import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
@@ -31,26 +33,29 @@ import javax.mail.MessagingException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Component("imapcomponent_ImapChangedMessagesEventsGenerator")
-public class ImapChangedMessagesEventsGenerator {
-    private final static Logger log = LoggerFactory.getLogger(ImapChangedMessagesEventsGenerator.class);
+@Component("imapcomponent_ImapChangedMessagesEvents")
+public class ImapChangedMessagesEvents {
+    private final static Logger log = LoggerFactory.getLogger(ImapChangedMessagesEvents.class);
 
     private static final String TASK_DESCRIPTION = "updating messages flags";
 
     private final ImapHelper imapHelper;
     private final Authentication authentication;
     private final Persistence persistence;
+    private final ImapDao dao;
     private final ImapConfig imapConfig;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapChangedMessagesEventsGenerator(ImapHelper imapHelper,
-                                              Authentication authentication,
-                                              Persistence persistence,
-                                              ImapConfig imapConfig) {
+    public ImapChangedMessagesEvents(ImapHelper imapHelper,
+                                     Authentication authentication,
+                                     Persistence persistence,
+                                     ImapDao dao,
+                                     ImapConfig imapConfig) {
         this.imapHelper = imapHelper;
         this.authentication = authentication;
         this.persistence = persistence;
+        this.dao = dao;
         this.imapConfig = imapConfig;
     }
 
@@ -79,12 +84,14 @@ public class ImapChangedMessagesEventsGenerator {
             );
             modificationEvents.addAll(batchResult);
         }
+
+        imapHelper.setAnsweredFlag(mailBox, modificationEvents);
         return modificationEvents;
     }
 
     @SuppressWarnings("WeakerAccess")
     protected Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder,
-                                              @Nonnull Collection<IMAPMessage> changedMessages) {
+                                                 @Nonnull Collection<IMAPMessage> changedMessages) {
         if (changedMessages.isEmpty()) {
             return Collections.emptyList();
         }
@@ -103,7 +110,10 @@ public class ImapChangedMessagesEventsGenerator {
 
             Collection<ImapMessage> messages = getMessages(cubaFolder, changedMessages);
 
-            return generate(messages, msgsByUid);
+            Collection<BaseImapEvent> imapEvents = generate(messages, msgsByUid);
+
+            imapHelper.setAnsweredFlag(cubaFolder.getMailBox(), imapEvents);
+            return imapEvents;
         } catch (MessagingException e) {
             throw new ImapException(e);
         }
@@ -160,23 +170,14 @@ public class ImapChangedMessagesEventsGenerator {
         }
     }
 
-    private Collection<ImapMessage> getMessages(@Nonnull ImapFolder cubaFolder, Collection<IMAPMessage> changedMessages) {
+    private Collection<ImapMessage> getMessages(@Nonnull ImapFolder cubaFolder,
+                                                @Nonnull Collection<IMAPMessage> changedMessages) {
         authentication.begin();
         try (Transaction ignore = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-
-            return em.createQuery(
-                    "select m from imapcomponent$ImapMessage m where m.folder.id = :mailFolderId and m.msgNum in :msgNums",
-                    ImapMessage.class
-            )
-                    .setParameter("mailFolderId", cubaFolder)
-                    .setParameter("msgNums",
-                            changedMessages.stream()
-                                    .map(Message::getMessageNumber)
-                                    .collect(Collectors.toList())
-                    )
-                    .setViewName("imap-msg-full")
-                    .getResultList();
+            return dao.findMessagesByImapNums(
+                    cubaFolder.getId(),
+                    changedMessages.stream().map(Message::getMessageNumber).collect(Collectors.toList())
+            );
         } finally {
             authentication.end();
         }
@@ -211,15 +212,26 @@ public class ImapChangedMessagesEventsGenerator {
         Flags newFlags = newMsg.getFlags();
 
         List<BaseImapEvent> modificationEvents = generate(msg, newMsg);
+        String refId = imapHelper.getRefId(newMsg);
+        if (refId != null) {
+            ImapMessage parentMessage = dao.findMessageByImapMessageId(msg.getFolder().getMailBox().getId(), refId);
+            if (parentMessage != null) {
+                if (dao.addFlag(parentMessage, ImapFlag.ANSWERED, em)) {
+                    modificationEvents.add(new EmailAnsweredImapEvent(parentMessage));
+                    modificationEvents.add(new EmailFlagChangedImapEvent(parentMessage, ImmutableMap.of(ImapFlag.ANSWERED, true)));
+                }
+            }
+        }
         msg.setImapFlags(newFlags);
         msg.setThreadId(imapHelper.getThreadId(newMsg));  // todo: fire thread event
         msg.setUpdateTs(new Date());
         msg.setMsgNum(newMsg.getMessageNumber());
 
         em.createQuery("update imapcomponent$ImapMessage m set m.msgNum = :msgNum, m.threadId = :threadId, " +
-                "m.updateTs = :updateTs, m.flags = :flags where m.id = :id")
+                "m.updateTs = :updateTs, m.flags = :flags, m.referenceId = :refId where m.id = :id")
                 .setParameter("msgNum", newMsg.getMessageNumber())
                 .setParameter("threadId", imapHelper.getThreadId(newMsg))
+                .setParameter("refId", refId)
                 .setParameter("updateTs", new Date())
                 .setParameter("flags", msg.getFlags())
                 .setParameter("id", msg.getId())
@@ -243,7 +255,7 @@ public class ImapChangedMessagesEventsGenerator {
                     modificationEvents.add(new EmailSeenImapEvent(msg));
                 }
 
-                if (isAnswered(newFlags, oldFlags)) { //todo: handle answered event based on refs
+                if (isAnswered(newFlags, oldFlags)) {
                     modificationEvents.add(new EmailAnsweredImapEvent(msg));
                 }
 
