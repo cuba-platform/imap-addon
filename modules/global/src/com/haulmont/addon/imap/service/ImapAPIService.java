@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @SuppressWarnings("unused")
 public interface ImapAPIService {
-    String NAME = "imapcomponent_ImapAPIService";
+    String NAME = "imap_ImapAPIService";
 
     void testConnection(ImapMailBox box);
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box);

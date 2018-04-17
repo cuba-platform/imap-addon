@@ -13,16 +13,16 @@ import java.util.Collection;
 @Component(ImapStandardEventsGenerator.NAME)
 public class ImapStandardEventsGenerator implements ImapEventsGenerator {
 
-    public static final String NAME = "imapcomponent_ImapStandardEventsGenerator";
+    public static final String NAME = "imap_StandardEventsGenerator";
 
     private final ImapNewMessagesEvents newEvents;
     private final ImapMissedMessagesEvents missedEvents;
     private final ImapChangedMessagesEvents changedEvents;
 
     @Inject
-    public ImapStandardEventsGenerator(@Qualifier("imapcomponent_ImapNewMessagesEvents") ImapNewMessagesEvents newEvents,
-                                       @Qualifier("imapcomponent_ImapMissedMessagesEvents") ImapMissedMessagesEvents missedEvents,
-                                       @Qualifier("imapcomponent_ImapChangedMessagesEvents") ImapChangedMessagesEvents changedEvents) {
+    public ImapStandardEventsGenerator(@Qualifier("imap_NewMessagesEvents") ImapNewMessagesEvents newEvents,
+                                       @Qualifier("imap_MissedMessagesEvents") ImapMissedMessagesEvents missedEvents,
+                                       @Qualifier("imap_ChangedMessagesEvents") ImapChangedMessagesEvents changedEvents) {
 
         this.newEvents = newEvents;
         this.missedEvents = missedEvents;

@@ -23,7 +23,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Component("imapcomponent_ImapEvents")
+@Component("imap_Events")
 public class ImapEvents {
 
     private final static Logger log = LoggerFactory.getLogger(ImapEvents.class);

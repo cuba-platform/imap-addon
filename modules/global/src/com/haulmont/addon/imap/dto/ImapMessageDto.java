@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @NamePattern("%s | subject")
-@MetaClass(name = "imapcomponent$ImapMessageDto")
+@MetaClass(name = "imap$MessageDto")
 public class ImapMessageDto extends AbstractNotPersistentEntity {
 
     @MetaProperty(mandatory = true)

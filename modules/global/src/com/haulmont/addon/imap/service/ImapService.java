@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface ImapService {
-    String NAME = "imapcomponent_ImapService";
+    String NAME = "imap_ImapService";
 
     /**
      * Return information about beans and their methods that can be attached to IMAP folder event.

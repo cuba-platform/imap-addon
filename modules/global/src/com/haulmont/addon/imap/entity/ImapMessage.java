@@ -20,8 +20,8 @@ import java.util.Collections;
 import java.util.List;
 
 @NamePattern("/%s from |msgUid")
-@Table(name = "IMAPCOMPONENT_IMAP_MESSAGE")
-@Entity(name = "imapcomponent$ImapMessage")
+@Table(name = "IMAP_MESSAGE")
+@Entity(name = "imap$Message")
 public class ImapMessage extends StandardEntity {
     private final static Logger log = LoggerFactory.getLogger(ImapMessage.class);
 

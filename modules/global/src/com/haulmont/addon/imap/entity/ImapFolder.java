@@ -13,10 +13,10 @@ import java.util.Collections;
 import java.util.List;
 import com.haulmont.cuba.core.entity.annotation.Listeners;
 
-@Listeners("imapcomponent_ImapFolderSelectionListener")
+@Listeners("imap_FolderSelectionListener")
 @NamePattern("%s|name")
-@Table(name = "IMAPCOMPONENT_IMAP_FOLDER")
-@Entity(name = "imapcomponent$ImapFolder")
+@Table(name = "IMAP_FOLDER")
+@Entity(name = "imap$Folder")
 public class ImapFolder extends StandardEntity {
     private static final long serialVersionUID = -5878471272097557535L;
 

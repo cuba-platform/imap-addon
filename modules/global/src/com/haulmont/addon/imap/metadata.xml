@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <metadata xmlns="http://schemas.haulmont.com/cuba/metadata.xsd">
-    <metadata-model namespace="imapcomponent"
+    <metadata-model namespace="imap"
                     root-package="com.haulmont.addon.imap">
         <class>com.haulmont.addon.imap.dto.ImapFolderDto</class>
         <class>com.haulmont.addon.imap.dto.ImapMessageDto</class>

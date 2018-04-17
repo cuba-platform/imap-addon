@@ -12,8 +12,8 @@ import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @NamePattern("%s|event")
-@Table(name = "IMAPCOMPONENT_IMAP_FOLDER_EVENT")
-@Entity(name = "imapcomponent$ImapFolderEvent")
+@Table(name = "IMAP_FOLDER_EVENT")
+@Entity(name = "imap$FolderEvent")
 public class ImapFolderEvent extends StandardEntity {
     private static final long serialVersionUID = 8743170352789661514L;
 

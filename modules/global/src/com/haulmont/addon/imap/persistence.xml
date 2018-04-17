@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <persistence xmlns="http://java.sun.com/xml/ns/persistence"
              version="2.0">
-    <persistence-unit name="imap-component"
+    <persistence-unit name="imap"
                       transaction-type="RESOURCE_LOCAL">
         <class>com.haulmont.addon.imap.entity.ImapFolder</class>
         <class>com.haulmont.addon.imap.entity.ImapMailBox</class>

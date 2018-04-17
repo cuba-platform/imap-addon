@@ -9,8 +9,8 @@ import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 
 @NamePattern("%s#%s|beanName,methodName")
-@Table(name = "IMAPCOMPONENT_IMAP_EVENT_HANDLER")
-@Entity(name = "imapcomponent$ImapEventHandler")
+@Table(name = "IMAP_EVENT_HANDLER")
+@Entity(name = "imap$EventHandler")
 public class ImapEventHandler extends StandardEntity {
 
     @NotNull

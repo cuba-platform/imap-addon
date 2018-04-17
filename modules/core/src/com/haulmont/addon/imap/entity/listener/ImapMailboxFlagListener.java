@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 import javax.inject.Inject;
 import java.sql.Connection;
 
-@Component("imapcomponent_ImapMailboxFlagListener")
+@Component("imap_MailboxFlagListener")
 public class ImapMailboxFlagListener implements AfterUpdateEntityListener<ImapMailBox> {
 
     private final PersistenceTools persistenceTools;

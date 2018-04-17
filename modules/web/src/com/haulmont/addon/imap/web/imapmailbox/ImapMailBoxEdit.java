@@ -118,7 +118,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         ImapMailBox mailBox = getItem();
         log.debug("Open trash folder window for {}", mailBox);
         openEditor(
-                "imapcomponent$ImapMailBox.trashFolder",
+                "imap$MailBox.trashFolder",
                 mailBox,
                 WindowManager.OpenType.THIS_TAB,
                 ParamsMap.of("mailBox", mailBox),

@@ -33,9 +33,8 @@ import javax.mail.MessagingException;
 import javax.mail.search.FlagTerm;
 import javax.mail.search.NotTerm;
 import java.util.*;
-import java.util.stream.Collectors;
 
-@Component("imapcomponent_ImapNewMessagesEvents")
+@Component("imap_NewMessagesEvents")
 public class ImapNewMessagesEvents {
     private final static Logger log = LoggerFactory.getLogger(ImapNewMessagesEvents.class);
 
@@ -210,7 +209,7 @@ public class ImapNewMessagesEvents {
         long uid = imapFolder.getUID(msg);
 
         int sameUids = em.createQuery(
-                "select m from imapcomponent$ImapMessage m where m.msgUid = :uid and m.folder.id = :mailFolderId"
+                "select m from imap$Message m where m.msgUid = :uid and m.folder.id = :mailFolderId"
         )
                 .setParameter("uid", uid)
                 .setParameter("mailFolderId", cubaFolder)

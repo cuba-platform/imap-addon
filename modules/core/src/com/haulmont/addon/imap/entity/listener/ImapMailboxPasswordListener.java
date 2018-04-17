@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
 
-@Component("imapcomponent_MailboxPasswordListener")
+@Component("imap_MailboxPasswordListener")
 public class ImapMailboxPasswordListener implements BeforeInsertEntityListener<ImapMailBox>,
                                                     BeforeUpdateEntityListener<ImapMailBox> {
 

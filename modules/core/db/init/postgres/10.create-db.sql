@@ -1,5 +1,5 @@
--- begin IMAPCOMPONENT_IMAP_FOLDER
-create table IMAPCOMPONENT_IMAP_FOLDER (
+-- begin IMAP_FOLDER
+create table IMAP_FOLDER (
     ID uuid,
     VERSION integer not null,
     CREATE_TS timestamp,
@@ -18,9 +18,9 @@ create table IMAPCOMPONENT_IMAP_FOLDER (
     --
     primary key (ID)
 )^
--- end IMAPCOMPONENT_IMAP_FOLDER
--- begin IMAPCOMPONENT_IMAP_MAIL_BOX
-create table IMAPCOMPONENT_IMAP_MAIL_BOX (
+-- end IMAP_FOLDER
+-- begin IMAP_MAIL_BOX
+create table IMAP_MAIL_BOX (
     ID uuid,
     VERSION integer not null,
     CREATE_TS timestamp,
@@ -44,9 +44,9 @@ create table IMAPCOMPONENT_IMAP_MAIL_BOX (
     --
     primary key (ID)
 )^
--- end IMAPCOMPONENT_IMAP_MAIL_BOX
--- begin IMAPCOMPONENT_IMAP_SIMPLE_AUTHENTICATION
-create table IMAPCOMPONENT_IMAP_SIMPLE_AUTHENTICATION (
+-- end IMAP_MAIL_BOX
+-- begin IMAP_SIMPLE_AUTHENTICATION
+create table IMAP_SIMPLE_AUTHENTICATION (
     ID uuid,
     VERSION integer not null,
     CREATE_TS timestamp,
@@ -61,28 +61,9 @@ create table IMAPCOMPONENT_IMAP_SIMPLE_AUTHENTICATION (
     --
     primary key (ID)
 )^
--- end IMAPCOMPONENT_IMAP_SIMPLE_AUTHENTICATION
-
--- begin IMAPCOMPONENT_IMAP_FOLDER_EVENT
-create table IMAPCOMPONENT_IMAP_FOLDER_EVENT (
-    ID uuid,
-    VERSION integer not null,
-    CREATE_TS timestamp,
-    CREATED_BY varchar(50),
-    UPDATE_TS timestamp,
-    UPDATED_BY varchar(50),
-    DELETE_TS timestamp,
-    DELETED_BY varchar(50),
-    --
-    FOLDER_ID uuid not null,
-    EVENT varchar(50) not null,
-    --
-    primary key (ID)
-)^
--- end IMAPCOMPONENT_IMAP_FOLDER_EVENT
-
--- begin IMAPCOMPONENT_IMAP_MESSAGE
-create table IMAPCOMPONENT_IMAP_MESSAGE (
+-- end IMAP_SIMPLE_AUTHENTICATION
+-- begin IMAP_MESSAGE
+create table IMAP_MESSAGE (
     ID uuid,
     VERSION integer not null,
     CREATE_TS timestamp,
@@ -104,9 +85,45 @@ create table IMAPCOMPONENT_IMAP_MESSAGE (
     --
     primary key (ID)
 )^
--- end IMAPCOMPONENT_IMAP_MESSAGE
--- begin IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT
-create table IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT (
+-- end IMAP_MESSAGE
+-- begin IMAP_FOLDER_EVENT
+create table IMAP_FOLDER_EVENT (
+    ID uuid,
+    VERSION integer not null,
+    CREATE_TS timestamp,
+    CREATED_BY varchar(50),
+    UPDATE_TS timestamp,
+    UPDATED_BY varchar(50),
+    DELETE_TS timestamp,
+    DELETED_BY varchar(50),
+    --
+    FOLDER_ID uuid not null,
+    EVENT varchar(50) not null,
+    --
+    primary key (ID)
+)^
+-- end IMAP_FOLDER_EVENT
+-- begin IMAP_EVENT_HANDLER
+create table IMAP_EVENT_HANDLER (
+    ID uuid,
+    VERSION integer not null,
+    CREATE_TS timestamp,
+    CREATED_BY varchar(50),
+    UPDATE_TS timestamp,
+    UPDATED_BY varchar(50),
+    DELETE_TS timestamp,
+    DELETED_BY varchar(50),
+    --
+    EVENT_ID uuid not null,
+    HANDLING_ORDER integer not null,
+    BEAN_NAME varchar(255) not null,
+    METHOD_NAME varchar(255) not null,
+    --
+    primary key (ID)
+)^
+-- end IMAP_EVENT_HANDLER
+-- begin IMAP_MESSAGE_ATTACHMENT
+create table IMAP_MESSAGE_ATTACHMENT (
     ID uuid,
     VERSION integer not null,
     CREATE_TS timestamp,
@@ -124,9 +141,9 @@ create table IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT (
     --
     primary key (ID)
 )^
--- end IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT
--- begin IMAPCOMPONENT_IMAP_PROXY
-create table IMAPCOMPONENT_IMAP_PROXY (
+-- end IMAP_MESSAGE_ATTACHMENT
+-- begin IMAP_PROXY
+create table IMAP_PROXY (
     ID uuid,
     VERSION integer not null,
     CREATE_TS timestamp,
@@ -142,23 +159,4 @@ create table IMAPCOMPONENT_IMAP_PROXY (
     --
     primary key (ID)
 )^
--- end IMAPCOMPONENT_IMAP_PROXY
--- begin IMAPCOMPONENT_IMAP_EVENT_HANDLER
-create table IMAPCOMPONENT_IMAP_EVENT_HANDLER (
-    ID uuid,
-    VERSION integer not null,
-    CREATE_TS timestamp,
-    CREATED_BY varchar(50),
-    UPDATE_TS timestamp,
-    UPDATED_BY varchar(50),
-    DELETE_TS timestamp,
-    DELETED_BY varchar(50),
-    --
-    EVENT_ID uuid not null,
-    HANDLING_ORDER integer not null,
-    BEAN_NAME varchar(255) not null,
-    METHOD_NAME varchar(255) not null,
-    --
-    primary key (ID)
-)^
--- end IMAPCOMPONENT_IMAP_EVENT_HANDLER
+-- end IMAP_PROXY

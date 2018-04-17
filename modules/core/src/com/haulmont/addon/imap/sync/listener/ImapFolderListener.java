@@ -23,7 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Component("imapcomponent_ImapFolderListener")
+@Component("imap_FolderListener")
 public class ImapFolderListener {
 
     private final static Logger log = LoggerFactory.getLogger(ImapFolderListener.class);

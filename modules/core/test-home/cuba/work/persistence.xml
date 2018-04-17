@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <persistence xmlns="http://java.sun.com/xml/ns/persistence" version="2.0">  
-  <persistence-unit name="imap-component" transaction-type="RESOURCE_LOCAL">
+  <persistence-unit name="imap" transaction-type="RESOURCE_LOCAL">
     <provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
     <class>com.haulmont.cuba.core.entity.BaseGenericIdEntity</class>
     <class>com.haulmont.cuba.core.entity.BaseUuidEntity</class>

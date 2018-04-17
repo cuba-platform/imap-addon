@@ -12,7 +12,7 @@ import java.util.Collection;
 import java.util.List;
 
 @NamePattern("%s |fullName")
-@MetaClass(name = "imapcomponent$ImapFolderDto")
+@MetaClass(name = "imap$FolderDto")
 public class ImapFolderDto extends AbstractNotPersistentEntity {
 
     @MetaProperty(mandatory = true)

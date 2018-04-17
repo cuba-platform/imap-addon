@@ -14,26 +14,24 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.UUID;
 
-@Component("imapcomponent_ImapDao")
+@Component("imap_Dao")
 public class ImapDao {
 
     private final static Logger log = LoggerFactory.getLogger(ImapDao.class);
 
     private final Persistence persistence;
-    private final PersistenceTools persistenceTools;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapDao(Persistence persistence, PersistenceTools persistenceTools) {
+    public ImapDao(Persistence persistence) {
         this.persistence = persistence;
-        this.persistenceTools = persistenceTools;
     }
 
     public Collection<ImapMailBox> findMailBoxes() {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             TypedQuery<ImapMailBox> query = em.createQuery(
-                    "select distinct b from imapcomponent$ImapMailBox b",
+                    "select distinct b from imap$MailBox b",
                     ImapMailBox.class
             ).setViewName("imap-mailbox-edit");
 
@@ -45,7 +43,7 @@ public class ImapDao {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             return em.createQuery(
-                    "select distinct b from imapcomponent$ImapMailBox b where b.id = :id",
+                    "select distinct b from imap$MailBox b where b.id = :id",
                     ImapMailBox.class
             ).setParameter("id", id).setViewName("imap-mailbox-edit").getSingleResult();
         }
@@ -63,7 +61,7 @@ public class ImapDao {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             TypedQuery<ImapFolder> query = em.createQuery(
-                    "select f from imapcomponent$ImapFolder f where f.id = :id",
+                    "select f from imap$Folder f where f.id = :id",
                     ImapFolder.class
             ).setParameter("id", folderId).setViewName("imap-folder-full");
             return query.getFirstResult();
@@ -75,7 +73,7 @@ public class ImapDao {
             EntityManager em = persistence.getEntityManager();
 
             return em.createQuery(
-                    "select m from imapcomponent$ImapMessage m where m.folder.id = :folderId and m.msgNum in :msgNums",
+                    "select m from imap$Message m where m.folder.id = :folderId and m.msgNum in :msgNums",
                     ImapMessage.class)
                     .setParameter("mailFolderId", folderId)
                     .setParameter("msgNums", messageNums)
@@ -95,8 +93,8 @@ public class ImapDao {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             return em.createQuery(
-                    "select m from imapcomponent$ImapMessage m where m.messageId = :imapMessageId and " +
-                            "m.folder.id in (select f.id from imapcomponent$ImapFolder f where f.mailBox.id = :mailBoxId)",
+                    "select m from imap$Message m where m.messageId = :imapMessageId and " +
+                            "m.folder.id in (select f.id from imap$Folder f where f.mailBox.id = :mailBoxId)",
                     ImapMessage.class)
                     .setParameter("mailBoxId", mailBoxId)
                     .setParameter("imapMessageId", imapMessageId)
@@ -114,7 +112,7 @@ public class ImapDao {
             if (PersistenceHelper.isNew(imapMessage)) {
                 em.persist(imapMessage);
             } else {
-                em.createQuery("update imapcomponent$ImapMessage m set m.updateTs = :updateTs, m.flags = :flags " +
+                em.createQuery("update imap$Message m set m.updateTs = :updateTs, m.flags = :flags " +
                         "where m.id = :id")
                         .setParameter("updateTs", new Date())
                         .setParameter("flags", imapMessage.getFlags())
@@ -131,7 +129,7 @@ public class ImapDao {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             TypedQuery<ImapMessageAttachment> query = em.createQuery(
-                    "select a from imapcomponent$ImapMessageAttachment a where a.imapMessage.id = :msg",
+                    "select a from imap$MessageAttachment a where a.imapMessage.id = :msg",
                     ImapMessageAttachment.class
             ).setParameter("msg", messageId).setViewName("imap-msg-attachment-full");
             return query.getResultList();
@@ -146,7 +144,7 @@ public class ImapDao {
                 it.setImapMessage(msg);
                 em.persist(it);
             });
-            em.createQuery("update imapcomponent$ImapMessage m set m.attachmentsLoaded = true where m.id = :msg")
+            em.createQuery("update imap$Message m set m.attachmentsLoaded = true where m.id = :msg")
                     .setParameter("msg", msg.getId()).executeUpdate();
             tx.commit();
         }

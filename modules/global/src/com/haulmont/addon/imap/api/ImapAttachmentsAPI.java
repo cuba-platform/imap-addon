@@ -5,7 +5,7 @@ import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import java.io.InputStream;
 
 public interface ImapAttachmentsAPI {
-    String NAME = "imapcomponent_ImapAttachmentsAPI";
+    String NAME = "imap_AttachmentsAPI";
 
     InputStream openStream(ImapMessageAttachment attachment);
 

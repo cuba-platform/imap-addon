@@ -38,7 +38,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Component("imapcomponent_ImapMissedMessagesEvents")
+@Component("imap_MissedMessagesEvents")
 public class ImapMissedMessagesEvents {
 
     private final static Logger log = LoggerFactory.getLogger(ImapMissedMessagesEvents.class);
@@ -246,7 +246,7 @@ public class ImapMissedMessagesEvents {
             EntityManager em = persistence.getEntityManager();
 
             return em.createQuery(
-                    "select m from imapcomponent$ImapMessage m where m.folder.id = :mailFolderId order by m.msgNum",
+                    "select m from imap$Message m where m.folder.id = :mailFolderId order by m.msgNum",
                     ImapMessage.class
             )
                     .setParameter("mailFolderId", cubaFolder)
@@ -261,7 +261,7 @@ public class ImapMissedMessagesEvents {
 
     private void recalculateMessageNums(EntityManager em, ImapFolder cubaFolder, List<Integer> ascMessageNums) {
         for (int i = 0; i < ascMessageNums.size(); i++) {
-            String queryString = "update imapcomponent$ImapMessage m set m.msgNum = m.msgNum-" + (i + 1) +
+            String queryString = "update imap$Message m set m.msgNum = m.msgNum-" + (i + 1) +
                     " where m.folder.id = :mailFolderId and m.msgNum > :msgNum";
             if (i < ascMessageNums.size() - 1) {
                 queryString += " and m.msgNum < :topMsgNum";

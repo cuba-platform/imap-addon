@@ -14,8 +14,8 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 @NamePattern("№%s: %s|orderNumber,name")
-@Table(name = "IMAPCOMPONENT_IMAP_MESSAGE_ATTACHMENT")
-@Entity(name = "imapcomponent$ImapMessageAttachment")
+@Table(name = "IMAP_MESSAGE_ATTACHMENT")
+@Entity(name = "imap$MessageAttachment")
 public class ImapMessageAttachment extends StandardEntity {
     private static final long serialVersionUID = -1046407519479636529L;
 

@@ -11,7 +11,7 @@ import java.util.Collection;
 import java.util.UUID;
 
 public interface ImapAPI {
-    String NAME = "imapcomponent_ImapAPI";
+    String NAME = "imap_ImapAPI";
 
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box) throws ImapException;
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames);

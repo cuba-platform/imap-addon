@@ -20,7 +20,7 @@ import java.util.Base64;
 
 @Component(DefaultEncryptor.NAME)
 public class DefaultEncryptor implements Encryptor {
-    static final String NAME = "imapcomponent_DefaultEncryptor";
+    static final String NAME = "imap_DefaultEncryptor";
 
     private final static Logger log = LoggerFactory.getLogger(DefaultEncryptor.class);
 

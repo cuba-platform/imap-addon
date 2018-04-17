@@ -7,8 +7,8 @@ import javax.persistence.Column;
 import com.haulmont.chile.core.annotations.NamePattern;
 
 @NamePattern("%s:%s|host,port")
-@Table(name = "IMAPCOMPONENT_IMAP_PROXY")
-@Entity(name = "imapcomponent$ImapProxy")
+@Table(name = "IMAP_PROXY")
+@Entity(name = "imap$Proxy")
 public class ImapProxy extends StandardEntity {
     private static final long serialVersionUID = -5839274142110060210L;
 

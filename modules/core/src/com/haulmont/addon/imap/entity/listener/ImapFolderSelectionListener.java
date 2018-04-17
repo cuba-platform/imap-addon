@@ -12,8 +12,10 @@ import com.haulmont.cuba.core.listener.AfterUpdateEntityListener;
 
 import javax.inject.Inject;
 
-@Component("imapcomponent_ImapFolderSelectionListener")
-public class ImapFolderSelectionListener implements AfterDeleteEntityListener<ImapFolder>, AfterInsertEntityListener<ImapFolder>, AfterUpdateEntityListener<ImapFolder> {
+@Component("imap_FolderSelectionListener")
+public class ImapFolderSelectionListener implements AfterDeleteEntityListener<ImapFolder>,
+                                                    AfterInsertEntityListener<ImapFolder>,
+                                                    AfterUpdateEntityListener<ImapFolder> {
 
     private final PersistenceTools persistenceTools;
 

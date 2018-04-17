@@ -33,7 +33,7 @@ import javax.mail.MessagingException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Component("imapcomponent_ImapChangedMessagesEvents")
+@Component("imap_ChangedMessagesEvents")
 public class ImapChangedMessagesEvents {
     private final static Logger log = LoggerFactory.getLogger(ImapChangedMessagesEvents.class);
 
@@ -123,7 +123,7 @@ public class ImapChangedMessagesEvents {
         authentication.begin();
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
-            return ((Number) em.createQuery("select count(m.id) from imapcomponent$ImapMessage m where m.folder.id = :mailFolderId")
+            return ((Number) em.createQuery("select count(m.id) from imap$Message m where m.folder.id = :mailFolderId")
                     .setParameter("mailFolderId", cubaFolder)
                     .getSingleResult()).longValue();
         } finally {
@@ -189,7 +189,7 @@ public class ImapChangedMessagesEvents {
             EntityManager em = persistence.getEntityManager();
 
             return em.createQuery(
-                    "select m from imapcomponent$ImapMessage m where m.folder.id = :mailFolderId order by m.updateTs asc nulls first",
+                    "select m from imap$Message m where m.folder.id = :mailFolderId order by m.updateTs asc nulls first",
                     ImapMessage.class
             )
                     .setParameter("mailFolderId", cubaFolder)
@@ -227,7 +227,7 @@ public class ImapChangedMessagesEvents {
         msg.setUpdateTs(new Date());
         msg.setMsgNum(newMsg.getMessageNumber());
 
-        em.createQuery("update imapcomponent$ImapMessage m set m.msgNum = :msgNum, m.threadId = :threadId, " +
+        em.createQuery("update imap$Message m set m.msgNum = :msgNum, m.threadId = :threadId, " +
                 "m.updateTs = :updateTs, m.flags = :flags, m.referenceId = :refId where m.id = :id")
                 .setParameter("msgNum", newMsg.getMessageNumber())
                 .setParameter("threadId", imapHelper.getThreadId(newMsg))
