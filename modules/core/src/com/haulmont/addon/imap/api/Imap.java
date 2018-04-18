@@ -173,11 +173,11 @@ public class Imap implements ImapAPI {
             }
         } catch (InterruptedException e) {
             log.info("Fetching of messages was interrupted");
-            futures.forEach(task -> {
+            for (Future<?> task : futures) {
                 if (!task.isDone() && !task.isCancelled()) {
                     task.cancel(true);
                 }
-            });
+            }
             Thread.currentThread().interrupt();
         } catch (ExecutionException | TimeoutException e) {
             throw new RuntimeException("Can't fetch messages", e);
@@ -438,7 +438,9 @@ public class Imap implements ImapAPI {
                 imapHelper.canHoldMessages(folder),
                 subFolders);
         result.setImapFolder(folder);
-        result.getChildren().forEach(f -> f.setParent(result));
+        for (ImapFolderDto subFolder : result.getChildren()) {
+            subFolder.setParent(result) ;
+        }
         return result;
     }
 }

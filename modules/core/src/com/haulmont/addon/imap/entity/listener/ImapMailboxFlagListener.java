@@ -1,5 +1,6 @@
 package com.haulmont.addon.imap.entity.listener;
 
+import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.sync.listener.ImapFolderEvent;
 import com.haulmont.cuba.core.PersistenceTools;
@@ -32,9 +33,9 @@ public class ImapMailboxFlagListener implements AfterUpdateEntityListener<ImapMa
     }
 
     private void publishEvents(ImapMailBox mailBox) {
-        mailBox.getProcessableFolders().forEach(folder ->
-                events.publish(new ImapFolderEvent(folder, ImapFolderEvent.Type.ADDED))
-        );
+        for (ImapFolder folder : mailBox.getProcessableFolders()) {
+            events.publish(new ImapFolderEvent(folder, ImapFolderEvent.Type.ADDED));
+        }
     }
 
 }

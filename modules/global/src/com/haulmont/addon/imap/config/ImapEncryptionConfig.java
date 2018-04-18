@@ -8,9 +8,9 @@ import com.haulmont.cuba.core.config.SourceType;
 @Source(type = SourceType.APP)
 public interface ImapEncryptionConfig extends Config {
 
-    @Property("cuba.email.imap.encryption.key")
+    @Property("imap.encryption.key")
     String getEncryptionKey();
 
-    @Property("cuba.email.imap.encryption.iv")
+    @Property("imap.encryption.iv")
     String getEncryptionIv();
 }

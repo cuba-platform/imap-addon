@@ -8,17 +8,17 @@ import com.haulmont.cuba.core.config.defaults.DefaultInt;
 @Source(type = SourceType.DATABASE)
 public interface ImapConfig extends Config {
 
-    @Property("cuba.email.imap.server.trustAllCertificates")
+    @Property("imap.server.trustAllCertificates")
     @DefaultBoolean(false)
     boolean getTrustAllCertificates();
     void setTrustAllCertificates(boolean value);
 
-    @Property("cuba.email.imap.updateBatchSize")
+    @Property("imap.updateBatchSize")
     @DefaultInt(100)
     int getUpdateBatchSize();
     void setUpdateBatchSize(int value);
 
-    @Property("cuba.email.imap.clearCustomFlags")
+    @Property("imap.clearCustomFlags")
     @DefaultBoolean(false)
     boolean getClearCustomFlags();
     void setClearCustomFlags(boolean value);

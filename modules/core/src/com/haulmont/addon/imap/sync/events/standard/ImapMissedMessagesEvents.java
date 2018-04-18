@@ -174,10 +174,12 @@ public class ImapMissedMessagesEvents {
         otherFolders.stream()
                 .filter(folder -> folder.getFullName().equals(mailBox.getTrashFolderName()))
                 .findFirst()
-                .ifPresent(trashFolder -> findMessageIds(trashFolder, messagesByIds.keySet()).forEach(messageId -> {
-                    ImapMessage imapMessage = messagesByIds.remove(messageId);
-                    result.add(new EmailDeletedImapEvent(imapMessage));
-                }));
+                .ifPresent(trashFolder -> {
+                    for ( String messageId : findMessageIds(trashFolder, messagesByIds.keySet()) ) {
+                        ImapMessage imapMessage = messagesByIds.remove(messageId);
+                        result.add(new EmailDeletedImapEvent(imapMessage));
+                    }
+                });
 
         Map<String, BaseImapEvent> movedMessages = findMessagesInOtherFolders(
                 otherFolders.stream().filter(folder -> !folder.getFullName().equals(mailBox.getTrashFolderName())),

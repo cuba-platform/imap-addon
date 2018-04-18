@@ -140,10 +140,10 @@ public class ImapDao {
         try (Transaction tx = persistence.createTransaction()) {
             log.trace("storing {} for message {} and mark loaded", attachments, msg);
             EntityManager em = persistence.getEntityManager();
-            attachments.forEach(it -> {
-                it.setImapMessage(msg);
-                em.persist(it);
-            });
+            for (ImapMessageAttachment attachment : attachments) {
+                attachment.setImapMessage(msg);
+                em.persist(attachment);
+            }
             em.createQuery("update imap$Message m set m.attachmentsLoaded = true where m.id = :msg")
                     .setParameter("msg", msg.getId()).executeUpdate();
             tx.commit();

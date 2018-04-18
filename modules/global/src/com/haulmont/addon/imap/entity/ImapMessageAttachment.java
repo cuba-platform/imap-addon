@@ -13,7 +13,7 @@ import java.util.Date;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
-@NamePattern("№%s: %s|orderNumber,name")
+@NamePattern("#%s: %s|orderNumber,name")
 @Table(name = "IMAP_MESSAGE_ATTACHMENT")
 @Entity(name = "imap$MessageAttachment")
 public class ImapMessageAttachment extends StandardEntity {

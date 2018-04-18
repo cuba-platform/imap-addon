@@ -137,7 +137,7 @@ public class ImapEvents {
 
         log.debug("Filtered events for {}: {}", cubaFolder, imapEvents);
 
-        imapEvents.forEach(event -> {
+        for (BaseImapEvent event : imapEvents) {
             events.publish(event);
 
             ImapEventType.getByEventType(event.getClass()).stream()
@@ -146,8 +146,7 @@ public class ImapEvents {
                     .map(ImapFolderEvent::getEventHandlers)
                     .filter(handlers -> !CollectionUtils.isEmpty(handlers))
                     .forEach(handlers -> invokeAttachedHandlers(event, cubaFolder, handlers));
-
-        });
+        }
     }
 
     private void filterEvents(ImapFolder cubaFolder, Collection<? extends   BaseImapEvent> imapEvents) {
@@ -161,7 +160,7 @@ public class ImapEvents {
     private void invokeAttachedHandlers(BaseImapEvent event, ImapFolder cubaFolder, List<ImapEventHandler> handlers) {
         log.trace("{}: invoking handlers {} for event {}", cubaFolder.getName(), handlers, event);
 
-        handlers.forEach(handler -> {
+        for (ImapEventHandler handler : handlers) {
             Object bean = AppBeans.get(handler.getBeanName());
             if (bean == null) {
                 log.warn("No bean {} is available, check the folder {} configuration", handler.getBeanName(), cubaFolder);
@@ -187,7 +186,7 @@ public class ImapEvents {
             } finally {
                 authentication.end();
             }
-        });
+        }
 
     }
 }

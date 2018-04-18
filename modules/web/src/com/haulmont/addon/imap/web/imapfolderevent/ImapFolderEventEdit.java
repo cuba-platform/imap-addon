@@ -2,7 +2,6 @@ package com.haulmont.addon.imap.web.imapfolderevent;
 
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.service.ImapService;
-import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.gui.components.*;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
@@ -41,6 +40,12 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
     @Inject
     private ImapService service;
 
+    @Inject
+    private ComponentsFactory componentsFactory;
+
+    @Inject
+    private Metadata metadata;
+
     @Override
     protected void postInit() {
         super.postInit();
@@ -63,13 +68,13 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
 
         Map<ImapEventHandler, LookupField> handlerMethodLookups = new HashMap<>();
         if (folderEvent.getEventHandlers() != null) {
-            folderEvent.getEventHandlers().forEach(eventHandler ->
-                    handlerMethodLookups.put(eventHandler, makeBeanMethodLookup(availableBeans, eventHandler))
-            );
+            for (ImapEventHandler eventHandler : folderEvent.getEventHandlers()) {
+                handlerMethodLookups.put(eventHandler, makeBeanMethodLookup(availableBeans, eventHandler));
+            }
         }
 
         addHandlersCollectionChangeListeners(availableBeans, maxHandlersCount, handlerMethodLookups);
-        setHandlerChangeListeners(availableBeans, handlerMethodLookups);
+        setHandlerChangeListeners(availableBeans);
 
         generateColumns(availableBeans, beanNames, handlerMethodLookups);
 
@@ -88,7 +93,7 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
 
     private void generateColumns(Map<String, List<String>> availableBeans, List<String> beanNames, Map<ImapEventHandler, LookupField> handlerMethodLookups) {
         handlersTable.addGeneratedColumn("beanName", eventHandler -> {
-            LookupField lookup = AppBeans.get(ComponentsFactory.class).createComponent(LookupField.class);
+            LookupField lookup = componentsFactory.createComponent(LookupField.class);
             lookup.setDatasource(handlersTable.getItemDatasource(eventHandler), "beanName");
             lookup.setWidth("250px");
             lookup.setFrame(getFrame());
@@ -121,14 +126,16 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
         });
         handlersDs.addCollectionChangeListener(e -> {
             if (e.getOperation() == CollectionDatasource.Operation.REMOVE) {
-                e.getItems().forEach(handlerMethodLookups::remove);
+                for (ImapEventHandler handler : e.getItems()) {
+                    handlerMethodLookups.remove(handler);
+                }
                 enableAddButton(maxHandlersCount);
             } else if (e.getOperation() == CollectionDatasource.Operation.ADD) {
-                e.getItems().forEach(handler -> {
+                for (ImapEventHandler handler : e.getItems()) {
                     if (!handlerMethodLookups.containsKey(handler)) {
                         handlerMethodLookups.put(handler, makeBeanMethodLookup(availableBeans, handler));
                     }
-                });
+                }
                 enableAddButton(maxHandlersCount);
             }
         });
@@ -144,11 +151,13 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
                     .map(handler -> String.format("%s#%s", handler.getBeanName(), handler.getMethodName()))
                     .collect(Collectors.toList());
             showNotification(formatMessage("missedHandlersWarning", beanMethods), NotificationType.HUMANIZED);
-            missedHandlers.forEach(handlersDs::removeItem);
+            for (ImapEventHandler handler : missedHandlers) {
+                handlersDs.removeItem(handler);
+            }
         }
     }
 
-    private void setHandlerChangeListeners(Map<String, List<String>> availableBeans, Map<ImapEventHandler, LookupField> handlerMethodLookups) {
+    private void setHandlerChangeListeners(Map<String, List<String>> availableBeans) {
         handlersDs.addItemPropertyChangeListener(event -> {
             ImapEventHandler item = event.getItem();
             if (Objects.equals("beanName", event.getProperty())) {
@@ -192,7 +201,7 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
     }
 
     private LookupField makeBeanMethodLookup(Map<String, List<String>> availableBeans, ImapEventHandler eventHandler) {
-        LookupField lookup = AppBeans.get(ComponentsFactory.class).createComponent(LookupField.class);
+        LookupField lookup = componentsFactory.createComponent(LookupField.class);
         lookup.setDatasource(handlersTable.getItemDatasource(eventHandler), "methodName");
         lookup.setWidth("250px");
         String beanName = eventHandler.getBeanName();
@@ -208,7 +217,7 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
     }
 
     public void addHandler() {
-        ImapEventHandler handler = AppBeans.get(Metadata.class).create(ImapEventHandler.class);
+        ImapEventHandler handler = metadata.create(ImapEventHandler.class);
         handler.setEvent(getItem());
         handlersDs.addItem(handler);
     }

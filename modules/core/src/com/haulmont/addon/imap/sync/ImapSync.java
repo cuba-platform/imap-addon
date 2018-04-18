@@ -82,7 +82,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
         try {
             Collection<ImapFolder> allListenedFolders = new ArrayList<>();
             Collection<Future<?>> tasks = new ArrayList<>();
-            dao.findMailBoxes().forEach(mailBox -> {
+            for (ImapMailBox mailBox : dao.findMailBoxes()) {
                 log.debug("{}: synchronizing", mailBox);
                 Collection<ImapFolderDto> allFolders = imapAPI.fetchFolders(mailBox);
                 Collection<ImapFolder> processableFolders = mailBox.getProcessableFolders();
@@ -102,7 +102,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
                 }
 
                 allListenedFolders.addAll(listenedFolders);
-            });
+            }
 
             executeFullSyncTasks(tasks);
             allListenedFolders.forEach(imapFolderListener::subscribe);
@@ -182,7 +182,9 @@ public class ImapSync implements AppContext.Listener, Ordered {
                 }
             } catch (InterruptedException | TimeoutException e) {
                 log.error("Synchronizing mailbox folders was interrupted", e);
-                tasks.forEach(task -> cancel(task, true));
+                for (Future<?> task : tasks) {
+                    cancel(task, true);
+                }
                 Thread.currentThread().interrupt();
             } catch (ExecutionException e) {
                 log.error("Full sync failed", e);

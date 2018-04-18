@@ -38,8 +38,8 @@ It is required to configure the following application properties in the `app.pro
 
 IMAP mail box password encryption keys:
 ```
-cuba.email.imap.encryption.key = HBXv3Q70IlmBMiW4EMyPHw==
-cuba.email.imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
+imap.encryption.key = HBXv3Q70IlmBMiW4EMyPHw==
+imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
 ```
 
 

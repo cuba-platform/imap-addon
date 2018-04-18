@@ -100,7 +100,9 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
     public static List<ImapFolderDto> flattenList(Collection<ImapFolderDto> folderDtos) {
         List<ImapFolderDto> result = new ArrayList<>(folderDtos.size());
 
-        folderDtos.forEach(folder -> addFolderWithChildren(result, folder));
+        for (ImapFolderDto folderDto : folderDtos) {
+            addFolderWithChildren(result, folderDto);
+        }
 
         return result;
     }
@@ -109,7 +111,9 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
         foldersList.add(folder);
         List<ImapFolderDto> children = folder.getChildren();
         if (children != null) {
-            children.forEach(childFolder -> addFolderWithChildren(foldersList, childFolder));
+            for (ImapFolderDto childFolder : children) {
+                addFolderWithChildren(foldersList, childFolder);
+            }
         }
     }
 }

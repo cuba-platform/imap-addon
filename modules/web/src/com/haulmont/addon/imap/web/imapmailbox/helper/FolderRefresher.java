@@ -53,7 +53,9 @@ public class FolderRefresher {
             log.debug("There are folders for {}. Will add new from IMAP server and disable missing", mailBox);
             result = mergeFolders(ImapFolderDto.flattenList(folderDtos), folders);
         }
-        result.keySet().forEach(f -> f.setMailBox(mailBox));
+        for (ImapFolder folder : result.keySet()) {
+            folder.setMailBox(mailBox);
+        }
 
         return result;
     }
@@ -90,12 +92,14 @@ public class FolderRefresher {
         resultList.sort(Comparator.comparingInt(f -> folderNames.indexOf(f.getName())));
 
         LinkedHashMap<ImapFolder, State> result = new LinkedHashMap<>(resultList.size());
-        resultList.forEach(folder -> result.put(
-                folder,
-                newFoldersWithParent.containsKey(folder)
-                        ? State.NEW
-                        : (deletedFolders.contains(folder) ? State.DELETED : State.UNCHANGED)
-        ));
+        for (ImapFolder folder : resultList) {
+            result.put(
+                    folder,
+                    newFoldersWithParent.containsKey(folder)
+                            ? State.NEW
+                            : (deletedFolders.contains(folder) ? State.DELETED : State.UNCHANGED)
+            );
+        }
 
         return result;
     }
