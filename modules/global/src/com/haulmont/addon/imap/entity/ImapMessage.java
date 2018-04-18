@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-@NamePattern("/%s from |msgUid")
+@NamePattern("%s (#%d) | caption, msgNum")
 @Table(name = "IMAP_MESSAGE")
 @Entity(name = "imap$Message")
 public class ImapMessage extends StandardEntity {
