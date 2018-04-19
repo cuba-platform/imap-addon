@@ -146,7 +146,7 @@ public class ImapFolderListener {
         void listen() {
             this.listenTask = executor.submit(() -> {
                 try {
-                    this.imapFolder = imapHelper.getFolder(cubaFolder);
+                    this.imapFolder = imapHelper.getExclusiveFolder(cubaFolder);
                     this.imapFolder.addMessageCountListener(this.countListener);
                     this.imapFolder.addMessageChangedListener(this.messageChangedListener);
                     this.standbyTask = scheduledExecutorService.schedule((Runnable) imapFolder::isOpen, 2, TimeUnit.MINUTES);

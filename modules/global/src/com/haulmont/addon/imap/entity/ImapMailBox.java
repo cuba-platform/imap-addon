@@ -63,7 +63,7 @@ public class ImapMailBox extends StandardEntity {
 
     @OnDelete(DeletePolicy.CASCADE)
     @Composition
-    @OneToMany(mappedBy = "mailBox", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "mailBox")
     protected List<ImapFolder> folders;
 
     @Column(name = "EVENTS_GENERATOR_CLASS")

@@ -93,6 +93,9 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private CollectionDatasource<ImapFolderEvent, UUID> eventsDs;
 
     @Inject
+    private CollectionDatasource<ImapEventHandler, UUID> handlersDs;
+
+    @Inject
     private BackgroundWorker backgroundWorker;
 
     @Inject
@@ -258,10 +261,12 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                 imapFolder.setEvents(events);
             }
             events.add(imapEvent);
+            eventsDs.addItem(imapEvent);
             foldersDs.modifyItem(imapFolder);
         } else if (!value && imapFolder.hasEvent(eventType)) {
             ImapFolderEvent event = imapFolder.getEvent(eventType);
             imapFolder.getEvents().remove(event);
+            eventsDs.removeItem(event);
             foldersDs.modifyItem(imapFolder);
         }
     }
@@ -282,7 +287,47 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                             return;
                         }
                         eventsDs.setItem(event);
-                        openEditor(event, WindowManager.OpenType.DIALOG, Collections.emptyMap(), eventsDs);
+                        if (event.getEventHandlers() == null) {
+                            event.setEventHandlers(new ArrayList<>());
+                        }
+                        List<ImapEventHandler> existingHandlers = new ArrayList<>(event.getEventHandlers());
+                        AbstractEditor eventEditor = openEditor(
+                                event, WindowManager.OpenType.DIALOG, Collections.emptyMap(), eventsDs
+                        );
+                        eventEditor.addCloseWithCommitListener(() -> {
+                            List<ImapEventHandler> newHandlers = new ArrayList<>(event.getEventHandlers());
+                            List<ImapEventHandler> actualHandlers = new ArrayList<>(newHandlers.size());
+
+                            for (int i = 0; i < newHandlers.size(); i++) {
+                                ImapEventHandler newHandler = newHandlers.get(i);
+                                if (i < existingHandlers.size()) {
+                                    ImapEventHandler existingHandler = existingHandlers.get(i);
+                                    if (!Objects.equals(existingHandler.getBeanName(), newHandler.getBeanName()) ||
+                                            !Objects.equals(existingHandler.getMethodName(), newHandler.getMethodName())) {
+                                        existingHandler.setBeanName(newHandler.getBeanName());
+                                        existingHandler.setMethodName(newHandler.getMethodName());
+                                        handlersDs.modifyItem(existingHandler);
+                                    }
+                                    actualHandlers.add(existingHandler);
+                                } else {
+                                    ImapEventHandler handler = metadata.create(ImapEventHandler.class);
+                                    handler.setEvent(event);
+                                    handler.setBeanName(newHandler.getBeanName());
+                                    handler.setMethodName(newHandler.getMethodName());
+                                    handler.setHandlingOrder(i);
+                                    handlersDs.addItem(handler);
+                                    actualHandlers.add(handler);
+                                }
+                            }
+                            event.getEventHandlers().clear();
+                            event.getEventHandlers().addAll(actualHandlers);
+                            for (int i = newHandlers.size(); i < existingHandlers.size(); i++) {
+                                ImapEventHandler handler = existingHandlers.get(i);
+                                if (!PersistenceHelper.isNew(handler)) {
+                                    handlersDs.removeItem(handler);
+                                }
+                            }
+                        });
                     }
                 }
         ));
@@ -322,14 +367,14 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             BackgroundTaskHandler taskHandler = backgroundWorker.handle(new FoldersRefreshTask(mailBox));
             taskHandler.execute();
         }
-        getDsContext().addBeforeCommitListener(context -> {
+        /*getDsContext().addBeforeCommitListener(context -> {
             List<ImapFolderEvent> allEvents = mailBox.getFolders().stream()
                     .flatMap(f -> f.getEvents() != null ? f.getEvents().stream() : Stream.empty())
                     .collect(Collectors.toList());
             context.getCommitInstances().removeIf(entity ->
                     entity instanceof ImapFolderEvent && !allEvents.contains(entity)
             );
-        });
+        });*/
     }
 
     @Override
@@ -457,12 +502,16 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         if (folders == null) {
             folders = new ArrayList<>(foldersWithState.keySet());
             getItem().setFolders(folders);
+            for (ImapFolder folder : folders) {
+                foldersDs.addItem(folder);
+            }
         } else {
             folders.clear();
             folders.addAll(foldersWithState.keySet());
+            foldersDs.refresh();
         }
         setEnableForButtons(true);
-        foldersDs.refresh();
+
         getComponentNN("foldersPane").setVisible(true);
     }
 

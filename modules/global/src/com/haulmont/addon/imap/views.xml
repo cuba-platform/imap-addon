@@ -69,6 +69,6 @@
           extends="_local"
           name="imap-folder-event-edit">
         <property name="folder" view="_minimal" />
-        <property name="eventHandlers" view="_minimal" />
+        <property name="eventHandlers" view="_local" />
     </view>
 </views>

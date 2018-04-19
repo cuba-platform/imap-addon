@@ -8,10 +8,15 @@ import javax.mail.MessagingException;
 public class ImapException extends RuntimeException {
 
     public ImapException(MessagingException cause) {
-        super(cause.getMessage());
+        super(causeDescription(cause));
     }
 
     public ImapException(String message, MessagingException cause) {
-        super(String.format("%s causes by: %s", message, cause.getMessage()));
+        super(String.format("%s caused by: %s", message, causeDescription(cause)));
+    }
+
+    private static String causeDescription(MessagingException e) {
+        String message = e.getMessage();
+        return String.format("[%s]%s", e.getClass().getName(), message != null ? message : e.toString() );
     }
 }

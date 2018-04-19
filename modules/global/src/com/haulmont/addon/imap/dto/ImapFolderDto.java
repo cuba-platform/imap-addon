@@ -3,7 +3,7 @@ package com.haulmont.addon.imap.dto;
 import com.haulmont.chile.core.annotations.MetaClass;
 import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.chile.core.annotations.NamePattern;
-import com.haulmont.cuba.core.entity.AbstractNotPersistentEntity;
+import com.haulmont.cuba.core.entity.BaseUuidEntity;
 import com.sun.mail.imap.IMAPFolder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
@@ -13,7 +13,7 @@ import java.util.List;
 
 @NamePattern("%s |fullName")
 @MetaClass(name = "imap$FolderDto")
-public class ImapFolderDto extends AbstractNotPersistentEntity {
+public class ImapFolderDto extends BaseUuidEntity {
 
     @MetaProperty(mandatory = true)
     private String name;
@@ -46,13 +46,6 @@ public class ImapFolderDto extends AbstractNotPersistentEntity {
 
     public void setParent(ImapFolderDto parent) {
         this.parent = parent;
-    }
-
-    public ImapFolderDto(String name, String fullName, boolean canHoldMessages, List<ImapFolderDto> children) {
-        this.name = name;
-        this.fullName = fullName;
-        this.canHoldMessages = canHoldMessages;
-        this.children = children;
     }
 
     public String getName() {

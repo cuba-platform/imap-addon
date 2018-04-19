@@ -75,7 +75,7 @@ public class ImapDao {
             return em.createQuery(
                     "select m from imap$Message m where m.folder.id = :folderId and m.msgNum in :msgNums",
                     ImapMessage.class)
-                    .setParameter("mailFolderId", folderId)
+                    .setParameter("folderId", folderId)
                     .setParameter("msgNums", messageNums)
                     .setViewName("imap-msg-full")
                     .getResultList();

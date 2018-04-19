@@ -1,5 +1,6 @@
 package com.haulmont.addon.imap.api;
 
+import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.core.MessageFunction;
 import com.haulmont.addon.imap.core.Task;
@@ -12,6 +13,7 @@ import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.TimeSource;
+import com.haulmont.cuba.core.sys.AppContext;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import org.apache.commons.lang.ArrayUtils;
@@ -21,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
-import javax.annotation.PreDestroy;
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.mail.*;
 import javax.mail.internet.MimeUtility;
@@ -33,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component(ImapAPI.NAME)
-public class Imap implements ImapAPI {
+public class Imap implements ImapAPI, AppContext.Listener {
 
     private final static Logger log = LoggerFactory.getLogger(Imap.class);
 
@@ -41,28 +43,44 @@ public class Imap implements ImapAPI {
     private final ImapDao dao;
     private final Metadata metadata;
     private final TimeSource timeSource;
-
-    private ExecutorService fetchMessagesExecutor = Executors.newFixedThreadPool(10, new ThreadFactory() {
-        private final AtomicInteger threadNumber = new AtomicInteger(1);
-        @Override
-        public Thread newThread(@Nonnull Runnable r) {
-            Thread thread = new Thread(r, "ImapFetchMessages-" + threadNumber.getAndIncrement());
-            thread.setDaemon(true);
-            return thread;
-        }
-    });
+    private final ImapConfig imapConfig;
+    private ExecutorService fetchMessagesExecutor;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public Imap(ImapHelper imapHelper, ImapDao dao, Metadata metadata, TimeSource timeSource) {
+    public Imap(ImapHelper imapHelper, ImapDao dao, Metadata metadata, TimeSource timeSource, ImapConfig imapConfig) {
         this.imapHelper = imapHelper;
         this.dao = dao;
         this.metadata = metadata;
         this.timeSource = timeSource;
+        this.imapConfig = imapConfig;
     }
 
-    @PreDestroy
-    public void shutdownExecutor() {
+    @PostConstruct
+    public void setupExecutor() {
+        AppContext.addListener(this);
+
+    }
+
+    @Override
+    public void applicationStarted() {
+        fetchMessagesExecutor = Executors.newFixedThreadPool(
+                imapConfig.getFetchMessagesMaxParallelism(),
+                new ThreadFactory() {
+                    private final AtomicInteger threadNumber = new AtomicInteger(1);
+
+                    @Override
+                    public Thread newThread(@Nonnull Runnable r) {
+                        Thread thread = new Thread(r, "ImapFetchMessages-" + threadNumber.getAndIncrement());
+                        thread.setDaemon(true);
+                        return thread;
+                    }
+                }
+        );
+    }
+
+    @Override
+    public void applicationStopped() {
         try {
             fetchMessagesExecutor.shutdownNow();
         } catch (Exception e) {
@@ -74,9 +92,8 @@ public class Imap implements ImapAPI {
     public Collection<ImapFolderDto> fetchFolders(ImapMailBox box) throws ImapException {
         log.debug("fetch folders for box {}", box);
 
-        Store store = null;
         try {
-            store = imapHelper.getExclusiveStore(box);
+            Store store = imapHelper.getStore(box, true);
 
             List<ImapFolderDto> result = new ArrayList<>();
 
@@ -90,14 +107,6 @@ public class Imap implements ImapAPI {
             return result;
         } catch (MessagingException e) {
             throw new ImapException(e);
-        } finally {
-            if (store != null) {
-                try {
-                    store.close();
-                } catch (MessagingException e) {
-                    log.warn("can't close store", e);
-                }
-            }
         }
     }
 
@@ -260,7 +269,7 @@ public class Imap implements ImapAPI {
     }
 
     private ImapMessageDto toDto(ImapMailBox mailBox, String folderName, long uid, IMAPMessage nativeMessage) throws MessagingException {
-        ImapMessageDto dto = new ImapMessageDto();
+        ImapMessageDto dto = metadata.create(ImapMessageDto.class);
         dto.setUid(uid);
         dto.setFrom(getAddressList(nativeMessage.getFrom()).toString());
         dto.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
@@ -432,11 +441,11 @@ public class Imap implements ImapAPI {
                 subFolders.add(map((IMAPFolder) childFolder));
             }
         }
-        ImapFolderDto result = new ImapFolderDto(
-                folder.getName(),
-                folder.getFullName(),
-                imapHelper.canHoldMessages(folder),
-                subFolders);
+        ImapFolderDto result = metadata.create(ImapFolderDto.class);
+        result.setName(folder.getName());
+        result.setFullName(folder.getFullName());
+        result.setCanHoldMessages(imapHelper.canHoldMessages(folder));
+        result.setChildren(subFolders);
         result.setImapFolder(folder);
         for (ImapFolderDto subFolder : result.getChildren()) {
             subFolder.setParent(result) ;

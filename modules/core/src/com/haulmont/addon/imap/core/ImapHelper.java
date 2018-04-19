@@ -58,6 +58,8 @@ public class ImapHelper {
 
     private final ConcurrentMap<MailboxKey, Object> mailBoxLocks = new ConcurrentHashMap<>();
     private final Map<MailboxKey, Pair<ConnectionsParams, IMAPStore>> stores = new HashMap<>();
+    private final Map<MailboxKey, Collection<IMAPFolder>> usedFolders = new HashMap<>();
+    private final Map<FolderKey, IMAPFolder> folders = new HashMap<>();
 
     private final FileLoader fileLoader;
     private final ImapConfig config;
@@ -74,6 +76,10 @@ public class ImapHelper {
     }
 
     public IMAPStore getStore(ImapMailBox box) throws MessagingException {
+        return getStore(box, false);
+    }
+
+    public IMAPStore getStore(ImapMailBox box, boolean forceConnect) throws MessagingException {
         log.debug("Accessing imap store for {}", box);
 
         MailboxKey key = mailboxKey(box);
@@ -89,20 +95,28 @@ public class ImapHelper {
 
             IMAPStore store = stores.get(key).getSecond();
 
-            // folderListeners added to store works for renamed folders only if such folder is listened
-            // it can be resource wasting to have all folders listen to event, leave as force flag for now
-            if (!store.isConnected()) {
+            if (forceConnect) {
+                store.close();
+                store.connect();
+                Collection<IMAPFolder> imapFolders = usedFolders.get(key);
+                if (imapFolders != null) {
+                    for (IMAPFolder folder : imapFolders) {
+                        if (folder.isOpen()) {
+                            folder.close(false);
+                        }
+                        if (!folder.isOpen()) {
+                            folder.open(Folder.READ_WRITE);
+                        }
+                    }
+                }
+            } else if (!store.isConnected()) {
                 store.connect();
             }
             return store;
         }
     }
 
-    public IMAPStore getExclusiveStore(ImapMailBox mailBox) throws MessagingException {
-        return makeStore(mailBox, dao.getPersistedPassword(mailBox), true);
-    }
-
-    public IMAPFolder getFolder(ImapFolder cubaFolder) throws MessagingException {
+    public IMAPFolder getExclusiveFolder(ImapFolder cubaFolder) throws MessagingException {
         ImapMailBox mailBox = cubaFolder.getMailBox();
 
         IMAPStore store = makeStore(mailBox, dao.getPersistedPassword(mailBox), false);
@@ -203,16 +217,26 @@ public class ImapHelper {
 
     public <T> T doWithFolder(ImapMailBox mailBox, String folderFullName, Task<IMAPFolder, T> task) {
         log.debug("perform '{}' for {} of mailbox {}", task.getDescription(), folderFullName, mailBox);
-        FolderKey key = new FolderKey(mailboxKey(mailBox), folderFullName);
+        MailboxKey mailboxKey = mailboxKey(mailBox);
+        FolderKey key = new FolderKey(mailboxKey, folderFullName);
         try {
             Store store = getStore(mailBox);
-            log.trace("[{}->{}]lock acquired for '{}'", mailBox, folderFullName, task.getDescription());
-            IMAPFolder folder = (IMAPFolder) store.getFolder(folderFullName);
-            if (!folder.isOpen()) {
-                folder.open(Folder.READ_WRITE);
+            synchronized (mailBoxLocks.get(mailboxKey)) {
+                log.trace("[{}->{}]lock acquired for '{}'", mailBox, folderFullName, task.getDescription());
+                IMAPFolder folder = folders.get(key);
+                usedFolders.putIfAbsent(mailboxKey, new ArrayList<>());
+                if (folder == null) {
+                    folder = (IMAPFolder) store.getFolder(folderFullName);
+                    folders.put(key, folder);
+
+                    usedFolders.get(mailboxKey).add(folder);
+                }
+                if (!folder.isOpen()) {
+                    folder.open(Folder.READ_WRITE);
+                }
+                T result = task.getAction().apply(folder);
+                return task.isHasResult() ? result : null;
             }
-            T result = task.getAction().apply(folder);
-            return task.isHasResult() ? result : null;
         } catch (MessagingException e) {
             throw new ImapException(
                     String.format("error performing task '%s' for folder with key '%s'", task.getDescription(), key),

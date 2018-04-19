@@ -83,10 +83,9 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
             @SuppressWarnings("unchecked")
             Datasource<ImapFolderEvent> parentDs = getParentDs();
             if (parentDs != null && parentDs.getItem() != null) {
-                parentDs.getItem().setEventHandlers(folderEvent.getEventHandlers());
-                for (int i = 0; i < folderEvent.getEventHandlers().size(); i++) {
-                    folderEvent.getEventHandlers().get(i).setHandlingOrder(i);
-                }
+                List<ImapEventHandler> eventHandlersInParentDs = parentDs.getItem().getEventHandlers();
+                eventHandlersInParentDs.clear();
+                eventHandlersInParentDs.addAll(folderEvent.getEventHandlers());
             }
         });
     }
