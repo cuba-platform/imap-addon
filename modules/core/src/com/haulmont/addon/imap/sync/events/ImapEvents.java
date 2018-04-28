@@ -109,7 +109,7 @@ public class ImapEvents {
     private ImapEventsGenerator getEventsGeneratorImplementation(ImapMailBox mailBox) {
         String eventsGeneratorClassName = mailBox.getEventsGeneratorClass();
         if (eventsGeneratorClassName != null) {
-            Class<?> eventsGeneratorClass = ReflectionHelper.getClass(eventsGeneratorClassName)
+            Class<?> eventsGeneratorClass = ReflectionHelper.getClass(eventsGeneratorClassName);
             Map<String, ?> beans = AppContext.getApplicationContext()
                     .getBeansOfType(eventsGeneratorClass);
             if (beans.isEmpty()) {
