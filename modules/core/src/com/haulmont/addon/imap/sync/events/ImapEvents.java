@@ -46,21 +46,21 @@ public class ImapEvents {
         events.publish(new ImapFolderSyncEvent(
                 new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.NEW))
         );
-        fireEvents( cubaFolder, getSyncImplementation(cubaFolder.getMailBox()).generateForNewMessages(cubaFolder) );
+        fireEvents( cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForNewMessages(cubaFolder) );
     }
 
     public void handleChangedMessages(ImapFolder cubaFolder) {
         events.publish(new ImapFolderSyncEvent(
                 new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.CHANGED))
         );
-        fireEvents( cubaFolder, getSyncImplementation(cubaFolder.getMailBox()).generateForChangedMessages(cubaFolder) );
+        fireEvents( cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForChangedMessages(cubaFolder) );
     }
 
     public void handleMissedMessages(ImapFolder cubaFolder) {
         events.publish(new ImapFolderSyncEvent(
                 new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.MISSED))
         );
-        fireEvents( cubaFolder, getSyncImplementation(cubaFolder.getMailBox()).generateForMissedMessages(cubaFolder) );
+        fireEvents( cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForMissedMessages(cubaFolder) );
     }
 
     public void handleNewMessages(ImapFolder cubaFolder, Message[] newMessages) {
@@ -73,7 +73,7 @@ public class ImapEvents {
         }
         fireEvents(
                 cubaFolder,
-                getSyncImplementation(cubaFolder.getMailBox()).generateForNewMessages(cubaFolder, imapMessages)
+                getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForNewMessages(cubaFolder, imapMessages)
         );
     }
 
@@ -87,7 +87,7 @@ public class ImapEvents {
         }
         fireEvents(
                 cubaFolder,
-                getSyncImplementation(cubaFolder.getMailBox()).generateForChangedMessages(cubaFolder, imapMessages)
+                getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForChangedMessages(cubaFolder, imapMessages)
         );
     }
 
@@ -101,11 +101,11 @@ public class ImapEvents {
         }
         fireEvents(
                 cubaFolder,
-                getSyncImplementation(cubaFolder.getMailBox()).generateForMissedMessages(cubaFolder, imapMessages)
+                getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForMissedMessages(cubaFolder, imapMessages)
         );
     }
 
-    private ImapEventsGenerator getSyncImplementation(ImapMailBox mailBox) {
+    private ImapEventsGenerator getEventsGeneratorImplementation(ImapMailBox mailBox) {
         String eventsGeneratorClassName = mailBox.getEventsGeneratorClass();
         if (eventsGeneratorClassName != null) {
             try {
