@@ -5,6 +5,7 @@ import com.haulmont.addon.imap.events.BaseImapEvent;
 import com.haulmont.addon.imap.sync.ImapFolderSyncAction;
 import com.haulmont.addon.imap.sync.ImapFolderSyncEvent;
 import com.haulmont.addon.imap.sync.events.standard.ImapStandardEventsGenerator;
+import com.haulmont.bali.util.ReflectionHelper;
 import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.Events;
 import com.haulmont.cuba.core.sys.AppContext;
@@ -108,24 +109,18 @@ public class ImapEvents {
     private ImapEventsGenerator getEventsGeneratorImplementation(ImapMailBox mailBox) {
         String eventsGeneratorClassName = mailBox.getEventsGeneratorClass();
         if (eventsGeneratorClassName != null) {
-            try {
-                Class<?> eventsGeneratorClass = Class.forName(eventsGeneratorClassName);
-                Map<String, ?> beans = AppContext.getApplicationContext()
-                        .getBeansOfType(eventsGeneratorClass);
-                if (beans.isEmpty()) {
-                    return standardEventsGenerator;
-                }
-                Map.Entry<String, ?> bean = beans.entrySet().iterator().next();
-                if (!(bean.getValue() instanceof ImapEventsGenerator)) {
-                    log.warn("Bean {} is not implementation of ImapEventsGenerator interface", bean.getKey());
-                    return standardEventsGenerator;
-                }
-                return (ImapEventsGenerator) bean.getValue();
-            } catch (ClassNotFoundException e) {
-                log.warn("No such class {}, it is used as imap events generator for mailbox#{}",
-                        eventsGeneratorClassName, mailBox.getId()
-                );
+            Class<?> eventsGeneratorClass = ReflectionHelper.getClass(eventsGeneratorClassName)
+            Map<String, ?> beans = AppContext.getApplicationContext()
+                    .getBeansOfType(eventsGeneratorClass);
+            if (beans.isEmpty()) {
+                return standardEventsGenerator;
             }
+            Map.Entry<String, ?> bean = beans.entrySet().iterator().next();
+            if (!(bean.getValue() instanceof ImapEventsGenerator)) {
+                log.warn("Bean {} is not implementation of ImapEventsGenerator interface", bean.getKey());
+                return standardEventsGenerator;
+            }
+            return (ImapEventsGenerator) bean.getValue();
         }
         return standardEventsGenerator;
     }
