@@ -89,7 +89,7 @@ public class Imap implements ImapAPI, AppContext.Listener {
     }
 
     @Override
-    public Collection<ImapFolderDto> fetchFolders(ImapMailBox box) throws ImapException {
+    public Collection<ImapFolderDto> fetchFolders(ImapMailBox box) {
         log.debug("fetch folders for box {}", box);
 
         try {
@@ -197,16 +197,16 @@ public class Imap implements ImapAPI, AppContext.Listener {
     }
 
     @Override
-    public Collection<ImapMessageAttachment> fetchAttachments(UUID messageId) {
-        log.info("fetch attachments for message with id {}", messageId);
-        ImapMessage msg = dao.findMessageById(messageId);
+    public Collection<ImapMessageAttachment> fetchAttachments(ImapMessage message) {
+        log.info("fetch attachments for message {}", message);
+        ImapMessage msg = dao.findMessageById(message.getId());
         if (msg == null) {
-            throw new RuntimeException("Can't find msg#" + messageId);
+            throw new RuntimeException("Can't find msg#" + message.getId());
         }
 
         if (Boolean.TRUE.equals(msg.getAttachmentsLoaded())) {
             log.debug("attachments for message {} were loaded, reading from database", msg);
-            return dao.findAttachments(messageId);
+            return dao.findAttachments(message.getId());
         }
 
         log.debug("attachments for message {} were not loaded, reading from IMAP server and cache in database", msg);

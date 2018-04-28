@@ -64,8 +64,8 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     @Override
-    public Collection<ImapMessageAttachment> fetchAttachments(UUID msgId) {
-        return imapAPI.fetchAttachments(msgId);
+    public Collection<ImapMessageAttachment> fetchAttachments(ImapMessage message) {
+        return imapAPI.fetchAttachments(message);
     }
 
     @Override

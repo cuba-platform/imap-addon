@@ -10,6 +10,35 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * encapsulates IMAP message details:
+ * <ul>
+ *     <li>
+ *     Folder name
+ *     </li>
+ *     <li>
+ *     UID
+ *     </li>
+ *     <li>
+ *     Sender
+ *     </li>
+ *     <li>
+ *     Recipient lists (to, cc, bcc)
+ *     </li>
+ *     <li>
+ *     Subject
+ *     </li>
+ *     <li>
+ *     Body content
+ *     </li>
+ *     <li>
+ *     Send date
+ *     </li>
+ *     <li>
+ *     IMAP metadata flags
+ *     </li>
+ * </ul>
+ */
 @NamePattern("%s | subject")
 @MetaClass(name = "imap$MessageDto")
 public class ImapMessageDto extends BaseUuidEntity {

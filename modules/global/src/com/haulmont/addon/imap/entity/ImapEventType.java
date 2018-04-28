@@ -8,15 +8,35 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-
 public enum ImapEventType implements EnumClass<String> {
 
+    /**
+     * Event type to capture new message in folder
+     */
     NEW_EMAIL("new_email", NewEmailImapEvent.class),
+    /**
+     * Event type to capture mark message as read
+     */
     EMAIL_SEEN("seen", EmailSeenImapEvent.class),
+    /**
+     * Event type to capture new reply for message
+     */
     NEW_ANSWER("new_answer", EmailAnsweredImapEvent.class),
+    /**
+     * Event type to capture move message to different folder
+     */
     EMAIL_MOVED("moved", EmailMovedImapEvent.class),
+    /**
+     * Event type to capture any change in IMAP flags of message
+     */
     FLAGS_UPDATED("flags_updated", EmailFlagChangedImapEvent.class),
+    /**
+     * Event type to capture message removal
+     */
     EMAIL_DELETED("deleted", EmailDeletedImapEvent.class),
+    /**
+     * Event type to capture new message thread in folder
+     */
     NEW_THREAD("new_thread", NewThreadImapEvent.class);
 
     private final String id;

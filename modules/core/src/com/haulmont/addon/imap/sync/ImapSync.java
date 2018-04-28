@@ -5,7 +5,7 @@ import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.sync.events.ImapEvents;
-import com.haulmont.addon.imap.sync.listener.ImapFolderEvent;
+import com.haulmont.addon.imap.sync.listener.ImapFolderSyncEvent;
 import com.haulmont.addon.imap.sync.listener.ImapFolderListener;
 import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.security.app.Authentication;
@@ -127,10 +127,10 @@ public class ImapSync implements AppContext.Listener, Ordered {
     }
 
     @EventListener
-    public void handleFolderEvent(com.haulmont.addon.imap.sync.listener.ImapFolderEvent event) {
+    public void handleFolderEvent(ImapFolderSyncEvent event) {
         ImapFolder cubaFolder = event.getFolder();
 
-        if (event.getType() == ImapFolderEvent.Type.ADDED) {
+        if (event.getType() == ImapFolderSyncEvent.Type.ADDED) {
             executeFullSyncTasks(folderFullSyncTasks(cubaFolder));
             imapFolderListener.subscribe(cubaFolder);
         } else {
@@ -145,7 +145,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
     }
 
     @EventListener
-    public void handleFolderSyncEvent(ImapFolderSyncEvent event) {
+    public void handleFolderSyncEvent(com.haulmont.addon.imap.sync.ImapFolderSyncEvent event) {
         ImapFolderSyncAction action = event.getAction();
 
         UUID folderId = action.getFolderId();
@@ -159,7 +159,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
             }
             ImapFolderSyncAction nextAction = new ImapFolderSyncAction(folderId, type);
             fullSyncRefreshers.remove(nextAction);
-            handleFolderSyncEvent(new ImapFolderSyncEvent(nextAction));
+            handleFolderSyncEvent(new com.haulmont.addon.imap.sync.ImapFolderSyncEvent(nextAction));
         }, 30, TimeUnit.SECONDS);
 
         ScheduledFuture<?> oldTask = fullSyncRefreshers.put(action, newTask);

@@ -11,6 +11,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * encapsulates IMAP folder details:
+ * <ul>
+ *     <li>
+ *     name
+ *     </li>
+ *     <li>
+ *     full name
+ *     </li>
+ *     <li>
+ *     tree structure place using children and parent
+ *     </li>
+ *     <li>
+ *     flag to determine whether this folder can contain messages
+ *     </li>
+ * </ul>
+ */
 @NamePattern("%s |fullName")
 @MetaClass(name = "imap$FolderDto")
 public class ImapFolderDto extends BaseUuidEntity {

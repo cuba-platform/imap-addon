@@ -6,6 +6,10 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.Map;
 
+/**
+ * Event triggered when any IMAP flag of message was changed,
+ * {@link #getChangedFlagsWithNewValue()} specifies only modified flags with actual values
+ */
 public class EmailFlagChangedImapEvent extends BaseImapEvent {
 
     private final Map<ImapFlag, Boolean> changedFlagsWithNewValue;

@@ -4,6 +4,9 @@ import com.haulmont.addon.imap.entity.ImapMessage;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.springframework.context.ApplicationEvent;
 
+/**
+ * Base class for all IMAP application events, providing reference for affected {@link ImapMessage}
+ */
 public abstract class BaseImapEvent extends ApplicationEvent {
 
     protected final ImapMessage message;

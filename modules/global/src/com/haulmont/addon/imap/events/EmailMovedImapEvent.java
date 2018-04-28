@@ -3,6 +3,9 @@ package com.haulmont.addon.imap.events;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+/**
+ * Event triggered when IMAP message was moved to different folder
+ */
 public class EmailMovedImapEvent extends BaseImapEvent {
 
     private final String newFolderName;

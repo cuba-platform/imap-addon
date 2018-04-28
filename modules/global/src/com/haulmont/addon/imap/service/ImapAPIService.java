@@ -20,7 +20,7 @@ public interface ImapAPIService {
 
     ImapMessageDto fetchMessage(ImapMessage message);
     Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages);
-    Collection<ImapMessageAttachment> fetchAttachments(UUID msgRefId);
+    Collection<ImapMessageAttachment> fetchAttachments(ImapMessage message);
 
     void moveMessage(ImapMessage msg, String folderName);
     void deleteMessage(ImapMessage message);
