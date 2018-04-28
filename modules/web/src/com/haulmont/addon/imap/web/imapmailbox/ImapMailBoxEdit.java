@@ -28,7 +28,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
@@ -295,35 +294,17 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                                 event, WindowManager.OpenType.DIALOG, Collections.emptyMap(), eventsDs
                         );
                         eventEditor.addCloseWithCommitListener(() -> {
-                            List<ImapEventHandler> newHandlers = new ArrayList<>(event.getEventHandlers());
-                            List<ImapEventHandler> actualHandlers = new ArrayList<>(newHandlers.size());
-
-                            for (int i = 0; i < newHandlers.size(); i++) {
-                                ImapEventHandler newHandler = newHandlers.get(i);
-                                if (i < existingHandlers.size()) {
-                                    ImapEventHandler existingHandler = existingHandlers.get(i);
-                                    if (!Objects.equals(existingHandler.getBeanName(), newHandler.getBeanName()) ||
-                                            !Objects.equals(existingHandler.getMethodName(), newHandler.getMethodName())) {
-                                        existingHandler.setBeanName(newHandler.getBeanName());
-                                        existingHandler.setMethodName(newHandler.getMethodName());
-                                        handlersDs.modifyItem(existingHandler);
-                                    }
-                                    actualHandlers.add(existingHandler);
-                                } else {
-                                    ImapEventHandler handler = metadata.create(ImapEventHandler.class);
-                                    handler.setEvent(event);
-                                    handler.setBeanName(newHandler.getBeanName());
-                                    handler.setMethodName(newHandler.getMethodName());
-                                    handler.setHandlingOrder(i);
+                            for (int i = 0; i < event.getEventHandlers().size(); i++) {
+                                ImapEventHandler handler = event.getEventHandlers().get(i);
+                                if (handler.getHandlingOrder() == null) {
                                     handlersDs.addItem(handler);
-                                    actualHandlers.add(handler);
+                                } else if (handler.getHandlingOrder() != i) {
+                                    handlersDs.modifyItem(handler);
                                 }
+                                handler.setHandlingOrder(i);
                             }
-                            event.getEventHandlers().clear();
-                            event.getEventHandlers().addAll(actualHandlers);
-                            for (int i = newHandlers.size(); i < existingHandlers.size(); i++) {
-                                ImapEventHandler handler = existingHandlers.get(i);
-                                if (!PersistenceHelper.isNew(handler)) {
+                            for (ImapEventHandler handler : existingHandlers) {
+                                if (!event.getEventHandlers().contains(handler)) {
                                     handlersDs.removeItem(handler);
                                 }
                             }

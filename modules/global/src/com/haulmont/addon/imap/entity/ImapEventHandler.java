@@ -19,7 +19,7 @@ public class ImapEventHandler extends StandardEntity {
     @JoinColumn(name = "EVENT_ID")
     protected ImapFolderEvent event;
 
-    @Column(name = "HANDLING_ORDER", nullable = false)
+    @Column(name = "HANDLING_ORDER")
     private Integer handlingOrder;
 
     @Column(name = "BEAN_NAME", nullable = false)
@@ -30,8 +30,8 @@ public class ImapEventHandler extends StandardEntity {
     @NotNull
     private String methodName;
 
-    public void setHandlingOrder(Integer handlingORDER) {
-        this.handlingOrder = handlingORDER;
+    public void setHandlingOrder(Integer handlingOrder) {
+        this.handlingOrder = handlingOrder;
     }
 
     public Integer getHandlingOrder() {

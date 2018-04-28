@@ -115,7 +115,7 @@ create table IMAP_EVENT_HANDLER (
     DELETED_BY varchar(50),
     --
     EVENT_ID uuid not null,
-    HANDLING_ORDER integer not null,
+    HANDLING_ORDER integer,
     BEAN_NAME varchar(255) not null,
     METHOD_NAME varchar(255) not null,
     --

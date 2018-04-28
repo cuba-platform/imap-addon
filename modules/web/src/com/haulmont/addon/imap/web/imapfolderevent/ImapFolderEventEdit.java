@@ -160,11 +160,6 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
         handlersDs.addItemPropertyChangeListener(event -> {
             ImapEventHandler item = event.getItem();
             if (Objects.equals("beanName", event.getProperty())) {
-                /*LookupField methodLookup = handlerMethodLookups.get(item);
-                methodLookup.setOptionsList(
-                        methodNames(availableBeans, event.getValue() != null ? event.getValue().toString() : null)
-                );
-                methodLookup.setValue(null);*/
                 if (event.getValue() != null) {
 
                     String beanName = event.getValue().toString();
@@ -211,8 +206,8 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
 
     private List<String> methodNames(Map<String, List<String>> availableBeans, String beanName) {
         return Optional.ofNullable(beanName)
-                    .map(availableBeans::get)
-                    .orElse(Collections.emptyList());
+                .map(availableBeans::get)
+                .orElse(Collections.emptyList());
     }
 
     public void addHandler() {
@@ -259,8 +254,4 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
         addHandlerBtn.setEnabled(handlersDs.size() < maxHandlersCount);
     }
 
-    @Override
-    protected boolean preCommit() {
-        return super.preCommit();
-    }
 }
