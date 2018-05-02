@@ -114,7 +114,6 @@ class ImapAPISpec extends Specification {
         allFoldersTree[3].children.isEmpty()
         allFoldersTree[3].parent == null
     }
-
     def "fetch folders for mailbox by names"() {
         expect:
         def someFolders = imapAPI.fetchFolders(mailBoxConfig,
@@ -129,5 +128,52 @@ class ImapAPISpec extends Specification {
         someFolders.every{ it.children.isEmpty() }
         someFolders.every{ it.parent == null }
         someFolders.collect{ it.fullName } == ["root1${D}child1", "root1${D}child2${D}grandch1", "root2", "root1", "root0${D}child0"]
+    }
+
+
+    def "fetch single message"() {
+        expect:
+        true == false
+    }
+    def "fetch multiple message from one folder"() {
+        expect:
+        true == false
+    }
+    def "fetch multiple message from multiple folders"() {
+        expect:
+        true == false
+    }
+    def "fetch multiple message from multiple mailboxes and folders"() {
+        expect:
+        true == false
+    }
+
+    def "move message to other folder"() {
+        expect:
+        true == false
+    }
+    def "delete message without trash folder"() {
+        expect:
+        true == false
+    }
+    def "delete message with trash folder"() {
+        expect:
+        true == false
+    }
+    def "mark message read"() {
+        expect:
+        true == false
+    }
+    def "mark message flagged"() {
+        expect:
+        true == false
+    }
+    def "set custom flag"() {
+        expect:
+        true == false
+    }
+    def "unset custom flag"() {
+        expect:
+        true == false
     }
 }

@@ -84,18 +84,6 @@ public interface ImapAPI {
      */
     void deleteMessage(ImapMessage message);
     /**
-     * Mark message as read using {@link javax.mail.Flags.Flag#SEEN} flag
-     *
-     * @param message       reference object for IMAP message
-     */
-    void markAsRead(ImapMessage message);
-    /**
-     * Mark message as important using {@link javax.mail.Flags.Flag#FLAGGED} flag
-     *
-     * @param message       reference object for IMAP message
-     */
-    void markAsImportant(ImapMessage message);
-    /**
      * Change meta data flag for message, flag can be either standard or custom one
      *
      * @param message       reference object for IMAP message

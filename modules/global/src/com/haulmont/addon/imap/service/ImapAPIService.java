@@ -21,7 +21,5 @@ public interface ImapAPIService {
 
     void moveMessage(ImapMessage msg, String folderName);
     void deleteMessage(ImapMessage message);
-    void markAsRead(ImapMessage message);
-    void markAsImportant(ImapMessage message);
     void setFlag(ImapMessage message, ImapFlag flag, boolean set);
 }

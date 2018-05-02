@@ -263,24 +263,6 @@ public class Imap implements ImapAPI, AppContext.Listener {
     }
 
     @Override
-    public void markAsRead(ImapMessage message) {
-        log.info("mark message {} as read", message);
-        consumeMessage(message, msg -> {
-            msg.setFlag(Flags.Flag.SEEN, true);
-            return null;
-        }, "Mark message#" + message.getMsgUid() + " as SEEN");
-    }
-
-    @Override
-    public void markAsImportant(ImapMessage message) {
-        log.info("mark message {} as important", message);
-        consumeMessage(message, msg -> {
-            msg.setFlag(Flags.Flag.FLAGGED, true);
-            return null;
-        }, "Mark message#" + message.getMsgUid() + " as FLAGGED");
-    }
-
-    @Override
     public void setFlag(ImapMessage message, ImapFlag flag, boolean set) {
         log.info("set flag {} for message {} to {}", message, flag, set);
         consumeMessage(message, msg -> {

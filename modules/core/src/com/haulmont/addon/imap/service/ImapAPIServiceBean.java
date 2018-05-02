@@ -73,16 +73,6 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     @Override
-    public void markAsRead(ImapMessage message) {
-        imapAPI.markAsRead(message);
-    }
-
-    @Override
-    public void markAsImportant(ImapMessage message) {
-        imapAPI.markAsImportant(message);
-    }
-
-    @Override
     public void setFlag(ImapMessage message, ImapFlag flag, boolean set) {
         imapAPI.setFlag(message, flag, set);
     }
