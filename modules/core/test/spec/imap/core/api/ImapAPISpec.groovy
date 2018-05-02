@@ -44,9 +44,16 @@ class ImapAPISpec extends Specification {
 
         mailServer = new GreenMail(ServerSetupTest.IMAP)
         mailServer.start()
-        imapManager = mailServer.managers.imapHostManager
-
         user = mailServer.setUser(EMAIL_USER_ADDRESS, USER_NAME, USER_PASSWORD)
+        imapManager = mailServer.managers.imapHostManager
+        imapManager.createMailbox(user, "root0")
+        imapManager.createMailbox(user, "root0${D}child0")
+        imapManager.createMailbox(user, "root1${D}child0")
+        imapManager.createMailbox(user, "root1${D}child1")
+        imapManager.createMailbox(user, "root1${D}child2")
+        imapManager.createMailbox(user, "root1${D}child2${D}grandch0")
+        imapManager.createMailbox(user, "root1${D}child2${D}grandch1")
+        imapManager.createMailbox(user, "root2")
 
         mailBoxConfig = cont.metadata().create(ImapMailBox)
         mailBoxConfig.host = LOCALHOST
@@ -64,46 +71,63 @@ class ImapAPISpec extends Specification {
     }
 
     def "fetch all folders for mailbox"() {
-        given:
-        imapManager.createMailbox(user, "root0")
-        imapManager.createMailbox(user, "root0${D}child0")
-
-        imapManager.createMailbox(user, "root1${D}child0")
-        imapManager.createMailbox(user, "root1${D}child1")
-        imapManager.createMailbox(user, "root1${D}child2")
-        imapManager.createMailbox(user, "root1${D}child2${D}grandch0")
-        imapManager.createMailbox(user, "root1${D}child2${D}grandch1")
-
-        imapManager.createMailbox(user, "root2")
-
         expect:
         def allFoldersTree = imapAPI.fetchFolders(mailBoxConfig)
         allFoldersTree.size() == 4 // INBOX + 3 root folders created
         // INBOX
         allFoldersTree[0].fullName == imapManager.getInbox(user).name && allFoldersTree[0].canHoldMessages
         // first root folder and its child folder
-        allFoldersTree[1].fullName == "root0" && allFoldersTree[1].canHoldMessages
+        allFoldersTree[1].fullName == "root0" && allFoldersTree[1].canHoldMessages && allFoldersTree[1].parent == null
         allFoldersTree[1].children.size() == 1
-        allFoldersTree[1].children[0].fullName == "root0${D}child0" && allFoldersTree[1].children[0].canHoldMessages
+        allFoldersTree[1].children[0].fullName == "root0${D}child0"
+        allFoldersTree[1].children[0].canHoldMessages
+        allFoldersTree[1].children[0].parent == allFoldersTree[1]
         allFoldersTree[1].children[0].children.isEmpty()
 
         // second root folder and its children
-        allFoldersTree[2].fullName == "root1" && !allFoldersTree[2].canHoldMessages
+        allFoldersTree[2].fullName == "root1" && !allFoldersTree[2].canHoldMessages && allFoldersTree[2].parent == null
         allFoldersTree[2].children.size() == 3
         // first child folder
-        allFoldersTree[2].children[0].fullName == "root1${D}child0" && allFoldersTree[2].children[0].canHoldMessages
+        allFoldersTree[2].children[0].fullName == "root1${D}child0"
+        allFoldersTree[2].children[0].canHoldMessages
+        allFoldersTree[2].children[0].parent == allFoldersTree[2]
         allFoldersTree[2].children[0].children.isEmpty()
         // second child folder
-        allFoldersTree[2].children[1].fullName == "root1${D}child1" && allFoldersTree[2].children[1].canHoldMessages
+        allFoldersTree[2].children[1].fullName == "root1${D}child1"
+        allFoldersTree[2].children[1].canHoldMessages
+        allFoldersTree[2].children[1].parent == allFoldersTree[2]
         allFoldersTree[2].children[1].children.isEmpty()
         // third child folder and its children
-        allFoldersTree[2].children[2].fullName == "root1${D}child2" && allFoldersTree[2].children[2].canHoldMessages
+        allFoldersTree[2].children[2].fullName == "root1${D}child2"
+        allFoldersTree[2].children[2].canHoldMessages
+        allFoldersTree[2].children[2].parent == allFoldersTree[2]
         allFoldersTree[2].children[2].children.size() == 2
         allFoldersTree[2].children[2].children[0].fullName == "root1${D}child2${D}grandch0"
         allFoldersTree[2].children[2].children[0].canHoldMessages
+        allFoldersTree[2].children[2].children[0].parent == allFoldersTree[2].children[2]
         allFoldersTree[2].children[2].children[1].fullName == "root1${D}child2${D}grandch1"
         allFoldersTree[2].children[2].children[1].canHoldMessages
+        allFoldersTree[2].children[2].children[1].parent == allFoldersTree[2].children[2]
         // third root folder without children
-        allFoldersTree[3].fullName == "root2" && allFoldersTree[3].canHoldMessages && allFoldersTree[3].children.isEmpty()
+        allFoldersTree[3].fullName == "root2"
+        allFoldersTree[3].canHoldMessages
+        allFoldersTree[3].children.isEmpty()
+        allFoldersTree[3].parent == null
+    }
+
+    def "fetch folders for mailbox by names"() {
+        expect:
+        def someFolders = imapAPI.fetchFolders(mailBoxConfig,
+                "root1${D}child1",
+                "root1${D}child2${D}grandch1",
+                "root2",
+                "root2${D}child0",
+                "root1",
+                "root0${D}child0"
+        )
+        someFolders.size() == 5
+        someFolders.every{ it.children.isEmpty() }
+        someFolders.every{ it.parent == null }
+        someFolders.collect{ it.fullName } == ["root1${D}child1", "root1${D}child2${D}grandch1", "root2", "root1", "root0${D}child0"]
     }
 }

@@ -11,6 +11,7 @@ import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.exception.ImapException;
+import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.TimeSource;
 import com.haulmont.cuba.core.sys.AppContext;
@@ -32,6 +33,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component(ImapAPI.NAME)
@@ -123,11 +125,10 @@ public class Imap implements ImapAPI, AppContext.Listener {
             return allFolders;
         }
 
-        Arrays.sort(folderNames);
+        Map<String, ImapFolderDto> foldersByFullnames = allFolders.stream()
+                .collect(Collectors.toMap(ImapFolderDto::getFullName, Function.identity()));
 
-        return allFolders.stream()
-                .filter(f -> Arrays.binarySearch(folderNames, f.getFullName()) >= 0)
-                .collect(Collectors.toList());
+        return Arrays.stream(folderNames).map(foldersByFullnames::get).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     @Override
