@@ -4,21 +4,16 @@ import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.core.MessageFunction;
 import com.haulmont.addon.imap.core.Task;
-import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
-import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.exception.ImapException;
-import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.cuba.core.global.Metadata;
-import com.haulmont.cuba.core.global.TimeSource;
 import com.haulmont.cuba.core.sys.AppContext;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -42,19 +37,15 @@ public class Imap implements ImapAPI, AppContext.Listener {
     private final static Logger log = LoggerFactory.getLogger(Imap.class);
 
     private final ImapHelper imapHelper;
-    private final ImapDao dao;
     private final Metadata metadata;
-    private final TimeSource timeSource;
     private final ImapConfig imapConfig;
     private ExecutorService fetchMessagesExecutor;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public Imap(ImapHelper imapHelper, ImapDao dao, Metadata metadata, TimeSource timeSource, ImapConfig imapConfig) {
+    public Imap(ImapHelper imapHelper, Metadata metadata, ImapConfig imapConfig) {
         this.imapHelper = imapHelper;
-        this.dao = dao;
         this.metadata = metadata;
-        this.timeSource = timeSource;
         this.imapConfig = imapConfig;
     }
 
@@ -195,78 +186,6 @@ public class Imap implements ImapAPI, AppContext.Listener {
 
         //todo: sort dto according to messages input
         return mailMessageDtos;
-    }
-
-    @Override
-    public Collection<ImapMessageAttachment> fetchAttachments(ImapMessage message) {
-        log.info("fetch attachments for message {}", message);
-        ImapMessage msg = dao.findMessageById(message.getId());
-        if (msg == null) {
-            throw new RuntimeException("Can't find msg#" + message.getId());
-        }
-
-        if (Boolean.TRUE.equals(msg.getAttachmentsLoaded())) {
-            log.debug("attachments for message {} were loaded, reading from database", msg);
-            return dao.findAttachments(message.getId());
-        }
-
-        log.debug("attachments for message {} were not loaded, reading from IMAP server and cache in database", msg);
-        ImapMailBox mailBox = msg.getFolder().getMailBox();
-        String folderName = msg.getFolder().getName();
-
-        return imapHelper.doWithFolder(mailBox, folderName, new Task<>(
-                        "extracting attachments", true, f -> {
-
-                    IMAPMessage imapMsg = (IMAPMessage) f.getMessageByUID(msg.getMsgUid());
-                    Collection<ImapMessageAttachment> attachments = makeAttachments(imapMsg);
-                    dao.saveAttachments(msg, attachments);
-
-                    return attachments;
-                })
-        );
-
-    }
-
-    private Collection<ImapMessageAttachment> makeAttachments(IMAPMessage msg) throws MessagingException {
-        log.debug("make attachments for message {}", msg);
-
-        if (!msg.getContentType().contains("multipart")) {
-            return Collections.emptyList();
-        }
-
-        Multipart multipart;
-        try {
-            msg.setPeek(true);
-            multipart = (Multipart) msg.getContent();
-        } catch (IOException e) {
-            log.warn("can't extract attachments:", e);
-
-            return Collections.emptyList();
-        }
-
-        List<ImapMessageAttachment> result = new ArrayList<>();
-        for (int i = 0; i < multipart.getCount(); i++) {
-            BodyPart bodyPart = multipart.getBodyPart(i);
-            if (!Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition()) &&
-                    StringUtils.isBlank(bodyPart.getFileName())) {
-                continue; // dealing with attachments only
-            }
-            log.trace("processing attachment#{} with name {} for message {}", i, bodyPart.getFileName(), msg);
-            ImapMessageAttachment attachment = metadata.create(ImapMessageAttachment.class);
-            String name = bodyPart.getFileName();
-            try {
-                name = MimeUtility.decodeText(name);
-            } catch (UnsupportedEncodingException e) {
-                log.warn("Can't decode name of attachment", e);
-            }
-            attachment.setName(name);
-            attachment.setFileSize((long) bodyPart.getSize());
-            attachment.setCreatedTs(timeSource.currentTimestamp());
-            attachment.setOrderNumber(i);
-            result.add(attachment);
-        }
-
-        return result;
     }
 
     private ImapMessageDto toDto(ImapMailBox mailBox, String folderName, long uid, IMAPMessage nativeMessage) throws MessagingException {

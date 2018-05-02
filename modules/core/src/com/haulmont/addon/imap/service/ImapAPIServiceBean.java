@@ -7,7 +7,6 @@ import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
-import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.exception.ImapException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,11 +60,6 @@ public class ImapAPIServiceBean implements ImapAPIService {
     @Override
     public Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages) {
         return imapAPI.fetchMessages(messages);
-    }
-
-    @Override
-    public Collection<ImapMessageAttachment> fetchAttachments(ImapMessage message) {
-        return imapAPI.fetchAttachments(message);
     }
 
     @Override

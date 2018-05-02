@@ -3,7 +3,6 @@ package com.haulmont.addon.imap.api;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
-import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.entity.ImapMessage;
 
 import java.util.Collection;
@@ -22,9 +21,6 @@ import java.util.Collection;
  *     </li>
  *     <li>
  *     Messages modification
- *     </li>
- *     <li>
- *     Message attachments retrieval
  *     </li>
  * </ul>
  * <br>
@@ -72,13 +68,6 @@ public interface ImapAPI {
      * @return          fully fetched messages
      */
     Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages);
-    /**
-     * Retrieve and cache attachments for message
-     *
-     * @param message reference object for IMAP message
-     * @return        reference objects for message attachments
-     */
-    Collection<ImapMessageAttachment> fetchAttachments(ImapMessage message);
 
     /**
      * Move message in different folder, if folder is the same - nothing changed,
