@@ -6,6 +6,7 @@ import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Gateway for E-mail servers communication via IMAP protocol
@@ -52,13 +53,14 @@ public interface ImapAPI {
      * @return              folders of IMAP mailbox with specified full names,
      *                      result is ordered according to order of names input
      */
-    Collection<ImapFolderDto> fetchFolders(ImapMailBox mailBox, String... folderNames);
+    List<ImapFolderDto> fetchFolders(ImapMailBox mailBox, String... folderNames);
 
     /**
      * Retrieve single message
      *
      * @param message reference object for IMAP message
-     * @return        fully fetched message
+     * @return        fully fetched message or null if there is no message with such UID in corresponding folder
+     * @throws com.haulmont.addon.imap.exception.ImapException if wrong folder or mailbox connection details are specified in parameter
      */
     ImapMessageDto fetchMessage(ImapMessage message);
     /**
@@ -67,7 +69,7 @@ public interface ImapAPI {
      * @param messages  reference objects for IMAP messages
      * @return          fully fetched messages
      */
-    Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages);
+    List<ImapMessageDto> fetchMessages(List<ImapMessage> messages);
 
     /**
      * Move message in different folder, if folder is the same - nothing changed,
@@ -75,6 +77,7 @@ public interface ImapAPI {
      *
      * @param message       reference object for IMAP message
      * @param folderName    full name of new folder
+     * @throws com.haulmont.addon.imap.exception.ImapException for wrong folder
      */
     void moveMessage(ImapMessage message, String folderName);
     /**

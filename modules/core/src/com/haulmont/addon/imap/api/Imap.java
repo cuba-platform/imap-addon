@@ -9,6 +9,7 @@ import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.exception.ImapException;
+import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.sys.AppContext;
 import com.sun.mail.imap.IMAPFolder;
@@ -52,7 +53,6 @@ public class Imap implements ImapAPI, AppContext.Listener {
     @PostConstruct
     public void setupExecutor() {
         AppContext.addListener(this);
-
     }
 
     @Override
@@ -104,10 +104,10 @@ public class Imap implements ImapAPI, AppContext.Listener {
     }
 
     @Override
-    public Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) {
+    public List<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) {
         log.debug("fetch folders {} for box {}", folderNames, box);
 
-        Collection<ImapFolderDto> allFolders = ImapFolderDto.flattenList(fetchFolders(box));
+        List<ImapFolderDto> allFolders = ImapFolderDto.flattenList(fetchFolders(box));
         for (ImapFolderDto allFolder : allFolders) {
             allFolder.setParent(null);
             allFolder.setChildren(Collections.emptyList());
@@ -135,8 +135,8 @@ public class Imap implements ImapAPI, AppContext.Listener {
     }
 
     @Override
-    public Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages) {
-        List<ImapMessageDto> mailMessageDtos = new ArrayList<>(messages.size());
+    public List<ImapMessageDto> fetchMessages(List<ImapMessage> messages) {
+        List<Pair<ImapMessageDto, ImapMessage>> mailMessageDtos = new ArrayList<>(messages.size());
         Map<ImapMailBox, List<ImapMessage>> byMailBox = messages.stream().collect(Collectors.groupingBy(msg -> msg.getFolder().getMailBox()));
         Collection<Future<?>> futures = new ArrayList<>(byMailBox.size());
         byMailBox.forEach((mailBox, value) -> futures.add(
@@ -159,7 +159,9 @@ public class Imap implements ImapAPI, AppContext.Listener {
                                                 if (nativeMessage == null) {
                                                     continue;
                                                 }
-                                                mailMessageDtos.add(toDto(mailBox, folderName, uid, nativeMessage));
+                                                mailMessageDtos.add(new Pair<>(
+                                                        toDto(mailBox, folderName, uid, nativeMessage), message)
+                                                );
                                             }
                                             return null;
                                         })
@@ -184,14 +186,21 @@ public class Imap implements ImapAPI, AppContext.Listener {
             throw new RuntimeException("Can't fetch messages", e);
         }
 
-        //todo: sort dto according to messages input
-        return mailMessageDtos;
+
+        return mailMessageDtos.stream()
+                .sorted(Comparator.comparingInt(pair -> messages.indexOf(pair.getSecond())))
+                .map(Pair::getFirst)
+                .collect(Collectors.toList());
     }
 
     private ImapMessageDto toDto(ImapMailBox mailBox, String folderName, long uid, IMAPMessage nativeMessage) throws MessagingException {
+        if (nativeMessage == null) {
+            return null;
+        }
+
         ImapMessageDto dto = metadata.create(ImapMessageDto.class);
         dto.setUid(uid);
-        dto.setFrom(getAddressList(nativeMessage.getFrom()).toString());
+        dto.setFrom(getAddressList(nativeMessage.getFrom()).get(0));
         dto.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
         dto.setCcList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.CC)));
         dto.setBccList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.BCC)));

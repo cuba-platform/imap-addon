@@ -7,6 +7,7 @@ import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 
 import java.util.Collection;
+import java.util.List;
 
 @SuppressWarnings("unused")
 public interface ImapAPIService {
@@ -14,10 +15,10 @@ public interface ImapAPIService {
 
     void testConnection(ImapMailBox box);
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box);
-    Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames);
+    List<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames);
 
     ImapMessageDto fetchMessage(ImapMessage message);
-    Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages);
+    List<ImapMessageDto> fetchMessages(List<ImapMessage> messages);
 
     void moveMessage(ImapMessage msg, String folderName);
     void deleteMessage(ImapMessage message);

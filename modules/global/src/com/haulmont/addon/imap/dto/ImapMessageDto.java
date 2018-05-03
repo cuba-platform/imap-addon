@@ -32,7 +32,7 @@ import java.util.UUID;
  *     Body content
  *     </li>
  *     <li>
- *     Send date
+ *     Receive date
  *     </li>
  *     <li>
  *     IMAP metadata flags

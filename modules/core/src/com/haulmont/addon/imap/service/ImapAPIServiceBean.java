@@ -48,7 +48,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     @Override
-    public Collection<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) {
+    public List<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) {
         return imapAPI.fetchFolders(box, folderNames);
     }
 
@@ -58,7 +58,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
     }
 
     @Override
-    public Collection<ImapMessageDto> fetchMessages(Collection<ImapMessage> messages) {
+    public List<ImapMessageDto> fetchMessages(List<ImapMessage> messages) {
         return imapAPI.fetchMessages(messages);
     }
 
