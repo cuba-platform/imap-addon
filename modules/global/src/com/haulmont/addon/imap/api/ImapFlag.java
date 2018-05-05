@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.mail.Flags;
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Unified IMAP Flag
@@ -89,6 +90,21 @@ public class ImapFlag implements Serializable {
      */
     public Flags imapFlags() {
         return systemFlag != null ? new Flags(systemFlag.systemFlag) : new Flags(name);
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ImapFlag imapFlag = (ImapFlag) o;
+        return systemFlag == imapFlag.systemFlag &&
+                Objects.equals(name, imapFlag.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(systemFlag, name);
     }
 
     @Override

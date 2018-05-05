@@ -89,6 +89,20 @@ public class ImapDao {
         }
     }
 
+    public ImapMessage findMessageByUid(UUID mailFolderId, long messageUid) {
+        try (Transaction ignored = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            return em.createQuery(
+                    "select m from imap$Message m " +
+                            "where m.msgUid = :msgUid and m.folder.id = :mailFolderId",
+                    ImapMessage.class)
+                    .setParameter("mailFolderId", mailFolderId)
+                    .setParameter("msgUid", messageUid)
+                    .setViewName("imap-msg-full")
+                    .getFirstResult();
+        }
+    }
+
     public ImapMessage findMessageByImapMessageId(UUID mailBoxId, String imapMessageId) {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();

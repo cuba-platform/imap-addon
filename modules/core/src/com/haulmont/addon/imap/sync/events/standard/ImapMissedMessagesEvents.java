@@ -217,10 +217,13 @@ public class ImapMissedMessagesEvents {
                 .filter(f -> !f.getName().equals(cubaFolder.getName()))
                 .map(ImapFolder::getName)
                 .collect(Collectors.toList());
-        if (mailBox.getTrashFolderName() != null) {
+        if (mailBox.getTrashFolderName() != null && !mailBox.getTrashFolderName().equals(cubaFolder.getName())) {
             otherFoldersNames.add(mailBox.getTrashFolderName());
         }
         String[] folderNames = otherFoldersNames.toArray(new String[0]);
+        if (folderNames.length == 0) {
+            return Collections.emptyList();
+        }
         Collection<IMAPFolder> otherFolders = imapAPI.fetchFolders(mailBox, folderNames).stream()
                 .filter(f -> Boolean.TRUE.equals(f.getCanHoldMessages()))
                 .map(ImapFolderDto::getImapFolder)

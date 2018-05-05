@@ -149,15 +149,14 @@ class ImapAPISpec extends Specification {
 
 
     def "fetch single message"() {
-        given:
+        given: "existing message in INBOX"
         deliverDefaultMessage(EMAIL_SUBJECT, STARTING_EMAIL_UID)
-
         ImapMessage imapMessage = defaultMessage(STARTING_EMAIL_UID)
 
-        when:
+        when: "fetch the message using ref"
         ImapMessageDto messageDto = imapAPI.fetchMessage(imapMessage)
 
-        then:
+        then: "all attributes are set properly"
         messageDto != null
         messageDto.uid == STARTING_EMAIL_UID
         messageDto.from == EMAIL_TO
@@ -168,138 +167,141 @@ class ImapAPISpec extends Specification {
         messageDto.body == EMAIL_TEXT
         messageDto.flags == ["FLAGGED"]
 
-        when:
+        when: "try to fetch message with wrong UID"
         imapMessage.msgUid += 1
 
-        then:
+        then: "nothing is found"
         imapAPI.fetchMessage(imapMessage) == null
 
-        when:
+        when: "try to fetch message with nonexistent folder"
         imapMessage.folder.name = "INBOX3"
         imapAPI.fetchMessage(imapMessage)
 
-        then:
+        then: "exception is raised"
         thrown ImapException
 
-        when:
+        when: "try to fetch message pointing to mailbox with wrong connection details"
         imapMessage.folder.name = "INBOX"
         mailBoxConfig.authentication.password += "1"
         imapAPI.fetchMessage(imapMessage)
 
-        then:
+        then: "exception is raised"
         thrown ImapException
     }
 
     def "work with flags for single message"() {
-        given:
+        given: "message with standard flag 'FLAGGED' "
         deliverDefaultMessage(EMAIL_SUBJECT, STARTING_EMAIL_UID)
-
         ImapMessage imapMessage = defaultMessage(STARTING_EMAIL_UID)
 
-        when:
+        when: "fetch the message"
         ImapMessageDto messageDto = imapAPI.fetchMessage(imapMessage)
 
-        then:
+        then: "flags of result contain only 'FLAGGED'"
         messageDto.flags == ["FLAGGED"]
 
-        when:
+        when: "add standard 'SEEN' flag and fetch again"
         imapAPI.setFlag(imapMessage, ImapFlag.SEEN, true)
         messageDto = imapAPI.fetchMessage(imapMessage)
 
-        then:
+        then: "flags of result are updated"
         messageDto.flags.containsAll(["FLAGGED", "SEEN"])
 
-        when:
+        when: "remove standard 'FLAGGED' flag and fetch again"
         imapAPI.setFlag(imapMessage, ImapFlag.IMPORTANT, false)
         messageDto = imapAPI.fetchMessage(imapMessage)
 
-        then:
+        then: "only 'SEEN' flag remains"
         messageDto.flags == ["SEEN"]
 
-        when:
+        when: "add custom flag and fetch again"
         imapAPI.setFlag(imapMessage, new ImapFlag("custom-flag"), true)
         messageDto = imapAPI.fetchMessage(imapMessage)
 
-        then:
+        then: "flags of result are updated"
         messageDto.flags.containsAll(["SEEN", "custom-flag"])
 
-        when:
+        when: "try to remove nonexistent custom flag"
         imapAPI.setFlag(imapMessage, new ImapFlag("custom-flag1"), false)
         messageDto = imapAPI.fetchMessage(imapMessage)
 
-        then:
+        then: "nothing is changed"
         messageDto.flags.containsAll(["SEEN", "custom-flag"])
 
-        when:
+        when: "remove custom flag previously set and fetch again"
         imapAPI.setFlag(imapMessage, new ImapFlag("custom-flag"), false)
         messageDto = imapAPI.fetchMessage(imapMessage)
 
-        then:
+        then: "only 'SEEN' flag remains"
         messageDto.flags == ["SEEN"]
     }
     def "move message to other folder"() {
-        given:
+        given: "single message in INBOX"
         deliverDefaultMessage(EMAIL_SUBJECT + "_moved_to_other", STARTING_EMAIL_UID)
-
         ImapMessage imapMessage = defaultMessage(STARTING_EMAIL_UID)
 
-        when:
+        when: "check all messages of INBOX"
         Message[] inboxMessages = getDefaultMessages("INBOX")
 
-        then:
+        then: "find our original message"
         inboxMessages != null
         inboxMessages.size() == 1
         inboxMessages[0].subject == EMAIL_SUBJECT + "_moved_to_other"
         imapAPI.fetchMessage(imapMessage) != null
 
-        when:
+        when: "move message to the same folder"
+        imapAPI.moveMessage(imapMessage, "INBOX")
+
+        then: "nothing is changed"
+        imapAPI.fetchMessage(imapMessage) != null
+
+        when: "move message to other folder"
         imapAPI.moveMessage(imapMessage, "root2")
 
-        then:
+        then: "INBOX doesn't contain it anymore"
         imapAPI.fetchMessage(imapMessage) == null
 
-        when:
+        when: "check all messages of target folder"
         IMAPFolder folder = getDefaultImapFolder("root2")
         Message[] messages = folder.messages
 
-        then:
+        then: "find our original message there"
         messages != null
         messages.size() == 1
         messages[0].subject == EMAIL_SUBJECT + "_moved_to_other"
         folder.getUID(messages[0]) == STARTING_EMAIL_UID
 
-        when:
+        when: "try to move message to nonexistent folder"
         imapAPI.moveMessage(imapMessage, "root999")
 
-        then:
+        then: "exception is raised"
         thrown ImapException
     }
     def "delete message"() {
-        given:
+        given: "2 messages in INBOX"
         deliverDefaultMessage(EMAIL_SUBJECT, STARTING_EMAIL_UID)
         deliverDefaultMessage(EMAIL_SUBJECT + "_moved", STARTING_EMAIL_UID + 1)
-
         ImapMessage imapMessage1 = defaultMessage(STARTING_EMAIL_UID)
         ImapMessage imapMessage2 = defaultMessage(STARTING_EMAIL_UID + 1)
 
-        when:
+        when: "delete first message having no trash folder configured"
         imapAPI.deleteMessage(imapMessage1)
 
-        then:
+        then: "message is gone from INBOX"
         imapAPI.fetchMessage(imapMessage1) == null
 
-        when:
+        when: "delete second message having trash folder configured"
         mailBoxConfig.trashFolderName = "root0"
         imapAPI.deleteMessage(imapMessage2)
 
-        then:
+        then: "message is gone from INBOX"
         imapAPI.fetchMessage(imapMessage2) == null
 
-        when:
+        when: "get all messages from trash folder"
         IMAPFolder folder = getDefaultImapFolder("root0")
         Message[] messages = folder.messages
 
-        then:
+        then: "find second message there"
         messages != null
         messages.size() == 1
         messages[0].getSubject() == EMAIL_SUBJECT + "_moved"
@@ -308,7 +310,7 @@ class ImapAPISpec extends Specification {
 
 
     def "fetch multiple messages from one folder"() {
-        given:
+        given: "2 messages in INBOX, 3 messages in other 2 folders and 2 messages in other mailbox INBOX"
         GreenMail mailServer2 = new GreenMail(new ServerSetup(mailServer.getImap().port + 99, null, ServerSetup.PROTOCOL_IMAP))
         mailServer2.start()
         GreenMailUser user2 = mailServer2.setUser(EMAIL_USER_ADDRESS, USER_NAME, USER_PASSWORD)
@@ -343,26 +345,26 @@ class ImapAPISpec extends Specification {
         imapMessage4.folder.name = "root0"
         imapAPI.applicationStarted()
 
-        when:
+        when: "fetch messages from INBOX"
         def inboxMessages = imapAPI.fetchMessages([imapMessage5, imapMessage_missed1, imapMessage2, imapMessage_missed2])
 
-        then:
+        then: "only messages with matched UIDs are returned"
         inboxMessages.size() == 2
         inboxMessages.collect{it.subject} == [EMAIL_SUBJECT + 5, EMAIL_SUBJECT + 2]
         inboxMessages.every {it.folderName == "INBOX"}
 
-        when:
+        when: "fetch messages across multiple folders"
         inboxMessages = imapAPI.fetchMessages([imapMessage1, imapMessage4, imapMessage2, imapMessage5, imapMessage_missed2, imapMessage3])
 
-        then:
+        then: "all matched messages are returned"
         inboxMessages.size() == 5
         inboxMessages.collect{it.subject} == [EMAIL_SUBJECT + 1, EMAIL_SUBJECT + 4, EMAIL_SUBJECT + 2, EMAIL_SUBJECT + 5, EMAIL_SUBJECT + 3]
         inboxMessages.collect{it.folderName} == ["root2", "root0", "INBOX", "INBOX", "root2"]
 
-        when:
+        when: "fetch messages across multiple folders and mailboxes"
         inboxMessages = imapAPI.fetchMessages([imapMessage_missed1, imapMessage3, imapMessage6, imapMessage5, imapMessage7, imapMessage1])
 
-        then:
+        then: "all matched messages are returned"
         inboxMessages.size() == 5
         inboxMessages.collect{it.subject} == [EMAIL_SUBJECT + 3, EMAIL_SUBJECT + 6, EMAIL_SUBJECT + 5, EMAIL_SUBJECT + 7, EMAIL_SUBJECT + 1]
         inboxMessages.collect{it.folderName} == ["root2", "INBOX", "INBOX", "INBOX", "root2"]

@@ -247,6 +247,9 @@ public class Imap implements ImapAPI, AppContext.Listener {
     }
 
     private void doMove(ImapMessage msg, String newFolderName, ImapMailBox mailBox) {
+        if (msg.getFolder().getName().equals(newFolderName)) {
+            return;
+        }
         Message message = consumeMessage(msg, _msg -> _msg, "Get message#" + msg.getMsgUid());
         imapHelper.doWithFolder(
                 mailBox,

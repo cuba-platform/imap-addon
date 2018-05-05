@@ -70,9 +70,8 @@ class ImapAttachmentsAPISpec extends Specification {
     }
 
     def "fetch attachments of message"() {
-        given:
+        given: "message in INBOX with 2 attachments"
         deliverDefaultMessage()
-
         ImapMessage message = defaultMessage()
         cont.persistence().runInTransaction() { em ->
             em.persist(message.folder)
@@ -80,10 +79,10 @@ class ImapAttachmentsAPISpec extends Specification {
             em.flush()
         }
 
-        when:
+        when: "fetch attachments of message"
         def attachments = imapAttachmentsAPI.fetchAttachments(message)
 
-        then:
+        then: "have all of them"
         attachments.size() == 2
         attachments[0].name == ATTACHMENT1_NAME
         attachments[1].name == ATTACHMENT2_NAME
@@ -91,9 +90,8 @@ class ImapAttachmentsAPISpec extends Specification {
     }
 
     def "fetch attachments content"() {
-        given:
+        given: "message in INBOX with 2 attachments and fetch its attachments in place"
         deliverDefaultMessage()
-
         ImapMessage message = defaultMessage()
         cont.persistence().runInTransaction() { em ->
             em.persist(message.folder)
@@ -102,16 +100,16 @@ class ImapAttachmentsAPISpec extends Specification {
         }
         def attachments = imapAttachmentsAPI.fetchAttachments(message)
 
-        when:
+        when: "get stream for content of one attachment"
         def attachment1ContentStream = imapAttachmentsAPI.openStream(attachments[0])
 
-        then:
+        then: "content matches"
         IOUtils.toString(attachment1ContentStream, StandardCharsets.UTF_8) == ATTACHMENT1_CONTENT
 
-        when:
+        when: "get content bytes of one attachment"
         def attachment2ContentBytes = imapAttachmentsAPI.openStream(attachments[1])
 
-        then:
+        then: "content matches"
         IOUtils.toString(attachment2ContentBytes, StandardCharsets.UTF_8) == ATTACHMENT2_CONTENT
 
     }

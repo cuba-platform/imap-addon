@@ -223,14 +223,14 @@ public class ImapChangedMessagesEvents {
             }
         }
         msg.setImapFlags(newFlags);
-        msg.setThreadId(imapHelper.getThreadId(newMsg));  // todo: fire thread event
+        msg.setThreadId(imapHelper.getThreadId(newMsg, msg.getFolder().getMailBox()));  // todo: fire thread event
         msg.setUpdateTs(new Date());
         msg.setMsgNum(newMsg.getMessageNumber());
 
         em.createQuery("update imap$Message m set m.msgNum = :msgNum, m.threadId = :threadId, " +
                 "m.updateTs = :updateTs, m.flags = :flags, m.referenceId = :refId where m.id = :id")
                 .setParameter("msgNum", newMsg.getMessageNumber())
-                .setParameter("threadId", imapHelper.getThreadId(newMsg))
+                .setParameter("threadId", imapHelper.getThreadId(newMsg, msg.getFolder().getMailBox()))
                 .setParameter("refId", refId)
                 .setParameter("updateTs", new Date())
                 .setParameter("flags", msg.getFlags())

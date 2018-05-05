@@ -31,7 +31,6 @@ import javax.mail.Flags;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.search.FlagTerm;
-import javax.mail.search.NotTerm;
 import java.util.*;
 
 @Component("imap_NewMessagesEvents")
@@ -85,7 +84,7 @@ public class ImapNewMessagesEvents {
             ImapMailBox mailBox = cubaFolder.getMailBox();
             List<IMAPMessage> imapMessages = imapHelper.search(
                     imapFolder,
-                    new NotTerm(new FlagTerm(imapHelper.cubaFlags(mailBox), true)),
+                    new FlagTerm(imapHelper.cubaFlags(mailBox), false),
                     mailBox
             );
             log.debug("[{}]handle events for new messages. New messages: {}", cubaFolder, imapMessages);
@@ -226,7 +225,7 @@ public class ImapNewMessagesEvents {
             entity.setCaption(imapHelper.getSubject(msg));
             entity.setMessageId(msg.getHeader(ImapHelper.MESSAGE_ID_HEADER, null));
             entity.setReferenceId(imapHelper.getRefId(msg));
-            entity.setThreadId(imapHelper.getThreadId(msg));
+            entity.setThreadId(imapHelper.getThreadId(msg, cubaFolder.getMailBox()));
             entity.setMsgNum(msg.getMessageNumber());
             em.persist(entity);
             return entity;

@@ -144,7 +144,7 @@ public class ImapEvents {
         }
     }
 
-    private void filterEvents(ImapFolder cubaFolder, Collection<? extends   BaseImapEvent> imapEvents) {
+    private void filterEvents(ImapFolder cubaFolder, Collection<? extends BaseImapEvent> imapEvents) {
         for (ImapEventType eventType : ImapEventType.values()) {
             if (!cubaFolder.hasEvent(eventType)) {
                 imapEvents.removeIf(event -> eventType.getEventClass().equals(event.getClass()));

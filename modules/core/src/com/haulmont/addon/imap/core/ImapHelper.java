@@ -323,7 +323,10 @@ public class ImapHelper {
         return null;
     }
 
-    public Long getThreadId(IMAPMessage message) throws MessagingException {
+    public Long getThreadId(IMAPMessage message, ImapMailBox mailBox) throws MessagingException {
+        if (!getStore(mailBox).hasCapability(ThreadExtension.CAPABILITY_NAME)) {
+            return null;
+        }
         Object threadItem = message.getItem(ThreadExtension.FETCH_ITEM);
         return threadItem instanceof ThreadExtension.X_GM_THRID ? ((ThreadExtension.X_GM_THRID) threadItem).x_gm_thrid : null;
     }
