@@ -368,8 +368,11 @@ class ImapAPISpec extends Specification {
         inboxMessages.collect{it.folderName} == ["root2", "INBOX", "INBOX", "INBOX", "root2"]
         inboxMessages.collect{it.mailBoxPort} == [mailBoxConfig.port, mailBoxConfig2.port, mailBoxConfig.port, mailBoxConfig2.port, mailBoxConfig.port]
 
+        cleanup:
+        mailServer2.stop()
     }
 
+    @SuppressWarnings("GroovyAssignabilityCheck")
     void deliverDefaultMessage(subject, uid, actor = user) {
         MimeMessage message = new MimeMessage((Session) null)
         message.from = new InternetAddress(EMAIL_TO)
