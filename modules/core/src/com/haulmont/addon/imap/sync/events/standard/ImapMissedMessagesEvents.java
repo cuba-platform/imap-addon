@@ -31,8 +31,6 @@ import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.search.MessageIDTerm;
-import javax.mail.search.OrTerm;
-import javax.mail.search.SearchTerm;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -213,6 +211,11 @@ public class ImapMissedMessagesEvents {
     @SuppressWarnings("WeakerAccess")
     protected Collection<IMAPFolder> getOtherFolders(ImapFolder cubaFolder) {
         ImapMailBox mailBox = getMailbox(cubaFolder.getMailBox().getId());
+        if (log.isTraceEnabled()) {
+            log.trace("processable folders: {}",
+                    mailBox.getProcessableFolders().stream().map(ImapFolder::getName).collect(Collectors.toList())
+            );
+        }
         List<String> otherFoldersNames = mailBox.getProcessableFolders().stream()
                 .filter(f -> !f.getName().equals(cubaFolder.getName()))
                 .map(ImapFolder::getName)
@@ -229,7 +232,7 @@ public class ImapMissedMessagesEvents {
                 .map(ImapFolderDto::getImapFolder)
                 .collect(Collectors.toList());
         if (log.isDebugEnabled()) {
-            log.debug("Missed messages task will use folder {} to trigger MOVE event",
+            log.debug("Missed messages task will use folders {} to trigger MOVE event",
                     otherFolders.stream().map(IMAPFolder::getFullName).collect(Collectors.toList())
             );
         }
@@ -306,10 +309,18 @@ public class ImapMissedMessagesEvents {
                 imapFolder.open(Folder.READ_ONLY);
                 close = true;
             }
-            List<IMAPMessage> messages = imapHelper.searchMessageIds(
+            List<IMAPMessage> messages = new ArrayList<>(messageIds.size());
+            for (String messageId : messageIds) {
+                messages.addAll(imapHelper.searchMessageIds(
+                        imapFolder,
+                        new MessageIDTerm(messageId)
+                ));
+            }
+            //todo: GreenMail can't handle properly OR combination of MessageID terms, need to check out with real IMAP servers to avoid extra hits
+            /*List<IMAPMessage> messages = imapHelper.searchMessageIds(
                     imapFolder,
                     new OrTerm(messageIds.stream().map(MessageIDTerm::new).toArray(SearchTerm[]::new))
-            );
+            );*/
             if (messages.isEmpty()) {
                 return Collections.emptyList();
             }

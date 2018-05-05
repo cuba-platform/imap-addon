@@ -1,8 +1,10 @@
 package spec.imap.core.events
 
 import com.haulmont.addon.imap.ImapcomponentTestContainer
+import com.haulmont.addon.imap.api.ImapAPI
 import com.haulmont.addon.imap.api.ImapFlag
 import com.haulmont.addon.imap.core.ImapEventsTestListener
+import com.haulmont.addon.imap.core.ImapHelper
 import com.haulmont.addon.imap.dao.ImapDao
 import com.haulmont.addon.imap.entity.ImapAuthenticationMethod
 import com.haulmont.addon.imap.entity.ImapEventType
@@ -15,22 +17,28 @@ import com.haulmont.addon.imap.events.BaseImapEvent
 import com.haulmont.addon.imap.events.EmailAnsweredImapEvent
 import com.haulmont.addon.imap.events.EmailDeletedImapEvent
 import com.haulmont.addon.imap.events.EmailFlagChangedImapEvent
+import com.haulmont.addon.imap.events.EmailMovedImapEvent
 import com.haulmont.addon.imap.events.EmailSeenImapEvent
 import com.haulmont.addon.imap.events.NewEmailImapEvent
 import com.haulmont.addon.imap.sync.events.ImapEvents
+import com.haulmont.addon.imap.sync.events.standard.ImapMissedMessagesEvents
 import com.haulmont.cuba.core.global.AppBeans
+import com.icegreen.greenmail.imap.ImapHostManager
 import com.icegreen.greenmail.store.StoredMessage
 import com.icegreen.greenmail.user.GreenMailUser
 import com.icegreen.greenmail.util.GreenMail
 import com.icegreen.greenmail.util.ServerSetup
+import com.sun.mail.imap.IMAPFolder
 import org.junit.ClassRule
-import spock.lang.Ignore
 import spock.lang.Shared
 import spock.lang.Specification
 
 import javax.mail.Flags
+import javax.mail.Folder
 import javax.mail.Message
 import javax.mail.Session
+import javax.mail.Store
+import javax.mail.URLName
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeMessage
 import java.util.concurrent.atomic.AtomicInteger
@@ -67,7 +75,7 @@ class ImapEventsSpec extends Specification {
         imapEvents = AppBeans.get(ImapEvents)
         imapDao = AppBeans.get(ImapDao)
 
-        mailServer = new GreenMail(new ServerSetup(3143 + counter.incrementAndGet(), null, ServerSetup.PROTOCOL_IMAP))
+        mailServer = new GreenMail(new ServerSetup(9143 + counter.incrementAndGet(), null, ServerSetup.PROTOCOL_IMAP))
         mailServer.start()
         user = mailServer.setUser(EMAIL_USER_ADDRESS, USER_NAME, USER_PASSWORD)
 
@@ -84,7 +92,7 @@ class ImapEventsSpec extends Specification {
         deliverDefaultMessage(EMAIL_SUBJECT + 1, START_EMAIL_UID + 1, new Flags(CUBA_FLAG))
         deliverDefaultMessage(EMAIL_SUBJECT + 2, START_EMAIL_UID + 2)
         and: "INBOX is configured to handle new message events"
-        INBOX = inbox(mailBoxConfig, ImapEventType.NEW_EMAIL)
+        INBOX = inbox(mailBoxConfig, [ImapEventType.NEW_EMAIL])
 
         when: "check for new messages"
         eventListener.events.clear()
@@ -113,7 +121,7 @@ class ImapEventsSpec extends Specification {
         deliverDefaultMessage(EMAIL_SUBJECT + 1, START_EMAIL_UID + 1, new Flags(Flags.Flag.SEEN))
         deliverDefaultMessage(EMAIL_SUBJECT + 2, START_EMAIL_UID + 2)
         and: "INBOX is configured to handle new message events"
-        INBOX = inbox(mailBoxConfig, ImapEventType.EMAIL_SEEN)
+        INBOX = inbox(mailBoxConfig, [ImapEventType.EMAIL_SEEN])
         and: "2 messages in database, first of them is marked as seen"
         ImapMessage message1 = defaultMessage(START_EMAIL_UID, EMAIL_SUBJECT + 0, INBOX)
         message1.setImapFlags(new Flags(Flags.Flag.SEEN))
@@ -148,7 +156,7 @@ class ImapEventsSpec extends Specification {
         deliverDefaultMessage(EMAIL_SUBJECT + 1, START_EMAIL_UID + 1, new Flags(Flags.Flag.ANSWERED))
         deliverDefaultMessage(EMAIL_SUBJECT + 2, START_EMAIL_UID + 2, new Flags(Flags.Flag.ANSWERED))
         and: "INBOX is configured to handle new message events"
-        INBOX = inbox(mailBoxConfig, ImapEventType.NEW_ANSWER)
+        INBOX = inbox(mailBoxConfig, [ImapEventType.NEW_ANSWER])
         and: "2 messages in database, first of them is answered as answered"
         ImapMessage message1 = defaultMessage(START_EMAIL_UID + 1, EMAIL_SUBJECT + 1, INBOX)
         message1.setImapFlags(new Flags(Flags.Flag.ANSWERED))
@@ -182,7 +190,7 @@ class ImapEventsSpec extends Specification {
         given: "1 messages in INBOX"
         deliverDefaultMessage(EMAIL_SUBJECT + 0, START_EMAIL_UID)
         and: "INBOX is configured to handle new message events"
-        INBOX = inbox(mailBoxConfig, ImapEventType.EMAIL_DELETED)
+        INBOX = inbox(mailBoxConfig, [ImapEventType.EMAIL_DELETED])
         and: "3 messages in database"
         ImapMessage message1 = defaultMessage(START_EMAIL_UID, EMAIL_SUBJECT + 0, INBOX)
         message1.setImapFlags(new Flags(CUBA_FLAG))
@@ -233,7 +241,7 @@ class ImapEventsSpec extends Specification {
         deliverDefaultMessage(EMAIL_SUBJECT + 2, START_EMAIL_UID + 2, flags)
 
         and: "INBOX is configured to handle new message events"
-        INBOX = inbox(mailBoxConfig, ImapEventType.FLAGS_UPDATED)
+        INBOX = inbox(mailBoxConfig, [ImapEventType.FLAGS_UPDATED])
 
         and: "1st message in database has only CUBA flag"
         ImapMessage message1 = defaultMessage(START_EMAIL_UID, EMAIL_SUBJECT + 0, INBOX)
@@ -325,13 +333,81 @@ class ImapEventsSpec extends Specification {
         msg3ChangedFlags.get(ImapFlag.ANSWERED)
     }
 
+    @SuppressWarnings("GroovyAccessibility")
     def "message has been moved"() {
-        expect:
-        false
+        given: "other folder and trash folder exist for mailbox"
+        ImapHostManager imapManager = mailServer.managers.imapHostManager
+        imapManager.createMailbox(user, "other-folder")
+        imapManager.createMailbox(user, "trash-folder")
+        and: "mailbox has trash folder configured"
+        mailBoxConfig.trashFolderName = "trash-folder"
+        cont.persistence().runInTransaction() { em ->
+            em.merge(mailBoxConfig)
+            em.flush()
+        }
+        and: "INBOX is configured to handle new message events"
+        INBOX = inbox(mailBoxConfig, [ImapEventType.EMAIL_MOVED, ImapEventType.EMAIL_DELETED], true)
+        and: "other folder is configured"
+        def otherFolder = imapFolder(mailBoxConfig, "other-folder", true)
+        and: "1 message in INBOX, 1 message in other folder and 1 message in trash-folder folder"
+        deliverDefaultMessage(EMAIL_SUBJECT + 0, START_EMAIL_UID)
+        deliverDefaultMessage(EMAIL_SUBJECT + 1, START_EMAIL_UID + 1, null, "moved-message")
+        deliverDefaultMessage(EMAIL_SUBJECT + 2, START_EMAIL_UID + 2, null, "deleted-message")
+        def imapMessages = getDefaultMessages("INBOX")
+
+        ImapMessage message1 = defaultMessage(START_EMAIL_UID, EMAIL_SUBJECT + 0, INBOX)
+        message1.msgNum = 1
+        ImapMessage message2 = defaultMessage(START_EMAIL_UID + 1, EMAIL_SUBJECT + 1, INBOX)
+        message2.msgNum = 2
+        message2.messageId = imapMessages.find { it.messageNumber == 2 }.getHeader(ImapHelper.MESSAGE_ID_HEADER)[0]
+        ImapMessage message3 = defaultMessage(START_EMAIL_UID + 2, EMAIL_SUBJECT + 2, INBOX)
+        message3.msgNum = 3
+        message3.messageId = imapMessages.find { it.messageNumber == 3 }.getHeader(ImapHelper.MESSAGE_ID_HEADER)[0]
+        cont.persistence().runInTransaction() { em ->
+            em.persist(message1)
+            em.persist(message2)
+            em.persist(message3)
+            em.flush()
+        }
+        AppBeans.get(ImapAPI).moveMessage(message2, "other-folder")
+        AppBeans.get(ImapAPI).moveMessage(message3, "trash-folder")
+        cont.persistence().runInTransaction() { em ->
+            INBOX.disabled = false
+            em.merge(INBOX)
+            otherFolder.disabled = false
+            em.merge(otherFolder)
+            em.flush()
+        }
+        cont.persistence().runInTransaction() { em -> INBOX = em.reload(INBOX, "imap-folder-full")}
+
+        when: "check for missed messages"
+        eventListener.events.clear()
+        imapEvents.handleMissedMessages(INBOX)
+
+        then: "there is only 1 message remaining in database"
+        imapDao.findMessageByUid(INBOX.getUuid(), START_EMAIL_UID) != null
+        imapDao.findMessageByUid(INBOX.getUuid(), START_EMAIL_UID + 1) == null
+        imapDao.findMessageByUid(INBOX.getUuid(), START_EMAIL_UID + 2) == null
+
+        and: "1 event with type 'EMAIL_DELETED' and 1 event with type 'EMAIL_MOVED' are fired"
+        def imapEvents = eventListener.events
+        imapEvents.size() == 2
+        imapEvents.count {
+            it instanceof EmailDeletedImapEvent &&
+                    it.message.folder == INBOX &&
+                    it.message.msgUid == START_EMAIL_UID + 2
+        } == 1
+        imapEvents.count {
+            it instanceof EmailMovedImapEvent &&
+                    it.message.folder == INBOX &&
+                    it.message.msgUid == START_EMAIL_UID + 1 &&
+                    it.newFolderName == "other-folder" &&
+                    it.oldFolderName == "INBOX"
+        } == 1
     }
 
     @SuppressWarnings("GroovyAssignabilityCheck")
-    void deliverDefaultMessage(subject, uid, flags = null) {
+    void deliverDefaultMessage(subject, uid, flags = null, messageId = null) {
         MimeMessage message = new MimeMessage((Session) null)
         message.from = new InternetAddress(EMAIL_TO)
         message.addRecipient(Message.RecipientType.TO, new InternetAddress(EMAIL_USER_ADDRESS))
@@ -339,6 +415,9 @@ class ImapEventsSpec extends Specification {
         message.text = EMAIL_TEXT
         if (flags != null) {
             message.setFlags(flags, true)
+        }
+        if (messageId != null) {
+            message.setHeader(ImapHelper.MESSAGE_ID_HEADER, messageId)
         }
 
         user.deliver(new StoredMessage.UidAwareMimeMessage(message, uid))
@@ -376,25 +455,69 @@ class ImapEventsSpec extends Specification {
         return mailBox
     }
 
-    @SuppressWarnings("GroovyAssignabilityCheck")
-    ImapFolder inbox(ImapMailBox mailBox, eventType) {
+    @SuppressWarnings(["GroovyAssignabilityCheck", "GroovyAccessibility"])
+    ImapFolder inbox(ImapMailBox mailBox, eventTypes, disabled = false) {
+        ImapFolder imapFolder = imapFolder(mailBox, "INBOX", disabled)
+
+        def events = eventTypes.collect {
+            ImapFolderEvent event = cont.metadata().create(ImapFolderEvent)
+            event.folder = imapFolder
+            event.event = it
+            event.eventHandlers = new ArrayList<>()
+
+            return event
+        }
+
+        cont.persistence().runInTransaction() { em ->
+            events.forEach{ em.persist(it) }
+            em.flush()
+        }
+        imapFolder.setEvents(events)
+
+        return imapFolder
+    }
+
+    @SuppressWarnings(["GroovyAssignabilityCheck", "GroovyAccessibility"])
+    ImapFolder imapFolder(ImapMailBox mailBox, folderName, disabled = false) {
         ImapFolder imapFolder = cont.metadata().create(ImapFolder)
-        imapFolder.name = "INBOX"
+        imapFolder.name = folderName
         imapFolder.mailBox = mailBox
         imapFolder.selected = true
-        imapFolder.disabled = false
-
-        ImapFolderEvent event = cont.metadata().create(ImapFolderEvent)
-        event.folder = imapFolder
-        event.setEvent(eventType)
-        imapFolder.setEvents([event])
+        imapFolder.disabled = disabled
 
         cont.persistence().runInTransaction() { em ->
             em.persist(imapFolder)
-            em.persist(event)
             em.flush()
         }
 
+        if (mailBox.folders == null) {
+            mailBox.folders = new ArrayList<>()
+        }
+        mailBox.folders.add(imapFolder)
+
         return imapFolder
+    }
+
+
+
+    ///
+
+    Message[] getDefaultMessages(folderName) {
+        Folder folder = getDefaultImapFolder(folderName)
+        return folder.getMessages()
+    }
+
+    @SuppressWarnings("GroovyAssignabilityCheck")
+    IMAPFolder getDefaultImapFolder(folderName) {
+        Properties props = new Properties()
+        Session session = Session.getInstance(props)
+        URLName urlName = new URLName("imap", LOCALHOST,
+                mailBoxConfig.port, null, user.getLogin(),
+                user.getPassword())
+        Store store = session.getStore(urlName)
+        store.connect()
+        IMAPFolder folder = store.getFolder(folderName)
+        folder.open(Folder.READ_ONLY)
+        return folder
     }
 }

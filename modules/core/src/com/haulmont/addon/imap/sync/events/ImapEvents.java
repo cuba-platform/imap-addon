@@ -1,5 +1,6 @@
 package com.haulmont.addon.imap.sync.events;
 
+import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.events.BaseImapEvent;
 import com.haulmont.addon.imap.sync.ImapFolderSyncAction;
@@ -32,15 +33,18 @@ public class ImapEvents {
     private final Events events;
     private final Authentication authentication;
     private final ImapStandardEventsGenerator standardEventsGenerator;
+    private final ImapDao imapDao;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public ImapEvents(Events events,
                       Authentication authentication,
-                      @Qualifier(ImapStandardEventsGenerator.NAME) ImapStandardEventsGenerator standardEventsGenerator) {
+                      @Qualifier(ImapStandardEventsGenerator.NAME) ImapStandardEventsGenerator standardEventsGenerator,
+                      ImapDao imapDao) {
         this.events = events;
         this.authentication = authentication;
         this.standardEventsGenerator = standardEventsGenerator;
+        this.imapDao = imapDao;
     }
 
     public void handleNewMessages(ImapFolder cubaFolder) {
@@ -132,15 +136,23 @@ public class ImapEvents {
 
         log.debug("Filtered events for {}: {}", cubaFolder, imapEvents);
 
+        ImapFolder freshFolder = imapDao.findFolder(cubaFolder.getId());
+
         for (BaseImapEvent event : imapEvents) {
+            log.trace("firing event {}", event);
             events.publish(event);
 
-            ImapEventType.getByEventType(event.getClass()).stream()
-                    .map(cubaFolder::getEvent)
+            List<ImapEventHandler> eventHandlers = ImapEventType.getByEventType(event.getClass()).stream()
+                    .map(freshFolder::getEvent)
                     .filter(Objects::nonNull)
                     .map(ImapFolderEvent::getEventHandlers)
                     .filter(handlers -> !CollectionUtils.isEmpty(handlers))
-                    .forEach(handlers -> invokeAttachedHandlers(event, cubaFolder, handlers));
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList());
+            log.trace("firing event {} using handlers {}", event, eventHandlers);
+            invokeAttachedHandlers(event, freshFolder, eventHandlers);
+
+            log.trace("finish processing event {}", event);
         }
     }
 
