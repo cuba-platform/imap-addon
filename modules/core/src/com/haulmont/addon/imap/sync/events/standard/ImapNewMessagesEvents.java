@@ -47,7 +47,7 @@ public class ImapNewMessagesEvents {
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public ImapNewMessagesEvents(ImapHelper imapHelper,
-                                 ImapConfig imapConfig,
+                                 @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig,
                                  Authentication authentication,
                                  Persistence persistence,
                                  ImapDao dao,
@@ -207,7 +207,7 @@ public class ImapNewMessagesEvents {
         flags.add(cubaFolder.getMailBox().getCubaFlag());
         long uid = imapFolder.getUID(msg);
 
-        int sameUids = em.createQuery(
+        int sameUIDs = em.createQuery(
                 "select m from imap$Message m where m.msgUid = :uid and m.folder.id = :mailFolderId"
         )
                 .setParameter("uid", uid)
@@ -215,7 +215,7 @@ public class ImapNewMessagesEvents {
                 .setMaxResults(1)
                 .getResultList()
                 .size();
-        if (sameUids == 0) {
+        if (sameUIDs == 0) {
             log.trace("Save new message {}", msg);
             ImapMessage entity = metadata.create(ImapMessage.class);
             entity.setMsgUid(uid);

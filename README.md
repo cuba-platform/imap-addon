@@ -4,7 +4,7 @@
 
 This application component can be used to extend the capabilities of a [CUBA.Platform](https://www.cuba-platform.com/) application so that it can retrieve Emails via the [IMAP protocol](https://tools.ietf.org/html/rfc3501).
 
-The main model to interact with incoming Emails is via Spring application Events. The application developer registeres Hook methods as an `@EventListener` which will invoked when Events in the IMAP mailbox happen (e.g. new Email received).
+The main model to interact with incoming Emails is via Spring application Events. The application developer registers Hook methods as an `@EventListener` which will invoked when Events in the IMAP mailbox happen (e.g. new Email received).
 
 Besides the Event based programming model it is also possible to directly interact with the corresponding API methods.
 

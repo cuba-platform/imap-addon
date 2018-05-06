@@ -22,7 +22,7 @@ public class ImapServiceBean implements ImapService {
 
     private final static Logger log = LoggerFactory.getLogger(ImapServiceBean.class);
 
-    private Map<Class<? extends BaseImapEvent>, AbstractBeansMetadata> beanMetas = new HashMap<>();
+    private final Map<Class<? extends BaseImapEvent>, AbstractBeansMetadata> beanMetas = new HashMap<>();
 
     @Override
     public Map<String, List<String>> getAvailableBeans(Class<? extends BaseImapEvent> eventClass) {

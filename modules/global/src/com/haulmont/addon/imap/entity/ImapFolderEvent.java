@@ -21,11 +21,11 @@ public class ImapFolderEvent extends StandardEntity {
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "FOLDER_ID")
-    protected ImapFolder folder;
+    private ImapFolder folder;
 
     @Column(name = "EVENT", nullable = false)
     @NotNull
-    protected String event;
+    private String event;
 
     @OnDelete(DeletePolicy.CASCADE)
     @OneToMany(mappedBy = "event")

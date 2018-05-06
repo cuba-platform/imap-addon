@@ -20,6 +20,7 @@ import java.util.Base64;
 
 @Component(DefaultEncryptor.NAME)
 public class DefaultEncryptor implements Encryptor {
+    @SuppressWarnings("WeakerAccess")
     static final String NAME = "imap_DefaultEncryptor";
 
     private final static Logger log = LoggerFactory.getLogger(DefaultEncryptor.class);
@@ -32,7 +33,7 @@ public class DefaultEncryptor implements Encryptor {
 
     private byte[] iv;
 
-    @SuppressWarnings("CdiInjectionPointsInspection")
+    @SuppressWarnings({"SpringJavaInjectionPointsAutowiringInspection", "CdiInjectionPointsInspection"})
     @Inject
     public DefaultEncryptor(ImapEncryptionConfig imapConfig) {
         this.imapConfig = imapConfig;

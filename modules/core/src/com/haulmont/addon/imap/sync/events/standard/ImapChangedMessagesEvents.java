@@ -51,7 +51,7 @@ public class ImapChangedMessagesEvents {
                                      Authentication authentication,
                                      Persistence persistence,
                                      ImapDao dao,
-                                     ImapConfig imapConfig) {
+                                     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig) {
         this.imapHelper = imapHelper;
         this.authentication = authentication;
         this.persistence = persistence;
@@ -102,15 +102,15 @@ public class ImapChangedMessagesEvents {
             if (!imapFolder.isOpen()) {
                 imapFolder.open(Folder.READ_WRITE);
             }
-            List<IMAPMessage> imapMessages = imapHelper.fetchUids(imapFolder, changedMessages.toArray(new Message[0]));
-            Map<Long, IMAPMessage> msgsByUid = new HashMap<>(imapMessages.size());
+            List<IMAPMessage> imapMessages = imapHelper.fetchUIDs(imapFolder, changedMessages.toArray(new Message[0]));
+            Map<Long, IMAPMessage> messagesByUID = new HashMap<>(imapMessages.size());
             for (IMAPMessage msg : imapMessages) {
-                msgsByUid.put(imapFolder.getUID(msg), msg);
+                messagesByUID.put(imapFolder.getUID(msg), msg);
             }
 
             Collection<ImapMessage> messages = getMessages(cubaFolder, changedMessages);
 
-            Collection<BaseImapEvent> imapEvents = generate(messages, msgsByUid);
+            Collection<BaseImapEvent> imapEvents = generate(messages, messagesByUID);
 
             imapHelper.setAnsweredFlag(cubaFolder.getMailBox(), imapEvents);
             return imapEvents;
@@ -134,29 +134,29 @@ public class ImapChangedMessagesEvents {
     private Collection<BaseImapEvent> handleBatch(IMAPFolder folder, int count, ImapFolder cubaFolder) throws MessagingException {
         Collection<ImapMessage> messages = getMessages(cubaFolder, count);
 
-        List<IMAPMessage> imapMessages = imapHelper.getAllByUids(
+        List<IMAPMessage> imapMessages = imapHelper.getAllByUIDs(
                 folder, messages.stream().mapToLong(ImapMessage::getMsgUid).toArray(), cubaFolder.getMailBox()
         );
         log.trace("[updating messages flags for {}]batch messages from db: {}, from IMAP server: {}",
                 TASK_DESCRIPTION, cubaFolder, messages, imapMessages);
 
-        Map<Long, IMAPMessage> msgsByUid = new HashMap<>(imapMessages.size());
+        Map<Long, IMAPMessage> messagesByUID = new HashMap<>(imapMessages.size());
         for (IMAPMessage msg : imapMessages) {
-            msgsByUid.put(folder.getUID(msg), msg);
+            messagesByUID.put(folder.getUID(msg), msg);
         }
 
-        return generate(messages, msgsByUid);
+        return generate(messages, messagesByUID);
     }
 
     private Collection<BaseImapEvent> generate(Collection<ImapMessage> messages,
-                                               Map<Long, IMAPMessage> msgsByUid) throws MessagingException {
+                                               Map<Long, IMAPMessage> messagesByUID) throws MessagingException {
         authentication.begin();
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
 
             Collection<BaseImapEvent> imapEvents = new ArrayList<>(messages.size());
             for (ImapMessage msg : messages) {
-                List<BaseImapEvent> msgEvents = handleMessage(em, msg, msgsByUid);
+                List<BaseImapEvent> msgEvents = handleMessage(em, msg, messagesByUID);
                 if (!msgEvents.isEmpty()) {
                     imapEvents.addAll(msgEvents);
                 }
@@ -174,7 +174,7 @@ public class ImapChangedMessagesEvents {
                                                 @Nonnull Collection<IMAPMessage> changedMessages) {
         authentication.begin();
         try (Transaction ignore = persistence.createTransaction()) {
-            return dao.findMessagesByImapNums(
+            return dao.findMessagesByImapNumbers(
                     cubaFolder.getId(),
                     changedMessages.stream().map(Message::getMessageNumber).collect(Collectors.toList())
             );
@@ -203,9 +203,9 @@ public class ImapChangedMessagesEvents {
 
     private List<BaseImapEvent> handleMessage(EntityManager em,
                                               ImapMessage msg,
-                                              Map<Long, IMAPMessage> msgsByUid) throws MessagingException {
+                                              Map<Long, IMAPMessage> messagesByUID) throws MessagingException {
 
-        IMAPMessage newMsg = msgsByUid.get(msg.getMsgUid());
+        IMAPMessage newMsg = messagesByUID.get(msg.getMsgUid());
         if (newMsg == null) {
             return Collections.emptyList();
         }
@@ -292,14 +292,14 @@ public class ImapChangedMessagesEvents {
         }
     }
 
-    private boolean isSeen(Flags newflags, Flags oldFlags) {
+    private boolean isSeen(Flags newFlags, Flags oldFlags) {
         return !oldFlags.contains(Flags.Flag.SEEN)
-                && newflags.contains(Flags.Flag.SEEN);
+                && newFlags.contains(Flags.Flag.SEEN);
     }
 
-    private boolean isAnswered(Flags newflags, Flags oldFlags) {
+    private boolean isAnswered(Flags newFlags, Flags oldFlags) {
         return !oldFlags.contains(Flags.Flag.ANSWERED)
-                && newflags.contains(Flags.Flag.ANSWERED);
+                && newFlags.contains(Flags.Flag.ANSWERED);
     }
 
 }

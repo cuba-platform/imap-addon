@@ -17,7 +17,7 @@ public class ImapEventHandler extends StandardEntity {
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "EVENT_ID")
-    protected ImapFolderEvent event;
+    private ImapFolderEvent event;
 
     @Column(name = "HANDLING_ORDER")
     private Integer handlingOrder;

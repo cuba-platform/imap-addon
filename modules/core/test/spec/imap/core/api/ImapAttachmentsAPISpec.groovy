@@ -1,6 +1,6 @@
 package spec.imap.core.api
 
-import com.haulmont.addon.imap.ImapcomponentTestContainer
+import com.haulmont.addon.imap.ImapTestContainer
 import com.haulmont.addon.imap.api.ImapAttachmentsAPI
 import com.haulmont.addon.imap.entity.ImapAuthenticationMethod
 import com.haulmont.addon.imap.entity.ImapFolder
@@ -30,7 +30,9 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class ImapAttachmentsAPISpec extends Specification {
 
+    @SuppressWarnings("SpellCheckingInspection")
     private static final String USER_PASSWORD = "abcdef123"
+    @SuppressWarnings("SpellCheckingInspection")
     private static final String USER_NAME = "hascode"
     private static final String EMAIL_USER_ADDRESS = "hascode@localhost"
     private static final String LOCALHOST = "127.0.0.1"
@@ -47,7 +49,7 @@ class ImapAttachmentsAPISpec extends Specification {
     public static final String ATTACHMENT2_NAME = "Attachment-1.txt"
 
     @Shared @ClassRule
-    public ImapcomponentTestContainer cont = ImapcomponentTestContainer.Common.INSTANCE
+    public ImapTestContainer cont = ImapTestContainer.Common.INSTANCE
 
     private ImapAttachmentsAPI imapAttachmentsAPI
 

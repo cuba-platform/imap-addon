@@ -22,7 +22,7 @@ public class ImapMessageAttachment extends StandardEntity {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "IMAP_MESSAGE_ID")
-    protected ImapMessage imapMessage;
+    private ImapMessage imapMessage;
 
     @Temporal(TemporalType.TIME)
     @NotNull

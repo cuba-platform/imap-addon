@@ -58,7 +58,7 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
 
     @Override
     public Collection<? extends BaseImapEvent> generateForMissedMessages(ImapFolder cubaFolder,
-                                                                         Collection<IMAPMessage> missedMessags) {
-        return missedEvents.generate(cubaFolder, missedMessags);
+                                                                         Collection<IMAPMessage> missedMessages) {
+        return missedEvents.generate(cubaFolder, missedMessages);
     }
 }

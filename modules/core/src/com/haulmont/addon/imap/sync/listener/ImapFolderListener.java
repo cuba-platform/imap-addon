@@ -36,7 +36,7 @@ public class ImapFolderListener {
 
     private final ImapEvents imapEvents;
 
-    private ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
+    private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final AtomicInteger threadNumber = new AtomicInteger(1);
         @Override
         public Thread newThread(@Nonnull Runnable r) {
@@ -48,7 +48,7 @@ public class ImapFolderListener {
         }
     });
 
-    private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
     @Inject
     public ImapFolderListener(ImapHelper imapHelper,
@@ -129,10 +129,10 @@ public class ImapFolderListener {
     }
 
     private class FolderObjects {
-        private ImapFolder cubaFolder;
+        private final ImapFolder cubaFolder;
         private IMAPFolder imapFolder;
-        private MessageCountListener countListener;
-        private MessageChangedListener messageChangedListener;
+        private final MessageCountListener countListener;
+        private final MessageChangedListener messageChangedListener;
         private Future<?> listenTask;
         private ScheduledFuture<?> standbyTask;
 

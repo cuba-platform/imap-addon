@@ -8,12 +8,13 @@ import org.dom4j.Element;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
-public class ImapcomponentTestContainer extends TestContainer {
+public class ImapTestContainer extends TestContainer {
 
-    ImapcomponentTestContainer() {
+    ImapTestContainer() {
         super();
-        appComponents = new ArrayList<>(Arrays.asList(
+        appComponents = new ArrayList<>(Collections.singletonList(
                 "com.haulmont.cuba"
                 // add CUBA premium add-ons here
                 // "com.haulmont.bpm",
@@ -51,9 +52,9 @@ public class ImapcomponentTestContainer extends TestContainer {
         dbPassword = resourceElem.attributeValue("password");
     }
 
-    public static final class Common extends ImapcomponentTestContainer {
+    public static final class Common extends ImapTestContainer {
 
-        public static final ImapcomponentTestContainer.Common INSTANCE = new ImapcomponentTestContainer.Common();
+        public static final ImapTestContainer.Common INSTANCE = new ImapTestContainer.Common();
 
         private static volatile boolean initialized;
 

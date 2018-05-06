@@ -2,7 +2,7 @@ package com.haulmont.addon.imap.core;
 
 import java.util.Objects;
 
-public class FolderKey {
+class FolderKey {
 
     private final MailboxKey mailboxKey;
 

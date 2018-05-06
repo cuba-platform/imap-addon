@@ -68,15 +68,15 @@ public class ImapDao {
         }
     }
 
-    public Collection<ImapMessage> findMessagesByImapNums(UUID folderId, Collection<Integer> messageNums) {
+    public Collection<ImapMessage> findMessagesByImapNumbers(UUID folderId, Collection<Integer> messageNumbers) {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
 
             return em.createQuery(
-                    "select m from imap$Message m where m.folder.id = :folderId and m.msgNum in :msgNums",
+                    "select m from imap$Message m where m.folder.id = :folderId and m.msgNum in :msgNumbers",
                     ImapMessage.class)
                     .setParameter("folderId", folderId)
-                    .setParameter("msgNums", messageNums)
+                    .setParameter("msgNumbers", messageNumbers)
                     .setViewName("imap-msg-full")
                     .getResultList();
         }
@@ -89,6 +89,7 @@ public class ImapDao {
         }
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public ImapMessage findMessageByUid(UUID mailFolderId, long messageUid) {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();

@@ -26,26 +26,26 @@ public class ImapFolder extends StandardEntity {
     @OnDelete(DeletePolicy.CASCADE)
     @OneToMany(mappedBy = "folder")
     @Composition
-    protected List<ImapFolderEvent> events;
+    private List<ImapFolderEvent> events;
 
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "MAIL_BOX_ID")
-    protected ImapMailBox mailBox;
+    private ImapMailBox mailBox;
 
     @Column(name = "SELECTED", nullable = false)
-    protected Boolean selected = false;
+    private Boolean selected = false;
 
     @Column(name = "SELECTABLE", nullable = false)
-    protected Boolean selectable = false;
+    private Boolean selectable = false;
 
     @Column(name = "DISABLED")
-    protected Boolean disabled;
+    private Boolean disabled;
 
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PARENT_FOLDER_ID")
-    protected ImapFolder parent;
+    private ImapFolder parent;
 
     @Transient
     @MetaProperty

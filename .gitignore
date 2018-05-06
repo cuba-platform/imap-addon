@@ -19,6 +19,9 @@ hs_err_pid*
 
 # User-specific stuff:
 .idea/
+.ideaDataSources/
+dataSources/
+test-home/
 
 # Mongo Explorer plugin:
 .idea/mongoSettings.xml
@@ -178,4 +181,5 @@ buildNumber.properties
 
 Vagrantfile
 .vagrant
-deploy/*
+
+deploy

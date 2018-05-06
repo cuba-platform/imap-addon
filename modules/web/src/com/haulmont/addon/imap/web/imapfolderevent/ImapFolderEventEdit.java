@@ -66,17 +66,17 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
             return;
         }
 
-        Map<ImapEventHandler, LookupField> handlerMethodLookups = new HashMap<>();
+        Map<ImapEventHandler, LookupField> handlerMethodLookupFields = new HashMap<>();
         if (folderEvent.getEventHandlers() != null) {
             for (ImapEventHandler eventHandler : folderEvent.getEventHandlers()) {
-                handlerMethodLookups.put(eventHandler, makeBeanMethodLookup(availableBeans, eventHandler));
+                handlerMethodLookupFields.put(eventHandler, makeBeanMethodLookup(availableBeans, eventHandler));
             }
         }
 
-        addHandlersCollectionChangeListeners(availableBeans, maxHandlersCount, handlerMethodLookups);
+        addHandlersCollectionChangeListeners(availableBeans, maxHandlersCount, handlerMethodLookupFields);
         setHandlerChangeListeners(availableBeans);
 
-        generateColumns(availableBeans, beanNames, handlerMethodLookups);
+        generateColumns(availableBeans, beanNames, handlerMethodLookupFields);
 
         addCloseWithCommitListener(() -> {
 
@@ -92,7 +92,7 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
 
     private void generateColumns(Map<String, List<String>> availableBeans,
                                  List<String> beanNames, Map<ImapEventHandler,
-                                 LookupField> handlerMethodLookups) {
+                                 LookupField> handlerMethodLookupFields) {
 
         handlersTable.addGeneratedColumn("beanName", eventHandler -> {
             LookupField lookup = componentsFactory.createComponent(LookupField.class);
@@ -103,7 +103,7 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
             return lookup;
         });
         handlersTable.addGeneratedColumn("methodName", eventHandler -> {
-            LookupField lookup = handlerMethodLookups.get(eventHandler);
+            LookupField lookup = handlerMethodLookupFields.get(eventHandler);
             lookup = lookup != null ? lookup : makeBeanMethodLookup(availableBeans, eventHandler);
 
             lookup.setOptionsList(
@@ -116,7 +116,7 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
 
     private void addHandlersCollectionChangeListeners(Map<String, List<String>> availableBeans,
                                                       long maxHandlersCount, Map<ImapEventHandler,
-                                                      LookupField> handlerMethodLookups) {
+                                                      LookupField> handlerMethodLookupFields) {
 
         handlersDs.addItemChangeListener(e -> {
             ImapEventHandler handler = e.getItem();
@@ -132,13 +132,13 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
         handlersDs.addCollectionChangeListener(e -> {
             if (e.getOperation() == CollectionDatasource.Operation.REMOVE) {
                 for (ImapEventHandler handler : e.getItems()) {
-                    handlerMethodLookups.remove(handler);
+                    handlerMethodLookupFields.remove(handler);
                 }
                 enableAddButton(maxHandlersCount);
             } else if (e.getOperation() == CollectionDatasource.Operation.ADD) {
                 for (ImapEventHandler handler : e.getItems()) {
-                    if (!handlerMethodLookups.containsKey(handler)) {
-                        handlerMethodLookups.put(handler, makeBeanMethodLookup(availableBeans, handler));
+                    if (!handlerMethodLookupFields.containsKey(handler)) {
+                        handlerMethodLookupFields.put(handler, makeBeanMethodLookup(availableBeans, handler));
                     }
                 }
                 enableAddButton(maxHandlersCount);

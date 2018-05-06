@@ -9,6 +9,7 @@ import org.springframework.context.ApplicationEvent;
  */
 public abstract class BaseImapEvent extends ApplicationEvent {
 
+    @SuppressWarnings("WeakerAccess")
     protected final ImapMessage message;
 
     public BaseImapEvent(ImapMessage message) {

@@ -6,6 +6,7 @@
     <!-- Annotation-based beans -->
     <context:component-scan base-package="com.haulmont.addon.imap"/>
     <bean class="com.haulmont.cuba.web.sys.remoting.WebRemoteProxyBeanCreator">
+        <!--suppress SpringXmlModelInspection -->
         <property name="serverSelector"
                   ref="cuba_ServerSelector"/>
         <property name="remoteServices">

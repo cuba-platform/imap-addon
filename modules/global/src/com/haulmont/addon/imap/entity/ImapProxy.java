@@ -13,13 +13,13 @@ public class ImapProxy extends StandardEntity {
     private static final long serialVersionUID = -5839274142110060210L;
 
     @Column(name = "HOST")
-    protected String host;
+    private String host;
 
     @Column(name = "PORT")
-    protected Integer port;
+    private Integer port;
 
     @Column(name = "WEB_PROXY")
-    protected Boolean webProxy;
+    private Boolean webProxy;
 
     public Integer getPort() {
         return port;

@@ -11,11 +11,12 @@ import javax.mail.FetchProfile;
 import java.io.IOException;
 import java.util.Properties;
 
+@SuppressWarnings("SpellCheckingInspection")
 public class ThreadExtension {
 
     private static final String ITEM_NAME = "X-GM-THRID";
     public static final String CAPABILITY_NAME = "X-GM-EXT-1";
-    private static final CubaProfileItem THREAD_ID_ITEM = new CubaProfileItem(ITEM_NAME);
+    private static final CubaProfileItem THREAD_ID_ITEM = new CubaProfileItem();
     public static final FetchItem FETCH_ITEM = new FetchItem(ITEM_NAME, THREAD_ID_ITEM) {
         @Override
         public Object parseItem(FetchResponse r) {
@@ -37,6 +38,7 @@ public class ThreadExtension {
 
     public static class X_GM_THRID implements Item {
 
+        @SuppressWarnings({"unused"})
         final int seqnum;
 
         public final long x_gm_thrid;
@@ -51,16 +53,16 @@ public class ThreadExtension {
     }
 
     static class CubaProfileItem extends FetchProfile.Item {
-        CubaProfileItem(String name) {
-            super(name);
+        CubaProfileItem() {
+            super(ITEM_NAME);
         }
     }
 
     public static class FetchProfileItem extends FetchProfile.Item {
-        FetchProfileItem(String name) {
-            super(name);
+        FetchProfileItem() {
+            super(ThreadExtension.ITEM_NAME);
         }
 
-        public static final FetchProfileItem X_GM_THRID = new FetchProfileItem(ThreadExtension.ITEM_NAME);
+        public static final FetchProfileItem X_GM_THRID = new FetchProfileItem();
     }
 }

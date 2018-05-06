@@ -33,7 +33,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
     private final ImapAPI imapAPI;
     private final ImapFolderListener imapFolderListener;
 
-    private ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
+    private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final AtomicInteger threadNumber = new AtomicInteger(1);
         @Override
         public Thread newThread(@Nonnull Runnable r) {
@@ -45,7 +45,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
         }
     });
 
-    private ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(r -> {
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(
                 r, "ImapMailBoxFullSyncRefresher"
         );
@@ -53,8 +53,8 @@ public class ImapSync implements AppContext.Listener, Ordered {
         return thread;
     });
 
-    private ConcurrentMap<ImapFolderSyncAction, ScheduledFuture<?>> fullSyncRefreshers = new ConcurrentHashMap<>();
-    private ConcurrentMap<ImapFolderSyncAction, Future<?>> fullSyncTasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ImapFolderSyncAction, ScheduledFuture<?>> fullSyncRefreshers = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ImapFolderSyncAction, Future<?>> fullSyncTasks = new ConcurrentHashMap<>();
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject

@@ -5,12 +5,9 @@ import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.addon.imap.service.ImapService;
 import com.haulmont.addon.imap.web.imapmailbox.helper.FolderRefresher;
 import com.haulmont.bali.util.ParamsMap;
-import com.haulmont.addon.imap.entity.ImapAuthenticationMethod;
-import com.haulmont.addon.imap.entity.ImapSimpleAuthentication;
 import com.haulmont.cuba.core.global.*;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.*;
-import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.cuba.gui.components.actions.BaseAction;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
@@ -65,16 +62,13 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private TreeTable<ImapFolder> foldersTable;
 
     @Inject
-    protected BoxLayout selectedFolderPanel;
+    private BoxLayout selectedFolderPanel;
 
     @Inject
-    protected ScrollBoxLayout editEventsContainer;
+    private GridLayout editEventsGrid;
 
     @Inject
-    protected GridLayout editEventsGrid;
-
-    @Inject
-    protected CheckBox allEventsChkBox;
+    private CheckBox allEventsChkBox;
 
     @Inject
     private FolderRefresher folderRefresher;
@@ -503,7 +497,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     private class FoldersRefreshTask extends BackgroundTask<Integer, LinkedHashMap<ImapFolder, FolderRefresher.State>> {
 
-        private ImapMailBox mailBox;
+        private final ImapMailBox mailBox;
 
         FoldersRefreshTask(ImapMailBox mailBox) {
             super(0, ImapMailBoxEdit.this);

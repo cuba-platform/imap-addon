@@ -10,7 +10,7 @@ public enum ImapSecureMode implements EnumClass<String> {
     STARTTLS("starttls"),
     TLS("tls");
 
-    private String id;
+    private final String id;
 
     ImapSecureMode(String value) {
         this.id = value;

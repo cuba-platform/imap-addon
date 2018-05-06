@@ -2,7 +2,7 @@ package com.haulmont.addon.imap.core;
 
 import java.util.Objects;
 
-public class MailboxKey {
+class MailboxKey {
     private final String host;
     private final int port;
     private final String userName;

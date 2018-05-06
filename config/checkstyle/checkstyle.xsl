@@ -16,7 +16,7 @@
 
 <xsl:stylesheet	xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 <xsl:output method="html" indent="yes"/>
-<xsl:decimal-format decimal-separator="." grouping-separator="," />
+<xsl:decimal-format/>
 
 <xsl:key name="files" match="file" use="@name" />
 
@@ -87,7 +87,7 @@
 		</style>
 		</head>
 		<body>
-			<a name="top"></a>
+            <a name="top"/>
       <!-- jakarta logo -->
       <table border="0" cellpadding="0" cellspacing="0" width="100%">
       <tr>
@@ -133,8 +133,7 @@
       </tr>
           <xsl:for-each select="file[@name and generate-id(.) = generate-id(key('files', @name))]">
                 <xsl:sort data-type="number" order="descending" select="count(key('files', @name)/error)"/>
-                <xsl:variable name="currentName" select="@name" />
-                <xsl:variable name="errorCount" select="count(key('files', @name)/error)"/>
+              <xsl:variable name="errorCount" select="count(key('files', @name)/error)"/>
                 <tr>
           <xsl:call-template name="alternated-row"/>
 					<td><a href="#f-{@name}"><xsl:value-of select="@name"/></a></td>
@@ -146,7 +145,7 @@
 
 
 	<xsl:template match="file">
-    <a name="f-{@name}"></a>
+        <a name="f-{@name}"/>
     <h3>File <xsl:value-of select="@name"/></h3>
 
     <table class="log" border="0" cellpadding="5" cellspacing="2" width="100%">
@@ -155,7 +154,7 @@
     	  <th>Line</th>
       </tr>
         <xsl:for-each select="key('files', @name)/error">
-          <xsl:sort data-type="number" order="ascending" select="@line"/>
+          <xsl:sort data-type="number" select="@line"/>
     	<tr>
         <xsl:call-template name="alternated-row"/>
     	  <td><xsl:value-of select="@message"/></td>

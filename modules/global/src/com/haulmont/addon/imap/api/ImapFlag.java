@@ -126,7 +126,7 @@ public class ImapFlag implements Serializable {
         IMPORTANT(Flags.Flag.FLAGGED),
         RECENT(Flags.Flag.RECENT);
 
-        private transient Flags.Flag systemFlag;
+        private final transient Flags.Flag systemFlag;
 
         SystemFlag(Flags.Flag systemFlag) {
             this.systemFlag = systemFlag;

@@ -44,7 +44,10 @@ public class Imap implements ImapAPI, AppContext.Listener {
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public Imap(ImapHelper imapHelper, Metadata metadata, ImapConfig imapConfig) {
+    public Imap(ImapHelper imapHelper,
+                Metadata metadata,
+                @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig) {
+
         this.imapHelper = imapHelper;
         this.metadata = metadata;
         this.imapConfig = imapConfig;
@@ -116,10 +119,10 @@ public class Imap implements ImapAPI, AppContext.Listener {
             return allFolders;
         }
 
-        Map<String, ImapFolderDto> foldersByFullnames = allFolders.stream()
+        Map<String, ImapFolderDto> foldersByFullNames = allFolders.stream()
                 .collect(Collectors.toMap(ImapFolderDto::getFullName, Function.identity()));
 
-        return Arrays.stream(folderNames).map(foldersByFullnames::get).filter(Objects::nonNull).collect(Collectors.toList());
+        return Arrays.stream(folderNames).map(foldersByFullNames::get).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     @Override
@@ -307,11 +310,11 @@ public class Imap implements ImapAPI, AppContext.Listener {
 
         return Arrays.stream(addresses)
                 .map(Object::toString)
-                .map(addr -> {
+                .map(address -> {
                     try {
-                        return MimeUtility.decodeText(addr);
+                        return MimeUtility.decodeText(address);
                     } catch (UnsupportedEncodingException e) {
-                        return addr;
+                        return address;
                     }
                 }).collect(Collectors.toList());
     }

@@ -13,5 +13,5 @@ public interface ImapEventsGenerator {
 
     Collection<? extends BaseImapEvent> generateForNewMessages(ImapFolder cubaFolder, Collection<IMAPMessage> newMessages);
     Collection<? extends BaseImapEvent> generateForChangedMessages(ImapFolder cubaFolder, Collection<IMAPMessage> changedMessageNs);
-    Collection<? extends BaseImapEvent> generateForMissedMessages(ImapFolder cubaFolder, Collection<IMAPMessage> missedMessags);
+    Collection<? extends BaseImapEvent> generateForMissedMessages(ImapFolder cubaFolder, Collection<IMAPMessage> missedMessages);
 }

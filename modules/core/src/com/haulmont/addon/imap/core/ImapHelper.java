@@ -68,7 +68,10 @@ public class ImapHelper {
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapHelper(FileLoader fileLoader, ImapConfig config, Encryptor encryptor, ImapDao dao) {
+    public ImapHelper(FileLoader fileLoader,
+                      @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig config,
+                      Encryptor encryptor,
+                      ImapDao dao) {
         this.fileLoader = fileLoader;
         this.config = config;
         this.encryptor = encryptor;
@@ -140,7 +143,7 @@ public class ImapHelper {
             return true;
         }
 
-        return !Objects.equals(oldParams.encryptedPassword, enryptedPassword(newConfig, persistedPassword));
+        return !Objects.equals(oldParams.encryptedPassword, encryptedPassword(newConfig, persistedPassword));
     }
 
     private boolean proxyParamsDiffer(ConnectionsParams oldParams, ImapMailBox newConfig) {
@@ -160,7 +163,7 @@ public class ImapHelper {
     private void buildAndCacheStore(MailboxKey key, ImapMailBox box, String persistedPassword) throws MessagingException {
         IMAPStore store = makeStore(box, persistedPassword, true);
 
-        ConnectionsParams connectionsParams = new ConnectionsParams(box, enryptedPassword(box, persistedPassword));
+        ConnectionsParams connectionsParams = new ConnectionsParams(box, encryptedPassword(box, persistedPassword));
         stores.put(key, new Pair<>(connectionsParams, store));
     }
 
@@ -207,7 +210,7 @@ public class ImapHelper {
         return password;
     }
 
-    private String enryptedPassword(ImapMailBox mailBox, String persistedPassword) {
+    private String encryptedPassword(ImapMailBox mailBox, String persistedPassword) {
         String password = mailBox.getAuthentication().getPassword();
         if (!Objects.equals(password, persistedPassword)) {
             password = encryptor.getEncryptedPassword(mailBox);
@@ -271,7 +274,7 @@ public class ImapHelper {
         return fetch(folder, fetchProfile, messages);
     }
 
-    public List<IMAPMessage> fetchUids(IMAPFolder folder, Message[] messages) throws MessagingException {
+    public List<IMAPMessage> fetchUIDs(IMAPFolder folder, Message[] messages) throws MessagingException {
         FetchProfile fetchProfile = new FetchProfile();
         fetchProfile.add(UIDFolder.FetchProfileItem.UID);
         return fetch(folder, fetchProfile, messages);
@@ -287,8 +290,8 @@ public class ImapHelper {
                     mailBox,
                     folderReplies.getKey().getName(),
                     new Task<>("set answered flag", false, folder -> {
-                        long[] uids = folderReplies.getValue().stream().mapToLong(ImapMessage::getMsgUid).toArray();
-                        Message[] messages = folder.getMessagesByUID(uids);
+                        long[] messageUIDs = folderReplies.getValue().stream().mapToLong(ImapMessage::getMsgUid).toArray();
+                        Message[] messages = folder.getMessagesByUID(messageUIDs);
                         folder.setFlags(
                                 messages,
                                 new Flags(Flags.Flag.ANSWERED),
@@ -300,12 +303,12 @@ public class ImapHelper {
         }
     }
 
-    public List<IMAPMessage> getAllByUids(IMAPFolder folder, long[] uids, ImapMailBox mailBox) throws MessagingException {
+    public List<IMAPMessage> getAllByUIDs(IMAPFolder folder, long[] messageUIDs, ImapMailBox mailBox) throws MessagingException {
         if (log.isDebugEnabled()) {
-            log.debug("get messages by uids {} in {}", Arrays.toString(uids), folder.getFullName());
+            log.debug("get messages by messageUIDs {} in {}", Arrays.toString(messageUIDs), folder.getFullName());
         }
 
-        Message[] messages = folder.getMessagesByUID(uids);
+        Message[] messages = folder.getMessagesByUID(messageUIDs);
         return fetch(folder, mailBox, messages);
     }
 
@@ -521,8 +524,8 @@ public class ImapHelper {
     }
 
     public static class Body {
-        private String text;
-        private boolean html;
+        private final String text;
+        private final boolean html;
 
         Body(String text, boolean html) {
             this.text = text;
@@ -539,14 +542,14 @@ public class ImapHelper {
     }
 
     private static class ConnectionsParams implements Serializable {
-        private ImapSecureMode secureMode;
-        private boolean useProxy;
+        private final ImapSecureMode secureMode;
+        private final boolean useProxy;
 
-        private boolean webProxy;
-        private String proxyHost;
-        private Integer proxyPort;
+        private final boolean webProxy;
+        private final String proxyHost;
+        private final Integer proxyPort;
 
-        private String encryptedPassword;
+        private final String encryptedPassword;
 
         ConnectionsParams(ImapMailBox mailBox, String encryptedPassword) {
             this.secureMode = mailBox.getSecureMode();
@@ -556,6 +559,10 @@ public class ImapHelper {
                 this.webProxy = Boolean.TRUE.equals(proxy.getWebProxy());
                 this.proxyHost = proxy.getHost();
                 this.proxyPort = proxy.getPort();
+            } else {
+                this.webProxy = false;
+                this.proxyHost = null;
+                this.proxyPort = null;
             }
 
             this.encryptedPassword = encryptedPassword;

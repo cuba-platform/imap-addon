@@ -57,7 +57,7 @@ public class ImapMissedMessagesEvents {
                                     Authentication authentication,
                                     Persistence persistence,
                                     ImapDao dao,
-                                    ImapConfig imapConfig) {
+                                    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig) {
         this.imapAPI = imapAPI;
         this.imapHelper = imapHelper;
         this.authentication = authentication;
@@ -101,7 +101,7 @@ public class ImapMissedMessagesEvents {
 
         authentication.begin();
         try (Transaction ignored = persistence.createTransaction()) {
-            messages = dao.findMessagesByImapNums(
+            messages = dao.findMessagesByImapNumbers(
                     cubaFolder.getId(),
                     missedMessages.stream().map(Message::getMessageNumber).collect(Collectors.toList())
             );
@@ -118,7 +118,7 @@ public class ImapMissedMessagesEvents {
                                                Collection<IMAPFolder> otherFolders,
                                                IMAPFolder imapFolder) {
         try {
-            List<IMAPMessage> imapMessages = imapHelper.getAllByUids(
+            List<IMAPMessage> imapMessages = imapHelper.getAllByUIDs(
                     imapFolder,
                     cubaMessages.stream().mapToLong(ImapMessage::getMsgUid).toArray(),
                     cubaFolder.getMailBox()
@@ -126,13 +126,13 @@ public class ImapMissedMessagesEvents {
             log.trace("[updating messages flags for {}]batch messages from db: {}, from IMAP server: {}",
                     TASK_DESCRIPTION, cubaFolder, cubaMessages, imapMessages);
 
-            Map<Long, IMAPMessage> msgsByUid = new HashMap<>(imapMessages.size());
+            Map<Long, IMAPMessage> messagesByUid = new HashMap<>(imapMessages.size());
             for (IMAPMessage imapMessage : imapMessages) {
-                msgsByUid.put(imapFolder.getUID(imapMessage), imapMessage);
+                messagesByUid.put(imapFolder.getUID(imapMessage), imapMessage);
             }
 
             Collection<ImapMessage> missedMessages = cubaMessages.stream()
-                    .filter(message -> !msgsByUid.containsKey(message.getMsgUid()))
+                    .filter(message -> !messagesByUid.containsKey(message.getMsgUid()))
                     .collect(Collectors.toList());
             return handleMissedMessages(cubaFolder, missedMessages, otherFolders);
         } catch (MessagingException e) {
@@ -193,7 +193,7 @@ public class ImapMissedMessagesEvents {
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             missedMessages.forEach(em::remove);
-            recalculateMessageNums(
+            recalculateMessageNumbers(
                     em,
                     cubaFolder,
                     missedMessages.stream()
@@ -248,7 +248,7 @@ public class ImapMissedMessagesEvents {
         }
     }
 
-    private List<ImapMessage> getMessages(ImapFolder cubaFolder, int iterNum) {
+    private List<ImapMessage> getMessages(ImapFolder cubaFolder, int iterationNum) {
         authentication.begin();
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
@@ -258,7 +258,7 @@ public class ImapMissedMessagesEvents {
                     ImapMessage.class
             )
                     .setParameter("mailFolderId", cubaFolder)
-                    .setFirstResult(iterNum * imapConfig.getUpdateBatchSize())
+                    .setFirstResult(iterationNum * imapConfig.getUpdateBatchSize())
                     .setMaxResults(imapConfig.getUpdateBatchSize())
                     .setViewName("imap-msg-full")
                     .getResultList();
@@ -267,18 +267,18 @@ public class ImapMissedMessagesEvents {
         }
     }
 
-    private void recalculateMessageNums(EntityManager em, ImapFolder cubaFolder, List<Integer> ascMessageNums) {
-        for (int i = 0; i < ascMessageNums.size(); i++) {
+    private void recalculateMessageNumbers(EntityManager em, ImapFolder cubaFolder, List<Integer> ascMessageNumbers) {
+        for (int i = 0; i < ascMessageNumbers.size(); i++) {
             String queryString = "update imap$Message m set m.msgNum = m.msgNum-" + (i + 1) +
                     " where m.folder.id = :mailFolderId and m.msgNum > :msgNum";
-            if (i < ascMessageNums.size() - 1) {
+            if (i < ascMessageNumbers.size() - 1) {
                 queryString += " and m.msgNum < :topMsgNum";
             }
             Query query = em.createQuery(queryString)
                     .setParameter("mailFolderId", cubaFolder)
-                    .setParameter("msgNum", ascMessageNums.get(i));
-            if (i < ascMessageNums.size() - 1) {
-                query.setParameter("topMsgNum", ascMessageNums.get(i + 1));
+                    .setParameter("msgNum", ascMessageNumbers.get(i));
+            if (i < ascMessageNumbers.size() - 1) {
+                query.setParameter("topMsgNum", ascMessageNumbers.get(i + 1));
             }
             query.executeUpdate();
         }

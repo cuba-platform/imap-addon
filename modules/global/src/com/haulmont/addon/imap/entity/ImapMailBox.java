@@ -21,23 +21,23 @@ public class ImapMailBox extends StandardEntity {
     private static final long serialVersionUID = -1001337267552497620L;
 
     @Column(name = "HOST", nullable = false)
-    protected String host;
+    private String host;
 
     @Column(name = "PORT", nullable = false)
-    protected Integer port = 993;
+    private Integer port = 993;
 
     @Column(name = "SECURE_MODE")
-    protected String secureMode;
+    private String secureMode;
 
     @OnDelete(DeletePolicy.CASCADE)
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ROOT_CERTIFICATE_ID")
-    protected FileDescriptor rootCertificate;
+    private FileDescriptor rootCertificate;
 
     @OnDelete(DeletePolicy.CASCADE)
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "CLIENT_CERTIFICATE_ID")
-    protected FileDescriptor clientCertificate;
+    private FileDescriptor clientCertificate;
 
     @Column(name = "AUTHENTICATION_METHOD", nullable = false)
     private String authenticationMethod;
@@ -46,26 +46,26 @@ public class ImapMailBox extends StandardEntity {
     @OnDelete(DeletePolicy.CASCADE)
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "AUTHENTICATION_ID")
-    protected ImapSimpleAuthentication authentication;
+    private ImapSimpleAuthentication authentication;
 
     @OnDelete(DeletePolicy.CASCADE)
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "PROXY_ID")
-    protected ImapProxy proxy;
+    private ImapProxy proxy;
 
     @Column(name = "CUBA_FLAG")
-    protected String cubaFlag = "cuba-imap";
+    private String cubaFlag = "cuba-imap";
 
     @Column(name = "TRASH_FOLDER_NAME")
-    protected String trashFolderName;
+    private String trashFolderName;
 
     @OnDelete(DeletePolicy.CASCADE)
     @Composition
     @OneToMany(mappedBy = "mailBox")
-    protected List<ImapFolder> folders;
+    private List<ImapFolder> folders;
 
     @Column(name = "EVENTS_GENERATOR_CLASS")
-    protected String eventsGeneratorClass;
+    private String eventsGeneratorClass;
 
     public void setEventsGeneratorClass(String eventsGeneratorClass) {
         this.eventsGeneratorClass = eventsGeneratorClass;

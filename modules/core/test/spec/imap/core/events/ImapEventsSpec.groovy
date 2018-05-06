@@ -1,6 +1,6 @@
 package spec.imap.core.events
 
-import com.haulmont.addon.imap.ImapcomponentTestContainer
+import com.haulmont.addon.imap.ImapTestContainer
 import com.haulmont.addon.imap.api.ImapAPI
 import com.haulmont.addon.imap.api.ImapFlag
 import com.haulmont.addon.imap.core.ImapEventsTestListener
@@ -21,7 +21,6 @@ import com.haulmont.addon.imap.events.EmailMovedImapEvent
 import com.haulmont.addon.imap.events.EmailSeenImapEvent
 import com.haulmont.addon.imap.events.NewEmailImapEvent
 import com.haulmont.addon.imap.sync.events.ImapEvents
-import com.haulmont.addon.imap.sync.events.standard.ImapMissedMessagesEvents
 import com.haulmont.cuba.core.global.AppBeans
 import com.icegreen.greenmail.imap.ImapHostManager
 import com.icegreen.greenmail.store.StoredMessage
@@ -45,7 +44,9 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class ImapEventsSpec extends Specification {
 
+    @SuppressWarnings("SpellCheckingInspection")
     private static final String USER_PASSWORD = "abcdef123"
+    @SuppressWarnings("SpellCheckingInspection")
     private static final String USER_NAME = "hascode"
     private static final String EMAIL_USER_ADDRESS = "hascode@localhost"
     private static final String LOCALHOST = "127.0.0.1"
@@ -59,7 +60,7 @@ class ImapEventsSpec extends Specification {
     private static final AtomicInteger counter = new AtomicInteger(0)
 
     @Shared @ClassRule
-    public ImapcomponentTestContainer cont = ImapcomponentTestContainer.Common.INSTANCE
+    public ImapTestContainer cont = ImapTestContainer.Common.INSTANCE
 
     private ImapEventsTestListener eventListener
     private ImapEvents imapEvents

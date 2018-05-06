@@ -10,7 +10,7 @@ public enum ImapAuthenticationMethod implements EnumClass<String> {
     SIMPLE("simple"),
     SASL("sasl");
 
-    private String id;
+    private final String id;
 
     ImapAuthenticationMethod(String value) {
         this.id = value;

@@ -18,20 +18,24 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component(FolderRefresher.NAME)
-@SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection", "SpringJavaInjectionPointsAutowiringInspection"})
 public class FolderRefresher {
     static final String NAME = "imap_FolderRefresher";
 
     private final static Logger log = LoggerFactory.getLogger(FolderRefresher.class);
 
-    @Inject
-    private ImapAPIService imapService;
+    private final ImapAPIService imapService;
+    private final Metadata metadata;
 
+    @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    private Metadata metadata;
+    public FolderRefresher(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapAPIService imapService,
+                           Metadata metadata) {
+        this.imapService = imapService;
+        this.metadata = metadata;
+    }
 
     public enum State {
-        DELETED, NEW, UNCHANGED;
+        DELETED, NEW, UNCHANGED
     }
 
     public LinkedHashMap<ImapFolder, State> refreshFolders(ImapMailBox mailBox) {

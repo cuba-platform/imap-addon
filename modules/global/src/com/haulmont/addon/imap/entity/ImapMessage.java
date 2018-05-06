@@ -32,11 +32,11 @@ public class ImapMessage extends StandardEntity {
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "FOLDER_ID")
-    protected ImapFolder folder;
+    private ImapFolder folder;
 
     @Lob
     @Column(name = "FLAGS")
-    protected String flags;
+    private String flags;
 
     @NotNull
     @Column(name = "IS_ATL", nullable = false)
@@ -44,24 +44,24 @@ public class ImapMessage extends StandardEntity {
 
     @NotNull
     @Column(name = "MSG_UID", nullable = false)
-    protected Long msgUid;
+    private Long msgUid;
 
     @NotNull
     @Column(name = "MSG_NUM", nullable = false)
     private Integer msgNum;
 
     @Column(name = "THREAD_ID")
-    protected Long threadId;
+    private Long threadId;
 
     @Column(name = "REFERENCE_ID")
-    protected String referenceId;
+    private String referenceId;
 
     @Column(name = "MESSAGE_ID")
-    protected String messageId;
+    private String messageId;
 
     @NotNull
     @Column(name = "CAPTION", nullable = false)
-    protected String caption;
+    private String caption;
 
     @Transient
     private List<ImapFlag> internalFlags = Collections.emptyList();
