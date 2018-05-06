@@ -90,7 +90,10 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
         });
     }
 
-    private void generateColumns(Map<String, List<String>> availableBeans, List<String> beanNames, Map<ImapEventHandler, LookupField> handlerMethodLookups) {
+    private void generateColumns(Map<String, List<String>> availableBeans,
+                                 List<String> beanNames, Map<ImapEventHandler,
+                                 LookupField> handlerMethodLookups) {
+
         handlersTable.addGeneratedColumn("beanName", eventHandler -> {
             LookupField lookup = componentsFactory.createComponent(LookupField.class);
             lookup.setDatasource(handlersTable.getItemDatasource(eventHandler), "beanName");
@@ -111,7 +114,10 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
         });
     }
 
-    private void addHandlersCollectionChangeListeners(Map<String, List<String>> availableBeans, long maxHandlersCount, Map<ImapEventHandler, LookupField> handlerMethodLookups) {
+    private void addHandlersCollectionChangeListeners(Map<String, List<String>> availableBeans,
+                                                      long maxHandlersCount, Map<ImapEventHandler,
+                                                      LookupField> handlerMethodLookups) {
+
         handlersDs.addItemChangeListener(e -> {
             ImapEventHandler handler = e.getItem();
             if (handler == null) {

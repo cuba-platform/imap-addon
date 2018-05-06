@@ -2,7 +2,6 @@ package com.haulmont.addon.imap.entity;
 
 import javax.persistence.*;
 
-import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.cuba.core.entity.StandardEntity;
 import com.haulmont.chile.core.annotations.Composition;
 import com.haulmont.cuba.core.entity.annotation.OnDelete;
@@ -12,7 +11,6 @@ import java.util.stream.Collectors;
 
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.FileDescriptor;
-import javax.validation.constraints.NotNull;
 import com.haulmont.cuba.core.entity.annotation.Listeners;
 
 @Listeners({"imap_MailboxPasswordListener", "imap_MailboxFlagListener"})

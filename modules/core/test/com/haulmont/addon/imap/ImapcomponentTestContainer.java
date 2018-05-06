@@ -11,7 +11,7 @@ import java.util.Arrays;
 
 public class ImapcomponentTestContainer extends TestContainer {
 
-    public ImapcomponentTestContainer() {
+    ImapcomponentTestContainer() {
         super();
         appComponents = new ArrayList<>(Arrays.asList(
                 "com.haulmont.cuba"
@@ -51,7 +51,7 @@ public class ImapcomponentTestContainer extends TestContainer {
         dbPassword = resourceElem.attributeValue("password");
     }
 
-    public static class Common extends ImapcomponentTestContainer {
+    public static final class Common extends ImapcomponentTestContainer {
 
         public static final ImapcomponentTestContainer.Common INSTANCE = new ImapcomponentTestContainer.Common();
 
