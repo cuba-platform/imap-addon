@@ -89,6 +89,7 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
         @Override
         public void done(ImapMessageDto dto) {
             imapMessageDtoDs.setItem(dto);
+            bodyContent.setHtmlEnabled(dto.getHtml());
             bodyContent.setValue(dto.getBody());
         }
 
@@ -118,7 +119,7 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
         }
 
         @Override
-        public void done(Void _nothing) {
+        public void done(Void ignore) {
             imapDemoAttachmentsDs.refresh();
         }
 

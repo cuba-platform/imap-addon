@@ -162,12 +162,12 @@ class ImapAPISpec extends Specification {
         messageDto != null
         messageDto.uid == STARTING_EMAIL_UID
         messageDto.from == EMAIL_TO
-        messageDto.toList == [EMAIL_USER_ADDRESS]
-        messageDto.ccList == [EMAIL_CC]
-        messageDto.bccList == [EMAIL_BCC]
+        messageDto.to == "[${EMAIL_USER_ADDRESS}]"
+        messageDto.cc == "[${EMAIL_CC}]"
+        messageDto.bcc == "[${EMAIL_BCC}]"
         messageDto.subject == EMAIL_SUBJECT
         messageDto.body == EMAIL_TEXT
-        messageDto.flags == ["FLAGGED"]
+        messageDto.flags == "[FLAGGED]"
 
         when: "try to fetch message with wrong UID"
         imapMessage.msgUid += 1
@@ -200,42 +200,45 @@ class ImapAPISpec extends Specification {
         ImapMessageDto messageDto = imapAPI.fetchMessage(imapMessage)
 
         then: "flags of result contain only 'FLAGGED'"
-        messageDto.flags == ["FLAGGED"]
+        messageDto.flags == "[FLAGGED]"
 
         when: "add standard 'SEEN' flag and fetch again"
         imapAPI.setFlag(imapMessage, ImapFlag.SEEN, true)
         messageDto = imapAPI.fetchMessage(imapMessage)
 
         then: "flags of result are updated"
-        messageDto.flags.containsAll(["FLAGGED", "SEEN"])
+        messageDto.flags.contains("FLAGGED")
+        messageDto.flags.contains("SEEN")
 
         when: "remove standard 'FLAGGED' flag and fetch again"
         imapAPI.setFlag(imapMessage, ImapFlag.IMPORTANT, false)
         messageDto = imapAPI.fetchMessage(imapMessage)
 
         then: "only 'SEEN' flag remains"
-        messageDto.flags == ["SEEN"]
+        messageDto.flags == "[SEEN]"
 
         when: "add custom flag and fetch again"
         imapAPI.setFlag(imapMessage, new ImapFlag("custom-flag"), true)
         messageDto = imapAPI.fetchMessage(imapMessage)
 
         then: "flags of result are updated"
-        messageDto.flags.containsAll(["SEEN", "custom-flag"])
+        messageDto.flags.contains("SEEN")
+        messageDto.flags.contains("custom-flag")
 
         when: "try to remove nonexistent custom flag"
         imapAPI.setFlag(imapMessage, new ImapFlag("custom-flag1"), false)
         messageDto = imapAPI.fetchMessage(imapMessage)
 
         then: "nothing is changed"
-        messageDto.flags.containsAll(["SEEN", "custom-flag"])
+        messageDto.flags.contains("SEEN")
+        messageDto.flags.contains("custom-flag")
 
         when: "remove custom flag previously set and fetch again"
         imapAPI.setFlag(imapMessage, new ImapFlag("custom-flag"), false)
         messageDto = imapAPI.fetchMessage(imapMessage)
 
         then: "only 'SEEN' flag remains"
-        messageDto.flags == ["SEEN"]
+        messageDto.flags == "[SEEN]"
     }
     def "move message to other folder"() {
         given: "single message in INBOX"
@@ -370,7 +373,7 @@ class ImapAPISpec extends Specification {
         inboxMessages.size() == 5
         inboxMessages.collect{it.subject} == [EMAIL_SUBJECT + 3, EMAIL_SUBJECT + 6, EMAIL_SUBJECT + 5, EMAIL_SUBJECT + 7, EMAIL_SUBJECT + 1]
         inboxMessages.collect{it.folderName} == ["root2", "INBOX", "INBOX", "INBOX", "root2"]
-        inboxMessages.collect{it.mailBoxPort} == [mailBoxConfig.port, mailBoxConfig2.port, mailBoxConfig.port, mailBoxConfig2.port, mailBoxConfig.port]
+        inboxMessages.collect{it.mailBox.port} == [mailBoxConfig.port, mailBoxConfig2.port, mailBoxConfig.port, mailBoxConfig2.port, mailBoxConfig.port]
 
         cleanup:
         mailServer2.stop()

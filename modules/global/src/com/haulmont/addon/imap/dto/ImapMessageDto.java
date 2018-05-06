@@ -9,7 +9,6 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * encapsulates IMAP message details:
@@ -48,11 +47,8 @@ public class ImapMessageDto extends BaseUuidEntity {
     private Long uid;
     @MetaProperty(mandatory = true)
     private String from;
-    @MetaProperty(mandatory = true)
     private List<String> toList;
-    @MetaProperty
     private List<String> ccList;
-    @MetaProperty
     private List<String> bccList;
     @MetaProperty
     private String subject;
@@ -60,8 +56,7 @@ public class ImapMessageDto extends BaseUuidEntity {
     private String body;
     @MetaProperty
     private Boolean html = false;
-    @MetaProperty
-    private List<String> flags;
+    private List<String> flagsList;
     @MetaProperty
     private Date date;
 
@@ -71,6 +66,7 @@ public class ImapMessageDto extends BaseUuidEntity {
     @MetaProperty(mandatory = true)
     private String folderName;
 
+    @SuppressWarnings("UnusedReturnValue")
     public Long getUid() {
         return uid;
     }
@@ -79,6 +75,7 @@ public class ImapMessageDto extends BaseUuidEntity {
         this.uid = uid;
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public String getFrom() {
         return from;
     }
@@ -87,10 +84,7 @@ public class ImapMessageDto extends BaseUuidEntity {
         this.from = from;
     }
 
-    public List<String> getToList() {
-        return toList;
-    }
-
+    @SuppressWarnings("UnusedReturnValue")
     @MetaProperty
     public String getTo() {
         return toList != null ? toList.toString() : "";
@@ -100,10 +94,7 @@ public class ImapMessageDto extends BaseUuidEntity {
         this.toList = toList;
     }
 
-    public List<String> getCcList() {
-        return ccList;
-    }
-
+    @SuppressWarnings("UnusedReturnValue")
     @MetaProperty
     public String getCc() {
         return ccList != null ? ccList.toString() : "";
@@ -113,10 +104,7 @@ public class ImapMessageDto extends BaseUuidEntity {
         this.ccList = ccList;
     }
 
-    public List<String> getBccList() {
-        return bccList;
-    }
-
+    @SuppressWarnings("UnusedReturnValue")
     @MetaProperty
     public String getBcc() {
         return bccList != null ? bccList.toString() : "";
@@ -126,6 +114,7 @@ public class ImapMessageDto extends BaseUuidEntity {
         this.bccList = bccList;
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public String getSubject() {
         return subject;
     }
@@ -150,17 +139,14 @@ public class ImapMessageDto extends BaseUuidEntity {
         this.html = html;
     }
 
-    public List<String> getFlags() {
-        return flags;
-    }
-
+    @SuppressWarnings("UnusedReturnValue")
     @MetaProperty
-    public String getFlagsList() {
-        return flags != null ? flags.toString() : "";
+    public String getFlags() {
+        return flagsList != null ? flagsList.toString() : "";
     }
 
-    public void setFlags(List<String> flags) {
-        this.flags = flags;
+    public void setFlagsList(List<String> flags) {
+        this.flagsList = flags;
     }
 
     public Date getDate() {
@@ -171,16 +157,6 @@ public class ImapMessageDto extends BaseUuidEntity {
         this.date = sendDate;
     }
 
-    @MetaProperty
-    public String getMailBoxHost() {
-        return mailBox.getHost();
-    }
-
-    @MetaProperty
-    public Integer getMailBoxPort() {
-        return mailBox.getPort();
-    }
-
     public ImapMailBox getMailBox() {
         return mailBox;
     }
@@ -189,11 +165,7 @@ public class ImapMessageDto extends BaseUuidEntity {
         this.mailBox = mailBox;
     }
 
-    @MetaProperty
-    public UUID getMailBoxId() {
-        return mailBox.getId();
-    }
-
+    @SuppressWarnings("UnusedReturnValue")
     public String getFolderName() {
         return folderName;
     }
@@ -211,10 +183,10 @@ public class ImapMessageDto extends BaseUuidEntity {
                 append("bccList", bccList).
                 append("subject", subject).
                 append("body", body).
-                append("flags", flags).
-                append("mailBoxHost", getMailBoxHost()).
-                append("mailBoxPort", getMailBoxPort()).
-                append("mailBoxId", getMailBoxId()).
+                append("flags", flagsList).
+                append("mailBoxHost", mailBox.getHost()).
+                append("mailBoxPort", mailBox.getPort()).
+                append("mailBoxId", mailBox.getId()).
                 toString();
     }
 }

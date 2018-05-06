@@ -208,7 +208,7 @@ public class Imap implements ImapAPI, AppContext.Listener {
         dto.setCcList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.CC)));
         dto.setBccList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.BCC)));
         dto.setSubject(nativeMessage.getSubject());
-        dto.setFlags(getFlags(nativeMessage));
+        dto.setFlagsList(getFlags(nativeMessage));
         dto.setDate(nativeMessage.getReceivedDate());
         dto.setFolderName(imapMessage.getFolder().getName());
         dto.setMailBox(mailBox);

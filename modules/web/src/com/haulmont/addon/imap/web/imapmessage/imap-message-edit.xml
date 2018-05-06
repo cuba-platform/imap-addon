@@ -36,7 +36,7 @@
                         <field property="folderName"/>
                         <field property="mailBox"/>
                         <field property="subject"/>
-                        <field property="flagsList"/>
+                        <field property="flags"/>
                     </column>
                 </fieldGroup>
                 <fieldGroup editable="false" width="100%"
