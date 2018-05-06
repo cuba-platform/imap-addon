@@ -1,5 +1,6 @@
 package com.haulmont.addon.imap.dto;
 
+import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.chile.core.annotations.MetaClass;
 import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.chile.core.annotations.NamePattern;
@@ -65,11 +66,9 @@ public class ImapMessageDto extends BaseUuidEntity {
     private Date date;
 
     @MetaProperty(mandatory = true)
-    private String mailBoxHost;
-    @MetaProperty(mandatory = true)
-    private Integer mailBoxPort;
+    private ImapMailBox mailBox;
 
-    private UUID mailBoxId;
+    @MetaProperty(mandatory = true)
     private String folderName;
 
     public Long getUid() {
@@ -92,6 +91,11 @@ public class ImapMessageDto extends BaseUuidEntity {
         return toList;
     }
 
+    @MetaProperty
+    public String getTo() {
+        return toList != null ? toList.toString() : "";
+    }
+
     public void setToList(List<String> toList) {
         this.toList = toList;
     }
@@ -100,12 +104,22 @@ public class ImapMessageDto extends BaseUuidEntity {
         return ccList;
     }
 
+    @MetaProperty
+    public String getCc() {
+        return ccList != null ? ccList.toString() : "";
+    }
+
     public void setCcList(List<String> ccList) {
         this.ccList = ccList;
     }
 
     public List<String> getBccList() {
         return bccList;
+    }
+
+    @MetaProperty
+    public String getBcc() {
+        return bccList != null ? bccList.toString() : "";
     }
 
     public void setBccList(List<String> bccList) {
@@ -140,6 +154,11 @@ public class ImapMessageDto extends BaseUuidEntity {
         return flags;
     }
 
+    @MetaProperty
+    public String getFlagsList() {
+        return flags != null ? flags.toString() : "";
+    }
+
     public void setFlags(List<String> flags) {
         this.flags = flags;
     }
@@ -152,28 +171,27 @@ public class ImapMessageDto extends BaseUuidEntity {
         this.date = sendDate;
     }
 
+    @MetaProperty
     public String getMailBoxHost() {
-        return mailBoxHost;
+        return mailBox.getHost();
     }
 
-    public void setMailBoxHost(String mailBoxHost) {
-        this.mailBoxHost = mailBoxHost;
-    }
-
+    @MetaProperty
     public Integer getMailBoxPort() {
-        return mailBoxPort;
+        return mailBox.getPort();
     }
 
-    public void setMailBoxPort(Integer mailBoxPort) {
-        this.mailBoxPort = mailBoxPort;
+    public ImapMailBox getMailBox() {
+        return mailBox;
     }
 
+    public void setMailBox(ImapMailBox mailBox) {
+        this.mailBox = mailBox;
+    }
+
+    @MetaProperty
     public UUID getMailBoxId() {
-        return mailBoxId;
-    }
-
-    public void setMailBoxId(UUID mailBoxId) {
-        this.mailBoxId = mailBoxId;
+        return mailBox.getId();
     }
 
     public String getFolderName() {
@@ -194,8 +212,9 @@ public class ImapMessageDto extends BaseUuidEntity {
                 append("subject", subject).
                 append("body", body).
                 append("flags", flags).
-                append("mailBoxHost", mailBoxHost).
-                append("mailBoxPort", mailBoxPort).
+                append("mailBoxHost", getMailBoxHost()).
+                append("mailBoxPort", getMailBoxPort()).
+                append("mailBoxId", getMailBoxId()).
                 toString();
     }
 }

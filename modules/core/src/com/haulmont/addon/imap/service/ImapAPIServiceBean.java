@@ -1,12 +1,14 @@
 package com.haulmont.addon.imap.service;
 
 import com.haulmont.addon.imap.api.ImapAPI;
+import com.haulmont.addon.imap.api.ImapAttachmentsAPI;
 import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
+import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.exception.ImapException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
 import javax.mail.*;
+import java.io.InputStream;
 import java.util.*;
 
 @Service(ImapAPIService.NAME)
@@ -24,11 +27,13 @@ public class ImapAPIServiceBean implements ImapAPIService {
     private final ImapHelper imapHelper;
 
     private final ImapAPI imapAPI;
+    private final ImapAttachmentsAPI imapAttachmentsAPI;
 
     @Inject
-    public ImapAPIServiceBean(ImapHelper imapHelper, ImapAPI imapAPI) {
+    public ImapAPIServiceBean(ImapHelper imapHelper, ImapAPI imapAPI, ImapAttachmentsAPI imapAttachmentsAPI) {
         this.imapHelper = imapHelper;
         this.imapAPI = imapAPI;
+        this.imapAttachmentsAPI = imapAttachmentsAPI;
     }
 
     @Override
@@ -75,5 +80,20 @@ public class ImapAPIServiceBean implements ImapAPIService {
     @Override
     public void setFlag(ImapMessage message, ImapFlag flag, boolean set) {
         imapAPI.setFlag(message, flag, set);
+    }
+
+    @Override
+    public Collection<ImapMessageAttachment> fetchAttachments(ImapMessage message) {
+        return imapAttachmentsAPI.fetchAttachments(message);
+    }
+
+    @Override
+    public InputStream openStream(ImapMessageAttachment attachment) {
+        return imapAttachmentsAPI.openStream(attachment);
+    }
+
+    @Override
+    public byte[] loadFile(ImapMessageAttachment attachment) {
+        return imapAttachmentsAPI.loadFile(attachment);
     }
 }

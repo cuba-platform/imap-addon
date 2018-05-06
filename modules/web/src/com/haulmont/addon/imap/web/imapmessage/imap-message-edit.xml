@@ -3,38 +3,78 @@
         caption="msg://editorCaption"
         class="com.haulmont.addon.imap.web.imapmessage.ImapMessageEdit"
         datasource="imapMessageDs"
-        focusComponent="fieldGroup"
+        focusComponent="fields"
         messagesPack="com.haulmont.addon.imap.web.imapmessage">
     <dsContext>
         <datasource id="imapMessageDs"
                     class="com.haulmont.addon.imap.entity.ImapMessage"
+                    allowCommit="false"
                     view="imap-msg-full"/>
+        <datasource id="imapMessageDtoDs"
+                    class="com.haulmont.addon.imap.dto.ImapMessageDto"
+                    allowCommit="false" />
+        <collectionDatasource id="imapDemoAttachmentsDs"
+                              allowCommit="false"
+                              class="com.haulmont.addon.imap.entity.ImapMessageAttachment"
+                              view="imap-msg-attachment-full">
+            <query>
+                <![CDATA[select a from imap$MessageAttachment a where a.imapMessage.id = :ds$imapMessageDs order by a.orderNumber asc]]>
+            </query>
+        </collectionDatasource>
     </dsContext>
     <dialogMode height="600"
                 width="800"/>
-    <layout spacing="true" expand="windowActions">
-        <fieldGroup id="fieldGroup"
-                    datasource="imapMessageDs"
-                    editable="false">
-            <column width="250px">
-                <field property="folder"/>
-                <field property="msgUid"/>
-                <field property="threadId"/>
-                <field property="referenceId"/>
-                <field property="caption"/>
-                <field property="flags"
-                       rows="5"/>
-                <field property="messageId"/>
-            </column>
-        </fieldGroup>
-        <hbox id="windowActions"
-              spacing="true"
-              stylename="c-edit-window-actions">
-            <button id="windowClose"
-                    action="windowClose"
-                    caption="mainMsg://actions.Close"
-                    icon="theme://actions.Editor.Ok.icon"
-            />
-        </hbox>
+    <layout spacing="true" expand="scrollBox">
+        <scrollBox id="scrollBox"
+                   spacing="true">
+            <hbox id="fields" spacing="true" width="100%">
+                <fieldGroup editable="false" width="100%"
+                            datasource="imapMessageDtoDs">
+                    <column width="100%">
+                        <field property="date"/>
+                        <field property="from"/>
+                        <field property="folderName"/>
+                        <field property="mailBox"/>
+                        <field property="subject"/>
+                        <field property="flagsList"/>
+                    </column>
+                </fieldGroup>
+                <fieldGroup editable="false" width="100%"
+                            datasource="imapMessageDtoDs">
+                    <column width="100%">
+                        <field property="to"
+                               rows="3"/>
+                        <field property="cc"
+                               rows="3"/>
+                        <field property="bcc"
+                               rows="3"/>
+                    </column>
+                </fieldGroup>
+            </hbox>
+            <tabSheet width="100%">
+                <tab id="bodyTab" caption="msg://bodyTabCaption">
+                    <label id="bodyContent" height="100%" htmlEnabled="true"/>
+                </tab>
+                <tab id="attachmentsTab" caption="msg://attachmentsTabCaption" expand="attachmentsTable" spacing="true">
+                    <table id="attachmentsTable" height="100%">
+                        <actions>
+                            <action id="downloadAttachmentAction"
+                                    caption="msg://downloadAttachmentActionCaption"
+                                    invoke="downloadAttachment"/>
+                        </actions>
+                        <columns>
+                            <column id="name"/>
+                            <column id="fileSize"/>
+                        </columns>
+                        <rows datasource="imapDemoAttachmentsDs"/>
+                        <buttonsPanel>
+                            <button action="attachmentsTable.downloadAttachmentAction"/>
+                        </buttonsPanel>
+                    </table>
+                </tab>
+            </tabSheet>
+        </scrollBox>
+        <frame id="windowActions"
+               screen="editWindowActions"/>
     </layout>
 </window>

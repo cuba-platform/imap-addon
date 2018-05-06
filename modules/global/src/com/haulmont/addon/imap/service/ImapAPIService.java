@@ -5,7 +5,9 @@ import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
+import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
 
@@ -23,4 +25,8 @@ public interface ImapAPIService {
     void moveMessage(ImapMessage msg, String folderName);
     void deleteMessage(ImapMessage message);
     void setFlag(ImapMessage message, ImapFlag flag, boolean set);
+
+    Collection<ImapMessageAttachment> fetchAttachments(ImapMessage message);
+    InputStream openStream(ImapMessageAttachment attachment);
+    byte[] loadFile(ImapMessageAttachment attachment);
 }

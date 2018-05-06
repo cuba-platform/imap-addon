@@ -132,7 +132,7 @@ public class Imap implements ImapAPI, AppContext.Listener {
         return consumeMessage(message, nativeMessage -> {
             ImapMailBox mailBox = message.getFolder().getMailBox();
 
-            return toDto(mailBox, message.getFolder().getName(), message.getMsgUid(), nativeMessage);
+            return toDto(mailBox, message, nativeMessage);
 
         }, "fetch and transform message");
     }
@@ -163,7 +163,7 @@ public class Imap implements ImapAPI, AppContext.Listener {
                                                     continue;
                                                 }
                                                 mailMessageDtos.add(new Pair<>(
-                                                        toDto(mailBox, folderName, uid, nativeMessage), message)
+                                                        toDto(mailBox, message, nativeMessage), message)
                                                 );
                                             }
                                             return null;
@@ -196,24 +196,22 @@ public class Imap implements ImapAPI, AppContext.Listener {
                 .collect(Collectors.toList());
     }
 
-    private ImapMessageDto toDto(ImapMailBox mailBox, String folderName, long uid, IMAPMessage nativeMessage) throws MessagingException {
+    private ImapMessageDto toDto(ImapMailBox mailBox, ImapMessage imapMessage, IMAPMessage nativeMessage) throws MessagingException {
         if (nativeMessage == null) {
             return null;
         }
 
         ImapMessageDto dto = metadata.create(ImapMessageDto.class);
-        dto.setUid(uid);
+        dto.setUid(imapMessage.getMsgUid());
         dto.setFrom(getAddressList(nativeMessage.getFrom()).get(0));
         dto.setToList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.TO)));
         dto.setCcList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.CC)));
         dto.setBccList(getAddressList(nativeMessage.getRecipients(Message.RecipientType.BCC)));
         dto.setSubject(nativeMessage.getSubject());
         dto.setFlags(getFlags(nativeMessage));
-        dto.setMailBoxHost(mailBox.getHost());
-        dto.setMailBoxPort(mailBox.getPort());
         dto.setDate(nativeMessage.getReceivedDate());
-        dto.setFolderName(folderName);
-        dto.setMailBoxId(mailBox.getId());
+        dto.setFolderName(imapMessage.getFolder().getName());
+        dto.setMailBox(mailBox);
         try {
             nativeMessage.setPeek(true);
             ImapHelper.Body body = imapHelper.getText(nativeMessage);

@@ -7,8 +7,6 @@ import com.haulmont.cuba.gui.components.*;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
 import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -16,8 +14,6 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("CdiInjectionPointsInspection")
 public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
-
-    private final static Logger log = LoggerFactory.getLogger(ImapFolderEventEdit.class);
 
     @Inject
     protected Datasource<ImapFolderEvent> imapFolderEventDs;

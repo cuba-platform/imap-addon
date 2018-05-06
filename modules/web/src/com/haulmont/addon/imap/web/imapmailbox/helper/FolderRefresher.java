@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Component(FolderRefresher.NAME)
 public class FolderRefresher {
+    @SuppressWarnings("WeakerAccess")
     static final String NAME = "imap_FolderRefresher";
 
     private final static Logger log = LoggerFactory.getLogger(FolderRefresher.class);
