@@ -32,6 +32,7 @@ public class ImapTestContainer extends TestContainer {
                 // or add another one in the end.
                 "test-app.properties");
         initDbProperties();
+        dbUrl = "jdbc:hsqldb:hsql://localhost/imap-test";
     }
 
     private void initDbProperties() {
