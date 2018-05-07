@@ -18,7 +18,7 @@ Besides the Event based programming model it is also possible to directly intera
 
 | Platform Version | Add-on Version |
 | ---------------- | -------------- |
-| 6.7.x            | 0.1-SNAPSHOT |
+| 6.8.x            | 0.1-SNAPSHOT |
 
 
 The latest version is: 0.1-SNAPSHOT
@@ -60,14 +60,14 @@ public class EmailReceiveServiceBean implements EmailReceiveService {
 }
 ```
 
-or you can create `@Service` methods which will have only one attribute with correct event type
+or you can create `@Component` with method having only one parameter with correct event type
 ```
-import org.springframework.context.event.EventListener;
+public class EmailReceiver {
+    String NAME = "ceuia_EmailReceiver";
 
-public interface EmailReceiveService {
-    String NAME = "ceuia_EmailReceiveService";
-
-    void receiveEmail(NewEmailImapEvent event);
+    public void receiveEmail(NewEmailImapEvent event) {
+        // handle IMAP event
+    }
 }
 ```
 
@@ -77,13 +77,42 @@ After that the method will get invoked every time when an event occurs.
 
 #### Event types
 
+All events contain `ImapMessage` object that can be used to determine where an event occurs (mail box, folder, message)
+
 The application component allows the following kind of IMAP events:
 
-* EmailAnsweredImapEvent
-* EmailSeenImapEvent
-* EmailFlagChangedImapEvent
-* NewEmailImapEvent
-* EmailDeletedImapEvent
-* EmailMovedImapEvent
-* NewThreadImapEvent
+* `NewEmailImapEvent` is triggered for folder having event with type `ImapEventType.NEW_EMAIL` enabled 
+when new message arrives to the folder on IMAP server
+* `EmailSeenImapEvent` is triggered for folder having event with type `ImapEventType.EMAIL_SEEN` enabled 
+when message is marked with IMAP flag `javax.mail.Flags.Flag.SEEN` 
+* `EmailAnsweredImapEvent` is triggered for folder having event with type `ImapEventType.NEW_ANSWER` enabled 
+when message is replied (usually it happens through marking message with IMAP flag `javax.mail.Flags.Flag.ANSWERED`)
+* `EmailFlagChangedImapEvent` is triggered for folder having event with type `ImapEventType.FLAGS_UPDATED` enabled 
+when message gets any IMAP flag changed, including both standard and custom flags. 
+Event contains `Map` holding changed flags accompanied with actual state (set or unset)
+* `EmailDeletedImapEvent` is triggered for folder having event with type `ImapEventType.EMAIL_DELETED` enabled 
+when message is completely deleted from folder on IMAP server, it is **not** related to IMAP flag `javax.mail.Flags.Flag.DELETED`. 
+Such events are also triggered when message is moved to trash folder on server in case `ImapMailBox` was configured with trash folder in place 
+* `EmailMovedImapEvent` is triggered for folder having event with type `ImapEventType.EMAIL_MOVED` enabled 
+when message is moved to other folder on IMAP server. 
+**NOTICE**: standard implementation tracks only folders which are selected in `ImapMailBox` configuration not counting trash folder if such was configured
+* `NewThreadImapEvent` is not implemented yet
 
+### Using API
+
+Component provides following API to interact with IMAP server:
+
+* `ImapAPI` having methods:
+    * `Collection<ImapFolderDto> fetchFolders(ImapMailBox)` - allows to retrieve all folders preserving tree structure. 
+    * `Collection<ImapFolderDto> fetchFolders(ImapMailBox, String...)` - allows to retrieve folders with specified names. 
+    Result does not preserve tree structure
+    * `List<ImapFolderDto> fetchMessage(ImapMessage)` - allows to fetch single message using reference
+    * `List<ImapMessageDto> fetchMessages(List<ImapMessage>)` - allows to fetch multiple messages using references.
+    Supports fetching from multiple folders and mail boxes
+    * `void moveMessage(ImapMessage, String)` - allows to move message to different folder on IMAP server
+    * `void deleteMessage(ImapMessage)` - allows to completely delete message from the folder
+    * `void setFlag(ImapMessage, ImapFlag, boolean)` - allows to change specified flag of the message, flag can be set or unset
+* `ImapAttachmentsAPI` having methods:
+    * `Collection<ImapMessageAttachment> fetchAttachments(ImapMessage)` - allows to retrieve attachments of the message. 
+    Result contains only meta data, no content
+    * `InputStream openStream(ImapMessageAttachment)` and `byte[] loadFile(ImapMessageAttachment` - allow to retrieve content of the message attachment
