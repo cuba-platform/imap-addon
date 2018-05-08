@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
 import javax.mail.*;
-import java.io.InputStream;
 import java.util.*;
 
 @Service(ImapAPIService.NAME)
@@ -85,11 +84,6 @@ public class ImapAPIServiceBean implements ImapAPIService {
     @Override
     public Collection<ImapMessageAttachment> fetchAttachments(ImapMessage message) {
         return imapAttachmentsAPI.fetchAttachments(message);
-    }
-
-    @Override
-    public InputStream openStream(ImapMessageAttachment attachment) {
-        return imapAttachmentsAPI.openStream(attachment);
     }
 
     @Override

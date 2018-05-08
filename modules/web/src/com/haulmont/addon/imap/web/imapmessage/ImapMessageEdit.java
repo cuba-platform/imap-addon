@@ -4,6 +4,7 @@ import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.service.ImapAPIService;
 import com.haulmont.cuba.core.entity.Entity;
+import com.haulmont.cuba.core.global.FileTypesHelper;
 import com.haulmont.cuba.gui.components.AbstractEditor;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.cuba.gui.components.Label;
@@ -14,10 +15,12 @@ import com.haulmont.cuba.gui.executors.BackgroundTask;
 import com.haulmont.cuba.gui.executors.BackgroundTaskHandler;
 import com.haulmont.cuba.gui.executors.BackgroundWorker;
 import com.haulmont.cuba.gui.executors.TaskLifeCycle;
-import com.haulmont.cuba.gui.export.ByteArrayDataProvider;
-import com.haulmont.cuba.gui.export.ExportDisplay;
+import com.haulmont.cuba.web.AppUI;
+import com.haulmont.cuba.web.toolkit.ui.CubaFileDownloader;
+import com.vaadin.server.StreamResource;
 
 import javax.inject.Inject;
+import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,8 +39,6 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
     private Label bodyContent;
     @Inject
     private BackgroundWorker backgroundWorker;
-    @Inject
-    private ExportDisplay exportDisplay;
 
     @Override
     public void setItem(Entity item) {
@@ -50,10 +51,20 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
     }
 
     public void downloadAttachment() {
-        attachmentsTable.getSelected().forEach(attachment -> exportDisplay.show(
-                new ByteArrayDataProvider(imapAPI.loadFile(attachment)),
-                attachment.getName()
-        ));
+        attachmentsTable.getSelected().forEach(attachment -> {
+            CubaFileDownloader fileDownloader = AppUI.getCurrent().getFileDownloader();
+
+            StreamResource resource = new StreamResource(
+                    () -> new ByteArrayInputStream(imapAPI.loadFile(attachment)), attachment.getName());
+
+            resource.setMIMEType(FileTypesHelper.getMIMEType(attachment.getName()));
+            fileDownloader.downloadFile(resource);
+
+            /*exportDisplay.show(
+                    new ByteArrayDataProvider(imapAPI.loadFile(attachment)),
+                    attachment.getName()
+            );*/
+        });
     }
 
     private void initBody(ImapMessage msg) {
