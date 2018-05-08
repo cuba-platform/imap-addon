@@ -480,8 +480,10 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             for (ImapFolder folder : folders) {
                 foldersDs.addItem(folder);
                 foldersDs.setItem(folder);
-                for (ImapFolderEvent event : folder.getEvents()) {
-                    eventsDs.addItem(event);
+                if (folder.getEvents() != null) {
+                    for (ImapFolderEvent event : folder.getEvents()) {
+                        eventsDs.addItem(event);
+                    }
                 }
             }
             foldersDs.setItem(null);

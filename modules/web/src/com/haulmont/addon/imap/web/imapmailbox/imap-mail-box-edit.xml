@@ -128,21 +128,23 @@
                     <vbox id="tablePane"
                           height="100%"
                           margin="false,true,false,false">
-                        <treeTable id="foldersTable"
-                                   editable="true"
-                                   height="100%"
-                                   sortable="false"
-                                   width="100%">
-                            <columns>
-                                <column id="name"/>
-                                <column id="selected"
-                                        caption=""
-                                        editable="true"/>
-                                <column id="eventsInfo"
-                                        caption="Events"/>
-                            </columns>
-                            <rows datasource="foldersDs"/>
-                        </treeTable>
+                        <scrollBox spacing="true">
+                            <treeTable id="foldersTable"
+                                       editable="true"
+                                       height="100%"
+                                       sortable="false"
+                                       width="100%">
+                                <columns>
+                                    <column id="name"/>
+                                    <column id="selected"
+                                            caption=""
+                                            editable="true"/>
+                                    <column id="eventsInfo"
+                                            caption="Events"/>
+                                </columns>
+                                <rows datasource="foldersDs"/>
+                            </treeTable>
+                        </scrollBox>
                     </vbox>
                     <vbox height="100%"
                           margin="false,false,false,true">
