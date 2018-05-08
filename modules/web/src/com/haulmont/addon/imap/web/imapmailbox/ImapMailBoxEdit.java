@@ -479,10 +479,13 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             getItem().setFolders(folders);
             for (ImapFolder folder : folders) {
                 foldersDs.addItem(folder);
+                foldersDs.setItem(folder);
                 for (ImapFolderEvent event : folder.getEvents()) {
                     eventsDs.addItem(event);
                 }
             }
+            foldersDs.setItem(null);
+            foldersTable.setSelected((ImapFolder) null);
         } else {
             folders.clear();
             folders.addAll(foldersWithState.keySet());
