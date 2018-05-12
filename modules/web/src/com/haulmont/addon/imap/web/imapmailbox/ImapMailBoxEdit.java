@@ -484,6 +484,9 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         } else {
             folders.clear();
             folders.addAll(foldersWithState.keySet());
+            foldersWithState.entrySet().stream().filter(e -> e.getValue() == FolderRefresher.State.NEW).forEach(e ->
+                foldersDs.addItem(e.getKey())
+            );
             foldersDs.refresh();
         }
         setEnableForButtons(true);
