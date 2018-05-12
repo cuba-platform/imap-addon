@@ -66,17 +66,10 @@
                                     <checkBox id="useTrashFolderChkBox"
                                               caption="msg://useTrashFolderForRemovalCaption"/>
                                 </field>
-                                <field id="trashFolderNameField" property="trashFolderName">
-                                    <hbox id="trashFolderPickerField">
-                                        <textField id="trashFolderTextField"
-                                                   datasource="mailBoxDs"
-                                                   property="trashFolderName"
-                                                   editable="false"/>
-                                        <button id="selectTrashFolderButton" align="MIDDLE_RIGHT"
-                                                description="msg://selectTrashFolderCaption"
-                                                icon="components/pickerfield/images/lookup-btn.png"
-                                                invoke="selectTrashFolder"/>
-                                    </hbox>
+                                <field id="trashFolderNameField" property="trashFolder">
+                                    <pickerField id="trashFolderPickerField"
+                                                 datasource="mailBoxDs"
+                                                 property="trashFolder" />
                                 </field>
                                 <field id="useCustomEventsGeneratorChkBoxField">
                                     <checkBox id="useCustomEventsGeneratorChkBox"

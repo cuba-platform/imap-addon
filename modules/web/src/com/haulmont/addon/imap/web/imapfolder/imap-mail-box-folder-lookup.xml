@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
-        caption="msg://selectTrashFolderCaption"
-        class="com.haulmont.addon.imap.web.imapmailbox.ImapMailBoxTrashFolder"
+        caption="msg://folderLookupCaption"
+        class="com.haulmont.addon.imap.web.imapfolder.ImapFolderLookup"
         datasource="mailBoxDs"
-        messagesPack="com.haulmont.addon.imap.web.imapmailbox">
+        lookupComponent="imapFoldersTable"
+        messagesPack="com.haulmont.addon.imap.web.imapfolder">
     <dsContext>
         <datasource id="mailBoxDs"
                     class="com.haulmont.addon.imap.entity.ImapMailBox"
+                    allowCommit="false"
                     view="imap-mailbox-edit">
             <hierarchicalDatasource id="imapFolderDs"
                                     property="folders"
@@ -25,7 +27,5 @@
             </columns>
             <rows datasource="imapFolderDs"/>
         </treeTable>
-        <frame id="windowActions"
-               screen="editWindowActions"/>
     </layout>
 </window>

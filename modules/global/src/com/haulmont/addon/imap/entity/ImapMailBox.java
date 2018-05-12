@@ -2,6 +2,7 @@ package com.haulmont.addon.imap.entity;
 
 import javax.persistence.*;
 
+import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.cuba.core.entity.StandardEntity;
 import com.haulmont.chile.core.annotations.Composition;
 import com.haulmont.cuba.core.entity.annotation.OnDelete;
@@ -58,6 +59,10 @@ public class ImapMailBox extends StandardEntity {
 
     @Column(name = "TRASH_FOLDER_NAME")
     private String trashFolderName;
+
+    @Transient
+    @MetaProperty
+    private ImapFolder trashFolder;
 
     @OnDelete(DeletePolicy.CASCADE)
     @Composition
@@ -121,6 +126,15 @@ public class ImapMailBox extends StandardEntity {
 
     public String getTrashFolderName() {
         return trashFolderName;
+    }
+
+    public ImapFolder getTrashFolder() {
+        return trashFolder;
+    }
+
+    public void setTrashFolder(ImapFolder trashFolder) {
+        this.trashFolder = trashFolder;
+        this.trashFolderName = trashFolder != null ? trashFolder.getName() : null;
     }
 
     public ImapAuthenticationMethod getAuthenticationMethod() {

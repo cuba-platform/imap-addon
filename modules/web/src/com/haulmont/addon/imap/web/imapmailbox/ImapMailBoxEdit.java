@@ -12,6 +12,7 @@ import com.haulmont.cuba.gui.components.actions.BaseAction;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
 import com.haulmont.cuba.gui.data.HierarchicalDatasource;
+import com.haulmont.cuba.gui.data.impl.DatasourceImplementation;
 import com.haulmont.cuba.gui.executors.BackgroundTask;
 import com.haulmont.cuba.gui.executors.BackgroundTaskHandler;
 import com.haulmont.cuba.gui.executors.BackgroundWorker;
@@ -41,9 +42,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private FieldGroup proxyParams;
 
     @Inject
-    private TextField trashFolderTextField;
-
-    @Inject
     private CheckBox useTrashFolderChkBox;
 
     @Inject
@@ -51,9 +49,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     @Inject
     private LookupField customEventsGeneratorClassLookup;
-
-    @Inject
-    private Button selectTrashFolderButton;
 
     @Inject
     private CheckBox useProxyChkBox;
@@ -69,6 +64,9 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     @Inject
     private CheckBox allEventsChkBox;
+
+    @Inject
+    private PickerField trashFolderPickerField;
 
     @Inject
     private FolderRefresher folderRefresher;
@@ -110,18 +108,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         }
     }
 
-    public void selectTrashFolder() {
-        ImapMailBox mailBox = getItem();
-        log.debug("Open trash folder window for {}", mailBox);
-        openEditor(
-                "imap$MailBox.trashFolder",
-                mailBox,
-                WindowManager.OpenType.THIS_TAB,
-                ParamsMap.of("mailBox", mailBox),
-                mailBoxDs
-        );
-    }
-
     @Override
     public void init(Map<String, Object> params) {
         getComponentNN("foldersPane").setVisible(false);
@@ -129,6 +115,14 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
         setupFolders();
         setupEvents();
+
+        PickerField.LookupAction trashFolderLookupAction = trashFolderPickerField.addLookupAction();
+        trashFolderLookupAction.setLookupScreen("imap$Folder.lookup");
+        trashFolderLookupAction.setLookupScreenOpenType(WindowManager.OpenType.THIS_TAB);
+        trashFolderLookupAction.setLookupScreenParamsSupplier(() -> ParamsMap.of("mailBox", getItem()));
+        trashFolderLookupAction.setAfterLookupSelectionHandler(items ->
+                ((DatasourceImplementation) mailBoxDs).modified(getItem())
+        );
     }
 
     private void setupFolders() {
@@ -342,14 +336,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             BackgroundTaskHandler taskHandler = backgroundWorker.handle(new FoldersRefreshTask(mailBox));
             taskHandler.execute();
         }
-        /*getDsContext().addBeforeCommitListener(context -> {
-            List<ImapFolderEvent> allEvents = mailBox.getFolders().stream()
-                    .flatMap(f -> f.getEvents() != null ? f.getEvents().stream() : Stream.empty())
-                    .collect(Collectors.toList());
-            context.getCommitInstances().removeIf(entity ->
-                    entity instanceof ImapFolderEvent && !allEvents.contains(entity)
-            );
-        });*/
     }
 
     @Override
@@ -372,20 +358,27 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     private void setTrashFolderControls() {
         FieldGroup.FieldConfig field = this.advancedParams.getFieldNN("trashFolderNameField");
-        boolean visible = getItem().getTrashFolderName() != null;
+        String trashFolderName = getItem().getTrashFolderName();
+        boolean visible = trashFolderName != null;
         log.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
-        trashFolderTextField.setRequired(visible);
+        trashFolderPickerField.setRequired(visible);
+        if (visible) {
+            trashFolderPickerField.setValue(getItem().getFolders().stream()
+                    .filter(f -> f.getName().equals(trashFolderName)).findFirst().orElse(null)
+            );
+        }
         field.setVisible(visible);
         useTrashFolderChkBox.setValue(visible);
 
         useTrashFolderChkBox.addValueChangeListener(e -> {
             boolean newVisible = Boolean.TRUE.equals(e.getValue());
             log.debug("Set visibility of trash folder controls for {} to {}", getItem(), visible);
-            trashFolderTextField.setRequired(newVisible);
+            trashFolderPickerField.setRequired(newVisible);
             field.setVisible(newVisible);
 
             if (!newVisible) {
-                getItem().setTrashFolderName(null);
+                getItem().setTrashFolder(null);
+                trashFolderPickerField.setValue(null);
             }
         });
     }
@@ -500,7 +493,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     private void setEnableForButtons(boolean enable) {
         connectionEstablished = enable;
-        selectTrashFolderButton.setEnabled(enable);
+        trashFolderPickerField.setEnabled(enable);
     }
 
     private class FoldersRefreshTask extends BackgroundTask<Integer, LinkedHashMap<ImapFolder, FolderRefresher.State>> {

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <screen-config xmlns="http://schemas.haulmont.com/cuba/screens.xsd">
-    <screen id="imap$MailBox.trashFolder"
-            template="/com/haulmont/addon/imap/web/imapmailbox/imap-mail-box-trash-folder.xml"/>
+    <screen id="imap$Folder.lookup"
+            template="/com/haulmont/addon/imap/web/imapfolder/imap-mail-box-folder-lookup.xml"/>
     <screen id="imap$MailBox.edit"
             template="com/haulmont/addon/imap/web/imapmailbox/imap-mail-box-edit.xml"/>
     <screen id="imap$MailBox.browse"
