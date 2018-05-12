@@ -23,10 +23,8 @@
             </hierarchicalDatasource>
         </datasource>
     </dsContext>
-    <layout expand="scrollBox"
-            spacing="true">
-        <scrollBox id="scrollBox"
-                   spacing="true">
+    <layout spacing="true" expand="scrollBox">
+        <scrollBox id="scrollBox" spacing="true">
             <hbox spacing="true">
                 <groupBox caption="msg://basicConfigurationCaption"
                           spacing="true"
@@ -110,64 +108,58 @@
                     </groupBox>
                 </vbox>
             </hbox>
-            <hbox id="foldersPane"
-                  margin="false,true,true,true"
+            <split id="foldersPane"
+                   height="100%"
+                   orientation="horizontal"
+                   pos="60"
                   width="100%">
-                <split id="foldersSplit"
-                       height="100%"
-                       orientation="horizontal"
-                       pos="60"
-                       width="100%">
-                    <vbox id="tablePane"
-                          height="100%"
-                          margin="false,true,false,false">
-                        <scrollBox spacing="true">
-                            <treeTable id="foldersTable"
-                                       editable="true"
-                                       height="100%"
-                                       sortable="false"
-                                       width="100%">
-                                <columns>
-                                    <column id="name"/>
-                                    <column id="selected"
-                                            caption=""
-                                            editable="true"/>
-                                    <column id="eventsInfo"
-                                            caption="Events"/>
-                                </columns>
-                                <rows datasource="foldersDs"/>
-                            </treeTable>
-                        </scrollBox>
-                    </vbox>
-                    <vbox height="100%"
-                          margin="false,false,false,true">
-                        <groupBox caption="msg://eventsCaption"
-                                  height="100%">
-                            <vbox id="selectedFolderPanel"
-                                  height="100%"
-                                  visible="false">
-                                <scrollBox id="editEventsContainer"
-                                           height="100%">
-                                    <grid id="editEventsGrid"
-                                          margin="true"
-                                          width="100%">
-                                        <columns count="2"/>
-                                        <rows>
-                                            <row>
-                                                <label value="msg://allEvents"/>
-                                                <checkBox id="allEventsChkBox"
-                                                          align="MIDDLE_CENTER"/>
-                                            </row>
-                                        </rows>
-                                    </grid>
-                                </scrollBox>
-                            </vbox>
-                        </groupBox>
-                    </vbox>
-                </split>
-            </hbox>
+                <vbox id="tablePane"
+                      height="300px"
+                      margin="false,true,false,false">
+                    <treeTable id="foldersTable"
+                               editable="true"
+                               height="100%"
+                               sortable="false"
+                               width="100%">
+                        <columns>
+                            <column id="name"/>
+                            <column id="selected"
+                                    caption=""
+                                    editable="true"/>
+                            <column id="eventsInfo"
+                                    caption="Events"/>
+                        </columns>
+                        <rows datasource="foldersDs"/>
+                    </treeTable>
+                </vbox>
+                <vbox height="100%"
+                      margin="false,false,false,true">
+                    <groupBox caption="msg://eventsCaption"
+                              height="100%">
+                        <vbox id="selectedFolderPanel"
+                              height="100%"
+                              visible="false">
+                            <scrollBox id="editEventsContainer"
+                                       height="100%">
+                                <grid id="editEventsGrid"
+                                      margin="true"
+                                      width="100%">
+                                    <columns count="2"/>
+                                    <rows>
+                                        <row>
+                                            <label value="msg://allEvents"/>
+                                            <checkBox id="allEventsChkBox"
+                                                      align="MIDDLE_CENTER"/>
+                                        </row>
+                                    </rows>
+                                </grid>
+                            </scrollBox>
+                        </vbox>
+                    </groupBox>
+                </vbox>
+            </split>
+            <frame id="windowActions"
+                   screen="editWindowActions"/>
         </scrollBox>
-        <frame id="windowActions"
-               screen="editWindowActions"/>
     </layout>
 </window>
