@@ -7,6 +7,8 @@ import com.haulmont.cuba.core.PersistenceTools;
 import com.haulmont.cuba.core.global.Events;
 import com.haulmont.cuba.core.listener.AfterUpdateEntityListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.inject.Inject;
 import java.sql.Connection;
@@ -33,9 +35,14 @@ public class ImapMailboxFlagListener implements AfterUpdateEntityListener<ImapMa
     }
 
     private void publishEvents(ImapMailBox mailBox) {
-        for (ImapFolder folder : mailBox.getProcessableFolders()) {
-            events.publish(new ImapFolderSyncEvent(folder, ImapFolderSyncEvent.Type.ADDED));
-        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter(){
+            public void afterCommit(){
+                for (ImapFolder folder : mailBox.getProcessableFolders()) {
+                    events.publish(new ImapFolderSyncEvent(folder, ImapFolderSyncEvent.Type.ADDED));
+                }
+            }
+        });
+
     }
 
 }

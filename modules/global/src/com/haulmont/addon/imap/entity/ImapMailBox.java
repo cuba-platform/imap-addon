@@ -25,7 +25,7 @@ public class ImapMailBox extends StandardEntity {
     private String host;
 
     @Column(name = "PORT", nullable = false)
-    private Integer port = 993;
+    private Integer port = 143;
 
     @Column(name = "SECURE_MODE")
     private String secureMode;

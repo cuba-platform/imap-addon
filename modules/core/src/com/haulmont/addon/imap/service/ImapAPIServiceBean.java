@@ -10,6 +10,8 @@ import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.exception.ImapException;
+import com.sun.mail.imap.IMAPFolder;
+import com.sun.mail.imap.IMAPStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -39,7 +41,24 @@ public class ImapAPIServiceBean implements ImapAPIService {
     public void testConnection(ImapMailBox box) throws ImapException {
         log.info("Check connection for {}", box);
         try {
-            imapHelper.getStore(box);
+            IMAPStore store = imapHelper.getStore(box);
+            IMAPFolder defaultFolder = (IMAPFolder) store.getDefaultFolder();
+            IMAPFolder folderToExamine;
+            if (imapHelper.canHoldMessages(defaultFolder)) {
+                folderToExamine = defaultFolder;
+            } else {
+                folderToExamine = null;
+                for (Folder folder : defaultFolder.list()) {
+                    if (imapHelper.canHoldMessages((IMAPFolder) folder)) {
+                        folderToExamine = (IMAPFolder) folder;
+                        break;
+                    }
+                }
+            }
+            if (folderToExamine != null) {
+                folderToExamine.open(Folder.READ_ONLY);
+                folderToExamine.getMessageCount();
+            }
         } catch (MessagingException e) {
             throw new ImapException(e);
         }

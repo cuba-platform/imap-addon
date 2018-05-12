@@ -9,6 +9,8 @@ import java.sql.Connection;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.cuba.core.listener.AfterInsertEntityListener;
 import com.haulmont.cuba.core.listener.AfterUpdateEntityListener;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.inject.Inject;
 
@@ -30,7 +32,12 @@ public class ImapFolderSelectionListener implements AfterDeleteEntityListener<Im
 
     @Override
     public void onAfterDelete(ImapFolder entity, Connection connection) {
-        events.publish(new ImapFolderSyncEvent(entity, ImapFolderSyncEvent.Type.REMOVED));
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter(){
+            public void afterCommit(){
+                events.publish(new ImapFolderSyncEvent(entity, ImapFolderSyncEvent.Type.REMOVED));
+            }
+        });
+
     }
 
     @Override
@@ -48,8 +55,13 @@ public class ImapFolderSelectionListener implements AfterDeleteEntityListener<Im
     }
 
     private void publishEvent(ImapFolder folder) {
-        boolean subscribe = Boolean.TRUE.equals(folder.getSelected()) && !Boolean.TRUE.equals(folder.getDisabled());
-        events.publish(new ImapFolderSyncEvent(folder, subscribe ? ImapFolderSyncEvent.Type.ADDED : ImapFolderSyncEvent.Type.REMOVED));
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter(){
+            public void afterCommit(){
+                boolean subscribe = Boolean.TRUE.equals(folder.getSelected()) && !Boolean.TRUE.equals(folder.getDisabled());
+                events.publish(new ImapFolderSyncEvent(folder, subscribe ? ImapFolderSyncEvent.Type.ADDED : ImapFolderSyncEvent.Type.REMOVED));
+            }
+        });
+
     }
 
 }
