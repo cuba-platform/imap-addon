@@ -112,7 +112,7 @@
                    height="100%"
                    orientation="horizontal"
                    pos="60"
-                  width="100%">
+                   width="100%">
                 <vbox id="tablePane"
                       height="300px"
                       margin="false,true,false,false">

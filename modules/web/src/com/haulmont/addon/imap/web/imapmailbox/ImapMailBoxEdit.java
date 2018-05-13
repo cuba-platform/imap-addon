@@ -100,7 +100,8 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     public void checkTheConnection() {
         setEnableForButtons(false);
         try {
-            refreshFolders(folderRefresher.refreshFolders(getItem()));
+            BackgroundTaskHandler taskHandler = backgroundWorker.handle(new FoldersRefreshTask(getItem()));
+            taskHandler.execute();
             showNotification(getMessage("connectionSucceed"), NotificationType.HUMANIZED);
         } catch (ImapException e) {
             log.error("Connection Error", e);
@@ -110,7 +111,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     @Override
     public void init(Map<String, Object> params) {
-        getComponentNN("foldersPane").setVisible(false);
         setEnableForButtons(false);
 
         setupFolders();
@@ -323,6 +323,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     protected void initNewItem(ImapMailBox item) {
         item.setAuthenticationMethod(ImapAuthenticationMethod.SIMPLE);
         item.setAuthentication(metadata.create(ImapSimpleAuthentication.class));
+        getComponentNN("foldersPane").setVisible(false);
     }
 
     @Override
@@ -331,11 +332,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         setTrashFolderControls();
         setEventGeneratorControls();
         setProxyVisibility();
-        ImapMailBox mailBox = getItem();
-        if (!PersistenceHelper.isNew(mailBox)) {
-            BackgroundTaskHandler taskHandler = backgroundWorker.handle(new FoldersRefreshTask(mailBox));
-            taskHandler.execute();
-        }
     }
 
     @Override
@@ -490,8 +486,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             foldersDs.refresh();
         }
         setEnableForButtons(true);
-
-        getComponentNN("foldersPane").setVisible(true);
     }
 
     private void setEnableForButtons(boolean enable) {

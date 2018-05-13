@@ -12,8 +12,8 @@ import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.sys.AppContext;
-import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
+import com.sun.mail.imap.IMAPStore;
 import org.apache.commons.lang.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,18 +89,9 @@ public class Imap implements ImapAPI, AppContext.Listener {
         log.debug("fetch folders for box {}", box);
 
         try {
-            Store store = imapHelper.getStore(box, true);
+            IMAPStore store = imapHelper.getStore(box);
 
-            List<ImapFolderDto> result = new ArrayList<>();
-
-            Folder defaultFolder = store.getDefaultFolder();
-
-            IMAPFolder[] rootFolders = (IMAPFolder[]) defaultFolder.list();
-            for (IMAPFolder folder : rootFolders) {
-                result.add(map(folder));
-            }
-
-            return result;
+            return imapHelper.fetchFolders(store);
         } catch (MessagingException e) {
             throw new ImapException(e);
         }
@@ -233,7 +224,7 @@ public class Imap implements ImapAPI, AppContext.Listener {
         } else {
             consumeMessage(message, msg -> {
                 msg.setFlag(Flags.Flag.DELETED, true);
-                msg.getFolder().close(true);
+                msg.getFolder().expunge();
                 return null;
             }, "Mark message#" + message.getMsgUid() + " as DELETED");
         }
@@ -267,8 +258,7 @@ public class Imap implements ImapAPI, AppContext.Listener {
                             folder.setFlags(new Message[]{message}, new Flags(Flags.Flag.DELETED), true);
                             log.debug("[move]append message {} to folder {}", msg, f.getFullName());
                             f.appendMessages(new Message[]{message});
-                            folder.close(true);
-                            f.close(false);
+                            folder.expunge();
 
                             return null;
                         }
@@ -346,25 +336,5 @@ public class Imap implements ImapAPI, AppContext.Listener {
         }
 
         return flagNames;
-    }
-
-    private ImapFolderDto map(IMAPFolder folder) throws MessagingException {
-        List<ImapFolderDto> subFolders = new ArrayList<>();
-
-        if (imapHelper.canHoldFolders(folder)) {
-            for (Folder childFolder : folder.list()) {
-                subFolders.add(map((IMAPFolder) childFolder));
-            }
-        }
-        ImapFolderDto result = metadata.create(ImapFolderDto.class);
-        result.setName(folder.getName());
-        result.setFullName(folder.getFullName());
-        result.setCanHoldMessages(imapHelper.canHoldMessages(folder));
-        result.setChildren(subFolders);
-        result.setImapFolder(folder);
-        for (ImapFolderDto subFolder : result.getChildren()) {
-            subFolder.setParent(result) ;
-        }
-        return result;
     }
 }

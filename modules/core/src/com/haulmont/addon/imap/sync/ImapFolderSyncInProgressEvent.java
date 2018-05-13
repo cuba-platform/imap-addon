@@ -2,11 +2,11 @@ package com.haulmont.addon.imap.sync;
 
 import org.springframework.context.ApplicationEvent;
 
-public class ImapFolderSyncEvent extends ApplicationEvent {
+public class ImapFolderSyncInProgressEvent extends ApplicationEvent {
 
     private final ImapFolderSyncAction action;
 
-    public ImapFolderSyncEvent(ImapFolderSyncAction action) {
+    public ImapFolderSyncInProgressEvent(ImapFolderSyncAction action) {
         super(action);
         this.action = action;
     }

@@ -20,6 +20,7 @@ import com.haulmont.addon.imap.events.EmailFlagChangedImapEvent
 import com.haulmont.addon.imap.events.EmailMovedImapEvent
 import com.haulmont.addon.imap.events.EmailSeenImapEvent
 import com.haulmont.addon.imap.events.NewEmailImapEvent
+import com.haulmont.addon.imap.sync.ImapSync
 import com.haulmont.addon.imap.sync.events.ImapEvents
 import com.haulmont.cuba.core.global.AppBeans
 import com.icegreen.greenmail.imap.ImapHostManager
@@ -72,6 +73,7 @@ class ImapEventsSpec extends Specification {
     private ImapFolder INBOX
 
     void setup() {
+        ImapSync.TRACK_FOLDER_ACTIVATION = false
         eventListener = AppBeans.get(ImapEventsTestListener)
         imapEvents = AppBeans.get(ImapEvents)
         imapDao = AppBeans.get(ImapDao)

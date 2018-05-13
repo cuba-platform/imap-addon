@@ -2,7 +2,9 @@ package com.haulmont.addon.imap.core;
 
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ext.ThreadExtension;
+import com.haulmont.addon.imap.core.protocol.CubaIMAPFolder;
 import com.haulmont.addon.imap.dao.ImapDao;
+import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.events.BaseImapEvent;
 import com.haulmont.addon.imap.events.EmailAnsweredImapEvent;
@@ -11,6 +13,7 @@ import com.haulmont.addon.imap.crypto.Encryptor;
 import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.cuba.core.global.FileLoader;
 import com.haulmont.cuba.core.global.FileStorageException;
+import com.haulmont.cuba.core.global.Metadata;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import com.sun.mail.imap.IMAPStore;
@@ -44,6 +47,9 @@ import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 @Component("imap_ImapHelper")
@@ -56,15 +62,14 @@ public class ImapHelper {
     private static final String SUBJECT_HEADER = "Subject";
     public static final String MESSAGE_ID_HEADER = "Message-ID";
 
-    private final ConcurrentMap<MailboxKey, Object> mailBoxLocks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MailboxKey, ReadWriteLock> mailBoxLocks = new ConcurrentHashMap<>();
     private final Map<MailboxKey, Pair<ConnectionsParams, IMAPStore>> stores = new HashMap<>();
-    private final Map<MailboxKey, Collection<IMAPFolder>> usedFolders = new HashMap<>();
-    private final Map<FolderKey, IMAPFolder> folders = new HashMap<>();
 
     private final FileLoader fileLoader;
     private final ImapConfig config;
     private final Encryptor encryptor;
     private final ImapDao dao;
+    private final Metadata metadata;
 
     static {
 //        System.setProperty("mail.imap.parse.debug", "true");
@@ -76,52 +81,53 @@ public class ImapHelper {
     public ImapHelper(FileLoader fileLoader,
                       @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig config,
                       Encryptor encryptor,
-                      ImapDao dao) {
+                      ImapDao dao,
+                      Metadata metadata) {
         this.fileLoader = fileLoader;
         this.config = config;
         this.encryptor = encryptor;
         this.dao = dao;
+        this.metadata = metadata;
     }
 
     public IMAPStore getStore(ImapMailBox box) throws MessagingException {
-        return getStore(box, false);
-    }
-
-    public IMAPStore getStore(ImapMailBox box, boolean forceConnect) throws MessagingException {
         log.debug("Accessing imap store for {}", box);
 
         MailboxKey key = mailboxKey(box);
-        mailBoxLocks.putIfAbsent(key, new Object());
-        Object lock = mailBoxLocks.get(key);
+        mailBoxLocks.putIfAbsent(key, new ReentrantReadWriteLock());
         //noinspection SynchronizationOnLocalVariableOrMethodParameter
-        synchronized (lock) {
+        Lock readLock = mailBoxLocks.get(key).readLock();
+        readLock.lock();
+        boolean unlockRead = true;
+        try {
             Pair<ConnectionsParams, IMAPStore> mailboxStore = stores.get(key);
             String persistedPassword = dao.getPersistedPassword(box);
             if (mailboxStore == null || connectionParamsDiffer(mailboxStore.getFirst(), box, persistedPassword)) {
-                buildAndCacheStore(key, box, persistedPassword);
+                readLock.unlock();
+                unlockRead = false;
+                Lock writeLock = mailBoxLocks.get(key).writeLock();
+                writeLock.lock();
+                try {
+                    buildAndCacheStore(key, box, persistedPassword);
+                } finally {
+                    writeLock.unlock();
+                }
             }
-
             IMAPStore store = stores.get(key).getSecond();
 
-            if (forceConnect) {
-                store.close();
-                store.connect();
-                Collection<IMAPFolder> imapFolders = usedFolders.get(key);
-                if (imapFolders != null) {
-                    for (IMAPFolder folder : imapFolders) {
-                        if (folder.isOpen()) {
-                            folder.close(false);
-                        }
-                        if (!folder.isOpen()) {
-                            folder.open(Folder.READ_WRITE);
-                        }
-                    }
-                }
-            } else if (!store.isConnected()) {
+            if (!store.isConnected()) {
                 store.connect();
             }
             return store;
+        } finally {
+            if (unlockRead) {
+                readLock.unlock();
+            }
         }
+    }
+
+    public IMAPStore getExclusiveStore(ImapMailBox mailBox) throws MessagingException {
+        return makeStore(mailBox, dao.getPersistedPassword(mailBox), false);
     }
 
     public IMAPFolder getExclusiveFolder(ImapFolder cubaFolder) throws MessagingException {
@@ -134,6 +140,91 @@ public class ImapHelper {
 
         return folder;
     }
+
+    public List<ImapFolderDto> fetchFolders(IMAPStore store) throws MessagingException {
+        List<ImapFolderDto> result = new ArrayList<>();
+
+        Folder defaultFolder = store.getDefaultFolder();
+
+        Folder[] allFolders = defaultFolder.list("*");
+
+        List<String> sortedFolderNames = Arrays.stream(allFolders)
+                .map(Folder::getFullName)
+                .sorted()
+                .collect(Collectors.toList());
+        Map<String, ImapFolderDto> foldersByFullName = new HashMap<>();
+        Folder[] folders = allFolders;
+        while (folders.length > 0) {
+            List<Folder> unprocessedFolders = new ArrayList<>();
+            for (Folder folder : folders) {
+                String fullName = folder.getFullName();
+                int i = Collections.binarySearch(sortedFolderNames, fullName);
+                String parentName = null;
+                for (int j = i - 1; j >= 0; j--) {
+                    if (fullName.startsWith(sortedFolderNames.get(j))) {
+                        parentName = sortedFolderNames.get(j);
+                        break;
+                    }
+                }
+                if (parentName == null) {
+                    ImapFolderDto dto = map((IMAPFolder) folder);
+                    foldersByFullName.put(fullName, dto);
+                    result.add(dto);
+                } else {
+                    ImapFolderDto parentDto = foldersByFullName.get(parentName);
+                    if (parentDto != null) {
+                        ImapFolderDto dto = map((IMAPFolder) folder);
+                        foldersByFullName.put(fullName, dto);
+                        parentDto.getChildren().add(dto);
+                        dto.setParent(parentDto);
+                    } else {
+                        unprocessedFolders.add(folder);
+                    }
+                }
+            }
+            folders = unprocessedFolders.toArray(new Folder[0]);
+        }
+        /*log.info("all folders: {}", sortedFolderNames);
+
+        IMAPFolder[] rootFolders = (IMAPFolder[]) defaultFolder.list();
+        for (IMAPFolder folder : rootFolders) {
+            result.add(map(folder));
+        }*/
+
+        return result;
+    }
+
+    private ImapFolderDto map(IMAPFolder folder) throws MessagingException {
+        ImapFolderDto dto = metadata.create(ImapFolderDto.class);
+        dto.setName(folder.getName());
+        dto.setFullName(folder.getFullName());
+        dto.setCanHoldMessages(canHoldMessages(folder));
+        dto.setChildren(new ArrayList<>());
+        dto.setImapFolder(folder);
+
+        return dto;
+
+    }
+
+    /*private ImapFolderDto map(IMAPFolder folder) throws MessagingException {
+        List<ImapFolderDto> subFolders = new ArrayList<>();
+
+        if (canHoldFolders(folder)) {
+            for (Folder childFolder : folder.list()) {
+                subFolders.add(map((IMAPFolder) childFolder));
+            }
+        }
+        ImapFolderDto result = metadata.create(ImapFolderDto.class);
+        result.setName(folder.getName());
+        result.setFullName(folder.getFullName());
+        result.setCanHoldMessages(canHoldMessages(folder));
+        result.setChildren(subFolders);
+        result.setImapFolder(folder);
+        for (ImapFolderDto subFolder : result.getChildren()) {
+            subFolder.setParent(result) ;
+        }
+        return result;
+    }*/
 
     private boolean connectionParamsDiffer(ConnectionsParams oldParams, ImapMailBox newConfig, String persistedPassword) {
         Assert.isTrue(newConfig != null, "New mailbox config shouldn't be null");
@@ -198,6 +289,8 @@ public class ImapHelper {
             props.put("mail." + protocol + "." + proxyType + ".port", proxy.getPort());
         }
 
+        props.put("mail." + protocol + ".folder.class", CubaIMAPFolder.class.getName());
+
         Session session = Session.getInstance(props, null);
         session.setDebug(config.getDebug());
 
@@ -230,22 +323,12 @@ public class ImapHelper {
         FolderKey key = new FolderKey(mailboxKey, folderFullName);
         try {
             Store store = getStore(mailBox);
-            synchronized (mailBoxLocks.get(mailboxKey)) {
-                log.trace("[{}->{}]lock acquired for '{}'", mailBox, folderFullName, task.getDescription());
-                IMAPFolder folder = folders.get(key);
-                usedFolders.putIfAbsent(mailboxKey, new ArrayList<>());
-                if (folder == null) {
-                    folder = (IMAPFolder) store.getFolder(folderFullName);
-                    folders.put(key, folder);
-
-                    usedFolders.get(mailboxKey).add(folder);
-                }
-                if (!folder.isOpen()) {
-                    folder.open(Folder.READ_WRITE);
-                }
-                T result = task.getAction().apply(folder);
-                return task.isHasResult() ? result : null;
+            IMAPFolder folder = (IMAPFolder) store.getFolder(folderFullName);
+            if (canHoldMessages(folder) && !folder.isOpen()) {
+                folder.open(Folder.READ_WRITE);
             }
+            T result = task.getAction().apply(folder);
+            return task.isHasResult() ? result : null;
         } catch (MessagingException e) {
             throw new ImapException(
                     String.format("error performing task '%s' for folder with key '%s'", task.getDescription(), key),
@@ -463,11 +546,7 @@ public class ImapHelper {
         return null;
     }
 
-    public boolean canHoldFolders(IMAPFolder folder) throws MessagingException {
-        return (folder.getType() & Folder.HOLDS_FOLDERS) != 0;
-    }
-
-    public boolean canHoldMessages(IMAPFolder folder) throws MessagingException {
+    public static boolean canHoldMessages(Folder folder) throws MessagingException {
         return (folder.getType() & Folder.HOLDS_MESSAGES) != 0;
     }
 

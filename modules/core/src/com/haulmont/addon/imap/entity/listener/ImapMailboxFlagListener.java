@@ -2,7 +2,7 @@ package com.haulmont.addon.imap.entity.listener;
 
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
-import com.haulmont.addon.imap.sync.listener.ImapFolderSyncEvent;
+import com.haulmont.addon.imap.sync.listener.ImapFolderSyncActivationEvent;
 import com.haulmont.cuba.core.PersistenceTools;
 import com.haulmont.cuba.core.global.Events;
 import com.haulmont.cuba.core.listener.AfterUpdateEntityListener;
@@ -38,7 +38,7 @@ public class ImapMailboxFlagListener implements AfterUpdateEntityListener<ImapMa
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter(){
             public void afterCommit(){
                 for (ImapFolder folder : mailBox.getProcessableFolders()) {
-                    events.publish(new ImapFolderSyncEvent(folder, ImapFolderSyncEvent.Type.ADDED));
+                    events.publish(new ImapFolderSyncActivationEvent(folder, ImapFolderSyncActivationEvent.Type.ACTIVATE));
                 }
             }
         });

@@ -1,11 +1,9 @@
 package com.haulmont.addon.imap.sync.events.standard;
 
-import com.haulmont.addon.imap.api.ImapAPI;
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.core.Task;
 import com.haulmont.addon.imap.dao.ImapDao;
-import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
@@ -27,7 +25,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
-import javax.mail.Folder;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.search.MessageIDTerm;
@@ -43,7 +40,6 @@ public class ImapMissedMessagesEvents {
 
     private static final String TASK_DESCRIPTION = "moved and deleted messages";
 
-    private final ImapAPI imapAPI;
     private final ImapHelper imapHelper;
     private final Authentication authentication;
     private final Persistence persistence;
@@ -52,13 +48,11 @@ public class ImapMissedMessagesEvents {
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapMissedMessagesEvents(ImapAPI imapAPI,
-                                    ImapHelper imapHelper,
+    public ImapMissedMessagesEvents(ImapHelper imapHelper,
                                     Authentication authentication,
                                     Persistence persistence,
                                     ImapDao dao,
                                     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig) {
-        this.imapAPI = imapAPI;
         this.imapHelper = imapHelper;
         this.authentication = authentication;
         this.persistence = persistence;
@@ -68,7 +62,7 @@ public class ImapMissedMessagesEvents {
 
     @SuppressWarnings("WeakerAccess")
     protected Collection<BaseImapEvent> generate(@Nonnull ImapFolder cubaFolder) {
-        Collection<IMAPFolder> otherFolders = getOtherFolders(cubaFolder);
+        Collection<String> otherFolders = getOtherFolders(cubaFolder);
         return imapHelper.doWithFolder(cubaFolder.getMailBox(), cubaFolder.getName(), new Task<>(
                 TASK_DESCRIPTION,
                 true,
@@ -95,7 +89,7 @@ public class ImapMissedMessagesEvents {
             return Collections.emptyList();
         }
 
-        Collection<IMAPFolder> otherFolders = getOtherFolders(cubaFolder);
+        Collection<String> otherFoldersNames = getOtherFolders(cubaFolder);
 
         Collection<ImapMessage> messages;
 
@@ -109,13 +103,13 @@ public class ImapMissedMessagesEvents {
             authentication.end();
         }
         return generate(
-                cubaFolder, messages, otherFolders, (IMAPFolder) missedMessages.iterator().next().getFolder()
+                cubaFolder, messages, otherFoldersNames, (IMAPFolder) missedMessages.iterator().next().getFolder()
         );
     }
 
     private Collection<BaseImapEvent> generate(ImapFolder cubaFolder,
                                                Collection<ImapMessage> cubaMessages,
-                                               Collection<IMAPFolder> otherFolders,
+                                               Collection<String> otherFoldersNames,
                                                IMAPFolder imapFolder) {
         try {
             List<IMAPMessage> imapMessages = imapHelper.getAllByUIDs(
@@ -134,7 +128,7 @@ public class ImapMissedMessagesEvents {
             Collection<ImapMessage> missedMessages = cubaMessages.stream()
                     .filter(message -> !messagesByUid.containsKey(message.getMsgUid()))
                     .collect(Collectors.toList());
-            return handleMissedMessages(cubaFolder, missedMessages, otherFolders);
+            return handleMissedMessages(cubaFolder, missedMessages, otherFoldersNames);
         } catch (MessagingException e) {
             throw new ImapException(e);
         }
@@ -143,7 +137,7 @@ public class ImapMissedMessagesEvents {
     @SuppressWarnings("WeakerAccess")
     protected Collection<BaseImapEvent> handleMissedMessages(ImapFolder cubaFolder,
                                                              Collection<ImapMessage> missedMessages,
-                                                             Collection<IMAPFolder> otherFolders) {
+                                                             Collection<String> otherFoldersNames) {
         if (missedMessages.isEmpty()) {
             return Collections.emptyList();
         }
@@ -169,18 +163,19 @@ public class ImapMissedMessagesEvents {
         // folders param to exclude them from move event flow)
 
         ImapMailBox mailBox = cubaFolder.getMailBox();
-        otherFolders.stream()
-                .filter(folder -> folder.getFullName().equals(mailBox.getTrashFolderName()))
+        otherFoldersNames.stream()
+                .filter(folderName -> folderName.equals(mailBox.getTrashFolderName()))
                 .findFirst()
                 .ifPresent(trashFolder -> {
-                    for ( String messageId : findMessageIds(trashFolder, messagesByIds.keySet()) ) {
+                    for ( String messageId : findMessageIds(mailBox, trashFolder, messagesByIds.keySet()) ) {
                         ImapMessage imapMessage = messagesByIds.remove(messageId);
                         result.add(new EmailDeletedImapEvent(imapMessage));
                     }
                 });
 
         Map<String, BaseImapEvent> movedMessages = findMessagesInOtherFolders(
-                otherFolders.stream().filter(folder -> !folder.getFullName().equals(mailBox.getTrashFolderName())),
+                mailBox,
+                otherFoldersNames.stream().filter(folderName -> !folderName.equals(mailBox.getTrashFolderName())),
                 messagesByIds
         );
 
@@ -209,7 +204,7 @@ public class ImapMissedMessagesEvents {
     }
 
     @SuppressWarnings("WeakerAccess")
-    protected Collection<IMAPFolder> getOtherFolders(ImapFolder cubaFolder) {
+    protected Collection<String> getOtherFolders(ImapFolder cubaFolder) {
         ImapMailBox mailBox = getMailbox(cubaFolder.getMailBox().getId());
         if (log.isTraceEnabled()) {
             log.trace("processable folders: {}",
@@ -223,20 +218,18 @@ public class ImapMissedMessagesEvents {
         if (mailBox.getTrashFolderName() != null && !mailBox.getTrashFolderName().equals(cubaFolder.getName())) {
             otherFoldersNames.add(mailBox.getTrashFolderName());
         }
-        String[] folderNames = otherFoldersNames.toArray(new String[0]);
+        log.debug("Missed messages task will use folders {} to trigger MOVE event", otherFoldersNames);
+        return otherFoldersNames;
+        /*String[] folderNames = otherFoldersNames.toArray(new String[0]);
         if (folderNames.length == 0) {
             return Collections.emptyList();
         }
-        Collection<IMAPFolder> otherFolders = imapAPI.fetchFolders(mailBox, folderNames).stream()
+        Collection<IMAPFolder> otherFoldersNames = imapAPI.fetchFolders(mailBox, folderNames).stream()
                 .filter(f -> Boolean.TRUE.equals(f.getCanHoldMessages()))
                 .map(ImapFolderDto::getImapFolder)
                 .collect(Collectors.toList());
-        if (log.isDebugEnabled()) {
-            log.debug("Missed messages task will use folders {} to trigger MOVE event",
-                    otherFolders.stream().map(IMAPFolder::getFullName).collect(Collectors.toList())
-            );
-        }
-        return otherFolders;
+
+        return otherFoldersNames;*/
     }
 
     private ImapMailBox getMailbox(UUID id) {
@@ -285,12 +278,13 @@ public class ImapMissedMessagesEvents {
 
     }
 
-    private Map<String, BaseImapEvent> findMessagesInOtherFolders(Stream<IMAPFolder> otherFolders,
+    private Map<String, BaseImapEvent> findMessagesInOtherFolders(ImapMailBox mailBox,
+                                                                  Stream<String> otherFoldersNames,
                                                                   Map<String, ImapMessage> missedMessagesByIds) {
-        return otherFolders.parallel()
-                .flatMap(imapFolder -> {
-                    Collection<String> foundMessageIds = findMessageIds(imapFolder, missedMessagesByIds.keySet());
-                    return foundMessageIds.stream().map(id -> new Pair<>(id, imapFolder.getFullName()));
+        return otherFoldersNames.parallel()
+                .flatMap(folderName -> {
+                    Collection<String> foundMessageIds = findMessageIds(mailBox, folderName, missedMessagesByIds.keySet());
+                    return foundMessageIds.stream().map(id -> new Pair<>(id, folderName));
                 })
                 .collect(Collectors.toMap(
                         Pair::getFirst,
@@ -302,46 +296,36 @@ public class ImapMissedMessagesEvents {
                 ));
     }
 
-    private Collection<String> findMessageIds(IMAPFolder imapFolder, Collection<String> messageIds) {
-        boolean close = false;
-        try {
-            if (!imapFolder.isOpen()) {
-                imapFolder.open(Folder.READ_ONLY);
-                close = true;
-            }
-            List<IMAPMessage> messages = new ArrayList<>(messageIds.size());
-            for (String messageId : messageIds) {
-                messages.addAll(imapHelper.searchMessageIds(
-                        imapFolder,
-                        new MessageIDTerm(messageId)
-                ));
-            }
-            //todo: GreenMail can't handle properly OR combination of MessageID terms, need to check out with real IMAP servers to avoid extra hits
+    private Collection<String> findMessageIds(ImapMailBox mailBox, String folderName, Collection<String> messageIds) {
+        return imapHelper.doWithFolder(
+                mailBox,
+                folderName,
+                new Task<>("find messages ids", true, imapFolder -> {
+                    List<IMAPMessage> messages = new ArrayList<>(messageIds.size());
+                    for (String messageId : messageIds) {
+                        messages.addAll(imapHelper.searchMessageIds(
+                                imapFolder,
+                                new MessageIDTerm(messageId)
+                        ));
+                    }
+                    //todo: GreenMail can't handle properly OR combination of MessageID terms, need to check out with real IMAP servers to avoid extra hits
             /*List<IMAPMessage> messages = imapHelper.searchMessageIds(
                     imapFolder,
                     new OrTerm(messageIds.stream().map(MessageIDTerm::new).toArray(SearchTerm[]::new))
             );*/
-            if (messages.isEmpty()) {
-                return Collections.emptyList();
-            }
+                    if (messages.isEmpty()) {
+                        return Collections.emptyList();
+                    }
 
-            Collection<String> foundIds = new ArrayList<>(messages.size());
-            for (IMAPMessage message : messages) {
-                foundIds.add(message.getMessageID());
-            }
+                    Collection<String> foundIds = new ArrayList<>(messages.size());
+                    for (IMAPMessage message : messages) {
+                        foundIds.add(message.getMessageID());
+                    }
 
-            return foundIds;
-        } catch (MessagingException e) {
-            throw new ImapException(e);
-        } finally {
-            if (close && imapFolder.isOpen()) {
-                try {
-                    imapFolder.close(false);
-                } catch (MessagingException e) {
-                    log.warn("can't close folder " + imapFolder, e);
-                }
-            }
-        }
+                    return foundIds;
+
+                })
+        );
     }
 
 }

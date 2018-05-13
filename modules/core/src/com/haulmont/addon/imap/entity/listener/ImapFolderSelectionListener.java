@@ -1,6 +1,6 @@
 package com.haulmont.addon.imap.entity.listener;
 
-import com.haulmont.addon.imap.sync.listener.ImapFolderSyncEvent;
+import com.haulmont.addon.imap.sync.listener.ImapFolderSyncActivationEvent;
 import com.haulmont.cuba.core.PersistenceTools;
 import com.haulmont.cuba.core.global.Events;
 import org.springframework.stereotype.Component;
@@ -34,7 +34,7 @@ public class ImapFolderSelectionListener implements AfterDeleteEntityListener<Im
     public void onAfterDelete(ImapFolder entity, Connection connection) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter(){
             public void afterCommit(){
-                events.publish(new ImapFolderSyncEvent(entity, ImapFolderSyncEvent.Type.REMOVED));
+                events.publish(new ImapFolderSyncActivationEvent(entity, ImapFolderSyncActivationEvent.Type.DEACTIVATE));
             }
         });
 
@@ -58,7 +58,7 @@ public class ImapFolderSelectionListener implements AfterDeleteEntityListener<Im
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter(){
             public void afterCommit(){
                 boolean subscribe = Boolean.TRUE.equals(folder.getSelected()) && !Boolean.TRUE.equals(folder.getDisabled());
-                events.publish(new ImapFolderSyncEvent(folder, subscribe ? ImapFolderSyncEvent.Type.ADDED : ImapFolderSyncEvent.Type.REMOVED));
+                events.publish(new ImapFolderSyncActivationEvent(folder, subscribe ? ImapFolderSyncActivationEvent.Type.ACTIVATE : ImapFolderSyncActivationEvent.Type.DEACTIVATE));
             }
         });
 

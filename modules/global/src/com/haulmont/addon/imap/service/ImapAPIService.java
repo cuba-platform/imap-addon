@@ -16,7 +16,6 @@ public interface ImapAPIService {
 
     void testConnection(ImapMailBox box);
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box);
-    List<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames);
 
     ImapMessageDto fetchMessage(ImapMessage message);
     List<ImapMessageDto> fetchMessages(List<ImapMessage> messages);

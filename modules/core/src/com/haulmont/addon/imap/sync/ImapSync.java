@@ -5,7 +5,7 @@ import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.sync.events.ImapEvents;
-import com.haulmont.addon.imap.sync.listener.ImapFolderSyncEvent;
+import com.haulmont.addon.imap.sync.listener.ImapFolderSyncActivationEvent;
 import com.haulmont.addon.imap.sync.listener.ImapFolderListener;
 import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.security.app.Authentication;
@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ImapSync implements AppContext.Listener, Ordered {
 
     private final static Logger log = LoggerFactory.getLogger(ImapSync.class);
+    private static boolean TRACK_FOLDER_ACTIVATION = true;
 
     private final ImapDao dao;
     private final ImapEvents imapEvents;
@@ -127,10 +128,13 @@ public class ImapSync implements AppContext.Listener, Ordered {
     }
 
     @EventListener
-    public void handleFolderEvent(ImapFolderSyncEvent event) {
+    public void handleFolderEvent(ImapFolderSyncActivationEvent event) {
+        if (!TRACK_FOLDER_ACTIVATION) {
+            return;
+        }
         ImapFolder cubaFolder = event.getFolder();
 
-        if (event.getType() == ImapFolderSyncEvent.Type.ADDED) {
+        if (event.getType() == ImapFolderSyncActivationEvent.Type.ACTIVATE) {
             executeFullSyncTasks(folderFullSyncTasks(cubaFolder));
             imapFolderListener.subscribe(cubaFolder);
         } else {
@@ -145,7 +149,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
     }
 
     @EventListener
-    public void handleFolderSyncEvent(com.haulmont.addon.imap.sync.ImapFolderSyncEvent event) {
+    public void delayFolderSynchronization(ImapFolderSyncInProgressEvent event) {
         ImapFolderSyncAction action = event.getAction();
 
         UUID folderId = action.getFolderId();
@@ -159,7 +163,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
             }
             ImapFolderSyncAction nextAction = new ImapFolderSyncAction(folderId, type);
             fullSyncRefreshers.remove(nextAction);
-            handleFolderSyncEvent(new com.haulmont.addon.imap.sync.ImapFolderSyncEvent(nextAction));
+            delayFolderSynchronization(new ImapFolderSyncInProgressEvent(nextAction));
         }, 30, TimeUnit.SECONDS);
 
         ScheduledFuture<?> oldTask = fullSyncRefreshers.put(action, newTask);

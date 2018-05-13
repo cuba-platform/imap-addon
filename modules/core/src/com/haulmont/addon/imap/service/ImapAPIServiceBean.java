@@ -49,7 +49,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
             } else {
                 folderToExamine = null;
                 for (Folder folder : defaultFolder.list()) {
-                    if (imapHelper.canHoldMessages((IMAPFolder) folder)) {
+                    if (imapHelper.canHoldMessages(folder)) {
                         folderToExamine = (IMAPFolder) folder;
                         break;
                     }
@@ -67,12 +67,16 @@ public class ImapAPIServiceBean implements ImapAPIService {
 
     @Override
     public Collection<ImapFolderDto> fetchFolders(ImapMailBox box) {
-        return imapAPI.fetchFolders(box);
-    }
-
-    @Override
-    public List<ImapFolderDto> fetchFolders(ImapMailBox box, String... folderNames) {
-        return imapAPI.fetchFolders(box, folderNames);
+        try {
+            IMAPStore store = imapHelper.getExclusiveStore(box);
+            try {
+                return imapHelper.fetchFolders(store);
+            } finally {
+                store.close();
+            }
+        } catch (MessagingException e) {
+            throw new ImapException(e);
+        }
     }
 
     @Override
