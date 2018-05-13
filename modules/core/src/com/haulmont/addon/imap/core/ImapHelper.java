@@ -66,6 +66,11 @@ public class ImapHelper {
     private final Encryptor encryptor;
     private final ImapDao dao;
 
+    static {
+//        System.setProperty("mail.imap.parse.debug", "true");
+//        System.setProperty("mail.mime.decodefilename", "true");
+    }
+
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public ImapHelper(FileLoader fileLoader,
@@ -179,7 +184,7 @@ public class ImapHelper {
         if (mailBox.getSecureMode() == ImapSecureMode.STARTTLS) {
             props.setProperty("mail.imap.starttls.enable", "true");
         }
-//        props.setProperty("mail.debug", "true");
+        props.setProperty("mail.debug", "" + config.getDebug());
 
         if (mailBox.getSecureMode() != null) {
             MailSSLSocketFactory socketFactory = getMailSSLSocketFactory(mailBox);
@@ -194,6 +199,7 @@ public class ImapHelper {
         }
 
         Session session = Session.getInstance(props, null);
+        session.setDebug(config.getDebug());
 
         IMAPStore store = (IMAPStore) session.getStore(protocol);
         String passwordToConnect = decryptedPassword(mailBox, persistedPassword);

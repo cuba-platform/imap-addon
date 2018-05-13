@@ -96,6 +96,8 @@ configure([globalModule, coreModule, guiModule, webModule]) {
         testUnitCompile sourceSets.main.output
         testUnitCompile configurations.testCompile
         testUnitRuntime configurations.testRuntime
+
+        compile("com.sun.mail:javax.mail:1.6.1")
     }
 
     task sourceJar(type: Jar) {

@@ -28,4 +28,9 @@ public interface ImapConfig extends Config {
     int getFetchMessagesMaxParallelism();
     void setFetchMessagesMaxParallelism(int value);
 
+    @Property("imap.debug")
+    @DefaultBoolean(false)
+    boolean getDebug();
+    void setDebug(boolean value);
+
 }

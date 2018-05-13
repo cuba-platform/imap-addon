@@ -1,4 +1,4 @@
-package com.haulmont.addon.imap.core.ext;
+package com.haulmont.addon.imap.core.protocol;
 
 import javax.mail.Session;
 import javax.mail.URLName;

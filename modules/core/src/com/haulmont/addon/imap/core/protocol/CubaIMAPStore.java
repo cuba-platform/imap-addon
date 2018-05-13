@@ -1,4 +1,4 @@
-package com.haulmont.addon.imap.core.ext;
+package com.haulmont.addon.imap.core.protocol;
 
 import com.sun.mail.iap.ProtocolException;
 import com.sun.mail.imap.IMAPStore;
@@ -20,7 +20,7 @@ public class CubaIMAPStore extends IMAPStore {
 
     @Override
     protected IMAPProtocol newIMAPProtocol(String host, int port) throws IOException, ProtocolException {
-        return new ThreadExtension.CubaIMAPProtocol(name, host, port,
+        return new CubaIMAPProtocol(name, host, port,
                 session.getProperties(),
                 isSSL,
                 logger
