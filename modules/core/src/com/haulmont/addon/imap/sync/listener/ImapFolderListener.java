@@ -33,7 +33,6 @@ public class ImapFolderListener {
     private final Object lock = new Object();
 
     private final ImapHelper imapHelper;
-
     private final ImapEvents imapEvents;
 
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
@@ -59,6 +58,10 @@ public class ImapFolderListener {
     }
 
     public void unsubscribe(@Nonnull ImapFolder folder) {
+        if (!shouldListenFolder(folder)) {
+            return;
+        }
+
         UUID folderId = folder.getId();
         log.info("unsubscribe count listener for folder#{}", folderId);
 
@@ -89,6 +92,9 @@ public class ImapFolderListener {
     }
 
     public void subscribe(@Nonnull ImapFolder folder) {
+        if (!shouldListenFolder(folder)) {
+            return;
+        }
         UUID folderId = folder.getId();
         log.info("subscribe count listener for folder#{}", folderId);
 
@@ -103,6 +109,10 @@ public class ImapFolderListener {
             folderObjects.listen();
         }
 
+    }
+
+    private boolean shouldListenFolder(ImapFolder folder) {
+        return false;
     }
 
     private MessageCountListener makeListener(ImapFolder folder) {
@@ -146,7 +156,7 @@ public class ImapFolderListener {
         void listen() {
             this.listenTask = executor.submit(() -> {
                 try {
-                    this.imapFolder = imapHelper.getExclusiveFolder(cubaFolder);
+                    this.imapFolder = imapHelper.getListenerFolder(cubaFolder);
                     this.imapFolder.addMessageCountListener(this.countListener);
                     this.imapFolder.addMessageChangedListener(this.messageChangedListener);
                     this.standbyTask = scheduledExecutorService.schedule((Runnable) imapFolder::isOpen, 2, TimeUnit.MINUTES);

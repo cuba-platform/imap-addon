@@ -5,12 +5,19 @@ import java.util.Objects;
 class FolderKey {
 
     private final MailboxKey mailboxKey;
-
     private final String folderFullName;
 
     FolderKey(MailboxKey mailboxKey, String folderFullName) {
         this.mailboxKey = mailboxKey;
         this.folderFullName = folderFullName;
+    }
+
+    public MailboxKey getMailboxKey() {
+        return mailboxKey;
+    }
+
+    public String getFolderFullName() {
+        return folderFullName;
     }
 
     @Override

@@ -3,8 +3,6 @@ package com.haulmont.addon.imap.sync.events;
 import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.events.BaseImapEvent;
-import com.haulmont.addon.imap.sync.ImapFolderSyncAction;
-import com.haulmont.addon.imap.sync.ImapFolderSyncInProgressEvent;
 import com.haulmont.addon.imap.sync.events.standard.ImapStandardEventsGenerator;
 import com.haulmont.bali.util.ReflectionHelper;
 import com.haulmont.cuba.core.global.AppBeans;
@@ -48,30 +46,18 @@ public class ImapEvents {
     }
 
     public void handleNewMessages(ImapFolder cubaFolder) {
-        events.publish(new ImapFolderSyncInProgressEvent(
-                new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.NEW))
-        );
         fireEvents( cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForNewMessages(cubaFolder) );
     }
 
     public void handleChangedMessages(ImapFolder cubaFolder) {
-        events.publish(new ImapFolderSyncInProgressEvent(
-                new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.CHANGED))
-        );
         fireEvents( cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForChangedMessages(cubaFolder) );
     }
 
     public void handleMissedMessages(ImapFolder cubaFolder) {
-        events.publish(new ImapFolderSyncInProgressEvent(
-                new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.MISSED))
-        );
         fireEvents( cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForMissedMessages(cubaFolder) );
     }
 
     public void handleNewMessages(ImapFolder cubaFolder, Message[] newMessages) {
-        events.publish(new ImapFolderSyncInProgressEvent(
-                new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.NEW))
-        );
         Collection<IMAPMessage> imapMessages = new ArrayList<>(newMessages.length);
         for (Message message : newMessages) {
             imapMessages.add((IMAPMessage) message);
@@ -83,9 +69,6 @@ public class ImapEvents {
     }
 
     public void handleChangedMessages(ImapFolder cubaFolder, Message[] changedMessages) {
-        events.publish(new ImapFolderSyncInProgressEvent(
-                new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.CHANGED))
-        );
         Collection<IMAPMessage> imapMessages = new ArrayList<>(changedMessages.length);
         for (Message message : changedMessages) {
             imapMessages.add((IMAPMessage) message);
@@ -97,9 +80,6 @@ public class ImapEvents {
     }
 
     public void handleMissedMessages(ImapFolder cubaFolder, Message[] missedMessages) {
-        events.publish(new ImapFolderSyncInProgressEvent(
-                new ImapFolderSyncAction(cubaFolder.getId(), ImapFolderSyncAction.Type.MISSED))
-        );
         Collection<IMAPMessage> imapMessages = new ArrayList<>(missedMessages.length);
         for (Message message : missedMessages) {
             imapMessages.add((IMAPMessage) message);

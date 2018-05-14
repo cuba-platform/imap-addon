@@ -2,6 +2,7 @@ package com.haulmont.addon.imap.sync.events.standard;
 
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ImapHelper;
+import com.haulmont.addon.imap.core.ImapOperations;
 import com.haulmont.addon.imap.core.Task;
 import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.ImapFolder;
@@ -41,6 +42,7 @@ public class ImapMissedMessagesEvents {
     private static final String TASK_DESCRIPTION = "moved and deleted messages";
 
     private final ImapHelper imapHelper;
+    private final ImapOperations imapOperations;
     private final Authentication authentication;
     private final Persistence persistence;
     private final ImapDao dao;
@@ -49,11 +51,13 @@ public class ImapMissedMessagesEvents {
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public ImapMissedMessagesEvents(ImapHelper imapHelper,
+                                    ImapOperations imapOperations,
                                     Authentication authentication,
                                     Persistence persistence,
                                     ImapDao dao,
                                     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig) {
         this.imapHelper = imapHelper;
+        this.imapOperations = imapOperations;
         this.authentication = authentication;
         this.persistence = persistence;
         this.dao = dao;
@@ -112,7 +116,7 @@ public class ImapMissedMessagesEvents {
                                                Collection<String> otherFoldersNames,
                                                IMAPFolder imapFolder) {
         try {
-            List<IMAPMessage> imapMessages = imapHelper.getAllByUIDs(
+            List<IMAPMessage> imapMessages = imapOperations.getAllByUIDs(
                     imapFolder,
                     cubaMessages.stream().mapToLong(ImapMessage::getMsgUid).toArray(),
                     cubaFolder.getMailBox()
@@ -296,6 +300,7 @@ public class ImapMissedMessagesEvents {
                 ));
     }
 
+    @SuppressWarnings("unchecked")
     private Collection<String> findMessageIds(ImapMailBox mailBox, String folderName, Collection<String> messageIds) {
         return imapHelper.doWithFolder(
                 mailBox,
@@ -303,7 +308,7 @@ public class ImapMissedMessagesEvents {
                 new Task<>("find messages ids", true, imapFolder -> {
                     List<IMAPMessage> messages = new ArrayList<>(messageIds.size());
                     for (String messageId : messageIds) {
-                        messages.addAll(imapHelper.searchMessageIds(
+                        messages.addAll(imapOperations.searchMessageIds(
                                 imapFolder,
                                 new MessageIDTerm(messageId)
                         ));
@@ -322,7 +327,7 @@ public class ImapMissedMessagesEvents {
                         foundIds.add(message.getMessageID());
                     }
 
-                    return foundIds;
+                        return foundIds;
 
                 })
         );

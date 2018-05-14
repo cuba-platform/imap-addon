@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ImapHelper;
+import com.haulmont.addon.imap.core.ImapOperations;
 import com.haulmont.addon.imap.core.Task;
 import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.ImapFolder;
@@ -38,6 +39,7 @@ public class ImapNewMessagesEvents {
     private final static Logger log = LoggerFactory.getLogger(ImapNewMessagesEvents.class);
 
     private final ImapHelper imapHelper;
+    private final ImapOperations imapOperations;
     private final ImapConfig imapConfig;
     private final Authentication authentication;
     private final Persistence persistence;
@@ -47,12 +49,14 @@ public class ImapNewMessagesEvents {
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public ImapNewMessagesEvents(ImapHelper imapHelper,
+                                 ImapOperations imapOperations,
                                  @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig,
                                  Authentication authentication,
                                  Persistence persistence,
                                  ImapDao dao,
                                  Metadata metadata) {
         this.imapHelper = imapHelper;
+        this.imapOperations = imapOperations;
         this.imapConfig = imapConfig;
         this.authentication = authentication;
         this.persistence = persistence;
@@ -82,7 +86,7 @@ public class ImapNewMessagesEvents {
         log.debug("[{}]handle events for new messages", cubaFolder);
         try {
             ImapMailBox mailBox = cubaFolder.getMailBox();
-            List<IMAPMessage> imapMessages = imapHelper.search(
+            List<IMAPMessage> imapMessages = imapOperations.search(
                     imapFolder,
                     new FlagTerm(imapHelper.cubaFlags(mailBox), false),
                     mailBox
@@ -105,7 +109,7 @@ public class ImapNewMessagesEvents {
                     true
             );
 
-            imapHelper.setAnsweredFlag(mailBox, imapEvents);
+            imapOperations.setAnsweredFlag(mailBox, imapEvents);
             return imapEvents;
         } catch (MessagingException e) {
             throw new ImapException(e);
@@ -222,10 +226,10 @@ public class ImapNewMessagesEvents {
             entity.setFolder(cubaFolder);
             entity.setUpdateTs(new Date());
             entity.setImapFlags(flags);
-            entity.setCaption(imapHelper.getSubject(msg));
-            entity.setMessageId(msg.getHeader(ImapHelper.MESSAGE_ID_HEADER, null));
-            entity.setReferenceId(imapHelper.getRefId(msg));
-            entity.setThreadId(imapHelper.getThreadId(msg, cubaFolder.getMailBox()));
+            entity.setCaption(imapOperations.getSubject(msg));
+            entity.setMessageId(msg.getHeader(ImapOperations.MESSAGE_ID_HEADER, null));
+            entity.setReferenceId(imapOperations.getRefId(msg));
+            entity.setThreadId(imapOperations.getThreadId(msg, cubaFolder.getMailBox()));
             entity.setMsgNum(msg.getMessageNumber());
             em.persist(entity);
             return entity;

@@ -180,7 +180,7 @@ class ImapAPISpec extends Specification {
         imapAPI.fetchMessage(imapMessage)
 
         then: "exception is raised"
-        thrown ImapException
+        thrown RuntimeException
 
         when: "try to fetch message pointing to mailbox with wrong connection details"
         imapMessage.folder.name = "INBOX"
@@ -280,7 +280,7 @@ class ImapAPISpec extends Specification {
         imapAPI.moveMessage(imapMessage, "root999")
 
         then: "exception is raised"
-        thrown ImapException
+        thrown RuntimeException
     }
     def "delete message"() {
         given: "2 messages in INBOX"

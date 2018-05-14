@@ -2,6 +2,7 @@ package com.haulmont.addon.imap.api;
 
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ImapHelper;
+import com.haulmont.addon.imap.core.ImapOperations;
 import com.haulmont.addon.imap.core.MessageFunction;
 import com.haulmont.addon.imap.core.Task;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
@@ -38,6 +39,7 @@ public class Imap implements ImapAPI, AppContext.Listener {
     private final static Logger log = LoggerFactory.getLogger(Imap.class);
 
     private final ImapHelper imapHelper;
+    private final ImapOperations imapOperations;
     private final Metadata metadata;
     private final ImapConfig imapConfig;
     private ExecutorService fetchMessagesExecutor;
@@ -45,10 +47,12 @@ public class Imap implements ImapAPI, AppContext.Listener {
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public Imap(ImapHelper imapHelper,
+                ImapOperations imapOperations,
                 Metadata metadata,
                 @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig) {
 
         this.imapHelper = imapHelper;
+        this.imapOperations = imapOperations;
         this.metadata = metadata;
         this.imapConfig = imapConfig;
     }
@@ -91,7 +95,7 @@ public class Imap implements ImapAPI, AppContext.Listener {
         try {
             IMAPStore store = imapHelper.getStore(box);
 
-            return imapHelper.fetchFolders(store);
+            return imapOperations.fetchFolders(store);
         } catch (MessagingException e) {
             throw new ImapException(e);
         }
@@ -143,6 +147,7 @@ public class Imap implements ImapAPI, AppContext.Listener {
                         imapHelper.doWithFolder(
                                 mailBox,
                                 folderName,
+                                true,
                                 new Task<>(
                                         "fetch messages",
                                         false,

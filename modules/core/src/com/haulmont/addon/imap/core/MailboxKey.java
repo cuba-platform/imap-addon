@@ -1,11 +1,17 @@
 package com.haulmont.addon.imap.core;
 
+import com.haulmont.addon.imap.entity.ImapMailBox;
+
 import java.util.Objects;
 
 class MailboxKey {
     private final String host;
     private final int port;
     private final String userName;
+
+    MailboxKey(ImapMailBox mailBox) {
+        this(mailBox.getHost(), mailBox.getPort(), mailBox.getAuthentication().getUsername());
+    }
 
     MailboxKey(String host, int port, String userName) {
         this.host = host;

@@ -54,8 +54,8 @@ public class ImapSync implements AppContext.Listener, Ordered {
         return thread;
     });
 
-    private final ConcurrentMap<ImapFolderSyncAction, ScheduledFuture<?>> fullSyncRefreshers = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ImapFolderSyncAction, Future<?>> fullSyncTasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, ScheduledFuture<?>> fullSyncRefreshers = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, Future<?>> fullSyncTasks = new ConcurrentHashMap<>();
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
@@ -85,7 +85,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
             Collection<Future<?>> tasks = new ArrayList<>();
             for (ImapMailBox mailBox : dao.findMailBoxes()) {
                 log.debug("{}: synchronizing", mailBox);
-                Collection<ImapFolderDto> allFolders = imapAPI.fetchFolders(mailBox);
+                Collection<ImapFolderDto> allFolders = ImapFolderDto.flattenList(imapAPI.fetchFolders(mailBox));
                 Collection<ImapFolder> processableFolders = mailBox.getProcessableFolders();
                 Collection<ImapFolder> listenedFolders = new ArrayList<>(processableFolders.size());
                 for (ImapFolder cubaFolder : processableFolders) {
@@ -99,7 +99,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
                         continue;
                     }
                     listenedFolders.add(cubaFolder);
-                    tasks.addAll(folderFullSyncTasks(cubaFolder));
+                    tasks.add(folderFullSyncTask(cubaFolder));
                 }
 
                 allListenedFolders.addAll(listenedFolders);
@@ -120,6 +120,11 @@ public class ImapSync implements AppContext.Listener, Ordered {
             log.warn("Exception while shutting down executor", e);
         }
 
+        try {
+            scheduledExecutorService.shutdownNow();
+        } catch (Exception e) {
+            log.warn("Exception while shutting down scheduled executor", e);
+        }
     }
 
     @Override
@@ -135,47 +140,14 @@ public class ImapSync implements AppContext.Listener, Ordered {
         ImapFolder cubaFolder = event.getFolder();
 
         if (event.getType() == ImapFolderSyncActivationEvent.Type.ACTIVATE) {
-            executeFullSyncTasks(folderFullSyncTasks(cubaFolder));
+            executeFullSyncTasks(Collections.singleton(folderFullSyncTask(cubaFolder)));
             imapFolderListener.subscribe(cubaFolder);
         } else {
-            for (ImapFolderSyncAction.Type syncActionType : ImapFolderSyncAction.Type.values()) {
-                ImapFolderSyncAction action = new ImapFolderSyncAction(cubaFolder.getId(), syncActionType);
-                cancel(fullSyncRefreshers.remove(action), false);
-                cancel(fullSyncTasks.remove(action), true);
-            }
+            cancel(fullSyncRefreshers.remove(cubaFolder.getId()), false);
+            cancel(fullSyncTasks.remove(cubaFolder.getId()), true);
             imapFolderListener.unsubscribe(cubaFolder);
         }
 
-    }
-
-    @EventListener
-    public void delayFolderSynchronization(ImapFolderSyncInProgressEvent event) {
-        ImapFolderSyncAction action = event.getAction();
-
-        UUID folderId = action.getFolderId();
-        ImapFolderSyncAction.Type type = action.getType();
-
-        ScheduledFuture<?> newTask = scheduledExecutorService.schedule(() -> {
-            ImapFolder cubaFolder = getFolder(folderId);
-            if (cubaFolder != null) {
-                fullSyncTask(cubaFolder, type);
-                imapFolderListener.subscribe(cubaFolder);
-            }
-            ImapFolderSyncAction nextAction = new ImapFolderSyncAction(folderId, type);
-            fullSyncRefreshers.remove(nextAction);
-            delayFolderSynchronization(new ImapFolderSyncInProgressEvent(nextAction));
-        }, 30, TimeUnit.SECONDS);
-
-        ScheduledFuture<?> oldTask = fullSyncRefreshers.put(action, newTask);
-        cancel(oldTask, false);
-    }
-
-    private void cancel(Future<?> task, boolean interrupt) {
-        if (task != null) {
-            if (!task.isDone() && !task.isCancelled()) {
-                task.cancel(interrupt);
-            }
-        }
     }
 
     private void executeFullSyncTasks(Collection<Future<?>> tasks) {
@@ -197,25 +169,32 @@ public class ImapSync implements AppContext.Listener, Ordered {
         });
     }
 
-    private Collection<Future<?>> folderFullSyncTasks(@Nonnull ImapFolder cubaFolder) {
-        Collection<Future<?>> tasks = new ArrayList<>(3);
-
-        Future<?> newMessagesTask = fullSyncTask(cubaFolder, ImapFolderSyncAction.Type.NEW);
-        if (newMessagesTask != null) {
-            tasks.add(newMessagesTask);
+    private Future<?> folderFullSyncTask(@Nonnull ImapFolder cubaFolder) {
+        UUID folderId = cubaFolder.getId();
+        Future<?> task = fullSyncTasks.get(folderId);
+        if (task != null && !task.isDone() && !task.isCancelled()) {
+            return task;
         }
 
-        Future<?> missedMessagesTask = fullSyncTask(cubaFolder, ImapFolderSyncAction.Type.MISSED);
-        if (missedMessagesTask != null) {
-            tasks.add(missedMessagesTask);
-        }
+        CompletableFuture<Void> cf = CompletableFuture.runAsync(() -> {
+            imapEvents.handleNewMessages(cubaFolder);
+            imapEvents.handleMissedMessages(cubaFolder);
+            imapEvents.handleChangedMessages(cubaFolder);
+            ScheduledFuture<?> newTask = scheduledExecutorService.schedule(() -> {
+                ImapFolder folder = getFolder(folderId);
+                if (folder != null) {
+                    folderFullSyncTask(cubaFolder);
+                    imapFolderListener.subscribe(cubaFolder);
+                }
+                fullSyncRefreshers.remove(folderId);
+            }, 5, TimeUnit.SECONDS);
 
-        Future<?> changedMessagesTask = fullSyncTask(cubaFolder, ImapFolderSyncAction.Type.CHANGED);
-        if (changedMessagesTask != null) {
-            tasks.add(changedMessagesTask);
-        }
-
-        return tasks;
+            ScheduledFuture<?> oldTask = fullSyncRefreshers.put(folderId, newTask);
+            cancel(oldTask, false);
+        }, executor);
+        fullSyncTasks.put(folderId, cf);
+        cf.thenAccept(ignore -> fullSyncTasks.remove(folderId, cf));
+        return cf;
     }
 
     private ImapFolder getFolder(UUID folderId) {
@@ -227,39 +206,12 @@ public class ImapSync implements AppContext.Listener, Ordered {
         }
     }
 
-    private Future<?> fullSyncTask(@Nonnull ImapFolder cubaFolder, ImapFolderSyncAction.Type type) {
-        ImapFolderSyncAction action = new ImapFolderSyncAction(cubaFolder.getId(), type);
-        Future<?> task = fullSyncTasks.get(action);
-        if (task != null && !task.isDone() && !task.isCancelled()) {
-            return task;
+    private void cancel(Future<?> task, boolean interrupt) {
+        if (task != null) {
+            if (!task.isDone() && !task.isCancelled()) {
+                task.cancel(interrupt);
+            }
         }
-        Runnable runnable = null;
-        switch (type) {
-            case NEW:
-
-                runnable = () -> {
-                    log.info("Search new messages for {}", cubaFolder);
-                    imapEvents.handleNewMessages(cubaFolder);
-                };
-                break;
-            case MISSED:
-                runnable = () -> {
-                    log.info("Track deleted/moved messages for {}", cubaFolder);
-                    imapEvents.handleMissedMessages(cubaFolder);
-                };
-                break;
-            case CHANGED:
-                runnable = () -> {
-                    log.info("Update messages for {}", cubaFolder);
-                    imapEvents.handleChangedMessages(cubaFolder);
-                };
-        }
-
-        CompletableFuture<Void> cf = CompletableFuture.runAsync(runnable, executor);
-        fullSyncTasks.put(action, cf);
-        cf.thenAccept(ignore -> fullSyncTasks.remove(action, cf));
-        return cf;
-
     }
 
 }

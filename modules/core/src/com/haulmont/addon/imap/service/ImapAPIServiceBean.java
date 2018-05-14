@@ -4,6 +4,7 @@ import com.haulmont.addon.imap.api.ImapAPI;
 import com.haulmont.addon.imap.api.ImapAttachmentsAPI;
 import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.addon.imap.core.ImapHelper;
+import com.haulmont.addon.imap.core.ImapOperations;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
@@ -26,13 +27,17 @@ public class ImapAPIServiceBean implements ImapAPIService {
     private final static Logger log = LoggerFactory.getLogger(ImapAPIServiceBean.class);
 
     private final ImapHelper imapHelper;
-
+    private final ImapOperations imapOperations;
     private final ImapAPI imapAPI;
     private final ImapAttachmentsAPI imapAttachmentsAPI;
 
     @Inject
-    public ImapAPIServiceBean(ImapHelper imapHelper, ImapAPI imapAPI, ImapAttachmentsAPI imapAttachmentsAPI) {
+    public ImapAPIServiceBean(ImapHelper imapHelper,
+                              ImapOperations imapOperations,
+                              ImapAPI imapAPI,
+                              ImapAttachmentsAPI imapAttachmentsAPI) {
         this.imapHelper = imapHelper;
+        this.imapOperations = imapOperations;
         this.imapAPI = imapAPI;
         this.imapAttachmentsAPI = imapAttachmentsAPI;
     }
@@ -44,12 +49,12 @@ public class ImapAPIServiceBean implements ImapAPIService {
             IMAPStore store = imapHelper.getStore(box);
             IMAPFolder defaultFolder = (IMAPFolder) store.getDefaultFolder();
             IMAPFolder folderToExamine;
-            if (imapHelper.canHoldMessages(defaultFolder)) {
+            if (ImapHelper.canHoldMessages(defaultFolder)) {
                 folderToExamine = defaultFolder;
             } else {
                 folderToExamine = null;
-                for (Folder folder : defaultFolder.list()) {
-                    if (imapHelper.canHoldMessages(folder)) {
+                for (Folder folder : defaultFolder.list("*")) {
+                    if (ImapHelper.canHoldMessages(folder)) {
                         folderToExamine = (IMAPFolder) folder;
                         break;
                     }
@@ -70,7 +75,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
         try {
             IMAPStore store = imapHelper.getExclusiveStore(box);
             try {
-                return imapHelper.fetchFolders(store);
+                return imapOperations.fetchFolders(store);
             } finally {
                 store.close();
             }

@@ -21,6 +21,7 @@ import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.Part;
 import javax.mail.internet.MimeUtility;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -64,7 +65,7 @@ public class ImapAttachments implements ImapAttachmentsAPI {
         ImapMailBox mailBox = msg.getFolder().getMailBox();
         String folderName = msg.getFolder().getName();
 
-        return imapHelper.doWithFolder(mailBox, folderName, new Task<>(
+        return imapHelper.doWithFolder(mailBox, folderName, true, new Task<>(
                         "extracting attachments", true, f -> {
 
                     IMAPMessage imapMsg = (IMAPMessage) f.getMessageByUID(msg.getMsgUid());
@@ -122,15 +123,22 @@ public class ImapAttachments implements ImapAttachmentsAPI {
     @Override
     public InputStream openStream(ImapMessageAttachment attachment) {
         log.info("Open stream for attachment {}", attachment);
+        //todo: streaming should be fair
+        return new ByteArrayInputStream(loadFile(attachment));
+    }
+
+    @Override
+    public byte[] loadFile(ImapMessageAttachment attachment) {
+        log.info("load attachment {}", attachment);
+
         ImapMessage msg = attachment.getImapMessage();
         ImapMailBox mailBox = msg.getFolder().getMailBox();
         String folderName = msg.getFolder().getName();
 
-        return imapHelper.doWithFolder(mailBox, folderName, new Task<>(
+        return imapHelper.doWithFolder(mailBox, folderName, true, new Task<>(
                 "fetch attachment content",
                 true,
                 f -> {
-                    //todo: this fetching can be optimised to fetch only attachments data
                     IMAPMessage imapMessage = (IMAPMessage) f.getMessageByUID(msg.getMsgUid());
                     imapMessage.setPeek(true);
                     try {
@@ -138,21 +146,11 @@ public class ImapAttachments implements ImapAttachmentsAPI {
 
                         BodyPart imapAttachment = multipart.getBodyPart(attachment.getOrderNumber());
 
-                        return imapAttachment.getInputStream();
+                        return IOUtils.toByteArray(imapAttachment.getInputStream());
                     } catch (IOException e) {
                         throw new RuntimeException("Can't read content of attachment/message", e);
                     }
                 }
         ));
-    }
-
-    @Override
-    public byte[] loadFile(ImapMessageAttachment attachment) {
-        log.info("load attachment {}", attachment);
-        try (InputStream is = openStream(attachment)) {
-            return IOUtils.toByteArray(is);
-        } catch (IOException e) {
-            throw new RuntimeException("Can't fetch bytes for attachment", e);
-        }
     }
 }

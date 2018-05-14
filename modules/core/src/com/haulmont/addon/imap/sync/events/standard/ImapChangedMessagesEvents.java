@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.core.ImapHelper;
+import com.haulmont.addon.imap.core.ImapOperations;
 import com.haulmont.addon.imap.core.Task;
 import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.ImapFolder;
@@ -40,6 +41,7 @@ public class ImapChangedMessagesEvents {
     private static final String TASK_DESCRIPTION = "updating messages flags";
 
     private final ImapHelper imapHelper;
+    private final ImapOperations imapOperations;
     private final Authentication authentication;
     private final Persistence persistence;
     private final ImapDao dao;
@@ -48,11 +50,13 @@ public class ImapChangedMessagesEvents {
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public ImapChangedMessagesEvents(ImapHelper imapHelper,
+                                     ImapOperations imapOperations,
                                      Authentication authentication,
                                      Persistence persistence,
                                      ImapDao dao,
                                      @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig) {
         this.imapHelper = imapHelper;
+        this.imapOperations = imapOperations;
         this.authentication = authentication;
         this.persistence = persistence;
         this.dao = dao;
@@ -85,7 +89,7 @@ public class ImapChangedMessagesEvents {
             modificationEvents.addAll(batchResult);
         }
 
-        imapHelper.setAnsweredFlag(mailBox, modificationEvents);
+        imapOperations.setAnsweredFlag(mailBox, modificationEvents);
         return modificationEvents;
     }
 
@@ -102,7 +106,7 @@ public class ImapChangedMessagesEvents {
             if (!imapFolder.isOpen()) {
                 imapFolder.open(Folder.READ_WRITE);
             }
-            List<IMAPMessage> imapMessages = imapHelper.fetchUIDs(imapFolder, changedMessages.toArray(new Message[0]));
+            List<IMAPMessage> imapMessages = imapOperations.fetchUIDs(imapFolder, changedMessages.toArray(new Message[0]));
             Map<Long, IMAPMessage> messagesByUID = new HashMap<>(imapMessages.size());
             for (IMAPMessage msg : imapMessages) {
                 messagesByUID.put(imapFolder.getUID(msg), msg);
@@ -112,7 +116,7 @@ public class ImapChangedMessagesEvents {
 
             Collection<BaseImapEvent> imapEvents = generate(messages, messagesByUID);
 
-            imapHelper.setAnsweredFlag(cubaFolder.getMailBox(), imapEvents);
+            imapOperations.setAnsweredFlag(cubaFolder.getMailBox(), imapEvents);
             return imapEvents;
         } catch (MessagingException e) {
             throw new ImapException(e);
@@ -134,7 +138,7 @@ public class ImapChangedMessagesEvents {
     private Collection<BaseImapEvent> handleBatch(IMAPFolder folder, int count, ImapFolder cubaFolder) throws MessagingException {
         Collection<ImapMessage> messages = getMessages(cubaFolder, count);
 
-        List<IMAPMessage> imapMessages = imapHelper.getAllByUIDs(
+        List<IMAPMessage> imapMessages = imapOperations.getAllByUIDs(
                 folder, messages.stream().mapToLong(ImapMessage::getMsgUid).toArray(), cubaFolder.getMailBox()
         );
         log.trace("[updating messages flags for {}]batch messages from db: {}, from IMAP server: {}",
@@ -212,7 +216,7 @@ public class ImapChangedMessagesEvents {
         Flags newFlags = newMsg.getFlags();
 
         List<BaseImapEvent> modificationEvents = generate(msg, newMsg);
-        String refId = imapHelper.getRefId(newMsg);
+        String refId = imapOperations.getRefId(newMsg);
         if (refId != null) {
             ImapMessage parentMessage = dao.findMessageByImapMessageId(msg.getFolder().getMailBox().getId(), refId);
             if (parentMessage != null) {
@@ -223,14 +227,14 @@ public class ImapChangedMessagesEvents {
             }
         }
         msg.setImapFlags(newFlags);
-        msg.setThreadId(imapHelper.getThreadId(newMsg, msg.getFolder().getMailBox()));  // todo: fire thread event
+        msg.setThreadId(imapOperations.getThreadId(newMsg, msg.getFolder().getMailBox()));  // todo: fire thread event
         msg.setUpdateTs(new Date());
         msg.setMsgNum(newMsg.getMessageNumber());
 
         em.createQuery("update imap$Message m set m.msgNum = :msgNum, m.threadId = :threadId, " +
                 "m.updateTs = :updateTs, m.flags = :flags, m.referenceId = :refId where m.id = :id")
                 .setParameter("msgNum", newMsg.getMessageNumber())
-                .setParameter("threadId", imapHelper.getThreadId(newMsg, msg.getFolder().getMailBox()))
+                .setParameter("threadId", imapOperations.getThreadId(newMsg, msg.getFolder().getMailBox()))
                 .setParameter("refId", refId)
                 .setParameter("updateTs", new Date())
                 .setParameter("flags", msg.getFlags())

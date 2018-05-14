@@ -5,6 +5,7 @@ import com.haulmont.addon.imap.api.ImapAPI
 import com.haulmont.addon.imap.api.ImapFlag
 import com.haulmont.addon.imap.core.ImapEventsTestListener
 import com.haulmont.addon.imap.core.ImapHelper
+import com.haulmont.addon.imap.core.ImapOperations
 import com.haulmont.addon.imap.dao.ImapDao
 import com.haulmont.addon.imap.entity.ImapAuthenticationMethod
 import com.haulmont.addon.imap.entity.ImapEventType
@@ -362,10 +363,10 @@ class ImapEventsSpec extends Specification {
         message1.msgNum = 1
         ImapMessage message2 = defaultMessage(START_EMAIL_UID + 1, EMAIL_SUBJECT + 1, INBOX)
         message2.msgNum = 2
-        message2.messageId = imapMessages.find { it.messageNumber == 2 }.getHeader(ImapHelper.MESSAGE_ID_HEADER)[0]
+        message2.messageId = imapMessages.find { it.messageNumber == 2 }.getHeader(ImapOperations.MESSAGE_ID_HEADER)[0]
         ImapMessage message3 = defaultMessage(START_EMAIL_UID + 2, EMAIL_SUBJECT + 2, INBOX)
         message3.msgNum = 3
-        message3.messageId = imapMessages.find { it.messageNumber == 3 }.getHeader(ImapHelper.MESSAGE_ID_HEADER)[0]
+        message3.messageId = imapMessages.find { it.messageNumber == 3 }.getHeader(ImapOperations.MESSAGE_ID_HEADER)[0]
         cont.persistence().runInTransaction() { em ->
             em.persist(message1)
             em.persist(message2)
@@ -420,7 +421,7 @@ class ImapEventsSpec extends Specification {
             message.setFlags(flags, true)
         }
         if (messageId != null) {
-            message.setHeader(ImapHelper.MESSAGE_ID_HEADER, messageId)
+            message.setHeader(ImapOperations.MESSAGE_ID_HEADER, messageId)
         }
 
         user.deliver(new StoredMessage.UidAwareMimeMessage(message, uid))
