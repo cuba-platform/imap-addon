@@ -34,6 +34,7 @@ public class ImapHelper {
 
     private final ConcurrentMap<MailboxKey, ReadWriteLock> mailBoxLocks = new ConcurrentHashMap<>();
     private final Map<MailboxKey, Pair<ConnectionsParams, IMAPStore>> stores = new HashMap<>();
+    private final ConcurrentMap<MailboxKey, BlockingQueue<Boolean>> mailBoxTasks = new ConcurrentHashMap<>();
 
     private final ConcurrentMap<UUID, IMAPStore> listenerStores = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, IMAPFolder> listenerFolders = new ConcurrentHashMap<>();
@@ -141,10 +142,12 @@ public class ImapHelper {
         log.debug("perform '{}' for {} of mailbox {}", task.getDescription(), folderFullName, mailBox);
         MailboxKey mailboxKey = new MailboxKey(mailBox);
         FolderKey key = new FolderKey(mailboxKey, folderFullName);
-        Store store = null;
+        IMAPFolder folder = null;
         try {
-            store  = getExclusiveStore(mailBox);
-            IMAPFolder folder = (IMAPFolder) store.getFolder(key.getFolderFullName());
+            Store store  = getStore(mailBox);
+            mailBoxTasks.putIfAbsent(mailboxKey, new ArrayBlockingQueue<>(10));
+            mailBoxTasks.get(mailboxKey).put(true);
+            folder = (IMAPFolder) store.getFolder(key.getFolderFullName());
             if (canHoldMessages(folder) && !folder.isOpen()) {
                 folder.open(readOnly ? Folder.READ_ONLY : Folder.READ_WRITE);
             }
@@ -156,12 +159,17 @@ public class ImapHelper {
                     String.format("error performing task '%s' for folder with key '%s'", task.getDescription(), key),
                     e
             );
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(
+                    String.format("task %s for folder %s was interrupted", task.getDescription(), key), e);
         } finally {
-            if (store != null) {
+            mailBoxTasks.get(mailboxKey).poll();
+            if (folder != null && folder.isOpen()) {
                 try {
-                    store.close();
+                    folder.close(false);
                 } catch (MessagingException e) {
-                    log.warn("Failed to close store with folder {} for task {}", key, task.getDescription());
+                    log.warn("Failed to close folder {} for task {}", key, task.getDescription());
                 }
             }
         }

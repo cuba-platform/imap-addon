@@ -154,7 +154,7 @@ public class ImapSync implements AppContext.Listener, Ordered {
         executor.submit(() -> {
             try {
                 for (Future<?> task : tasks) {
-                    task.get(1, TimeUnit.MINUTES);
+                    task.get(5, TimeUnit.MINUTES);
                 }
             } catch (InterruptedException | TimeoutException e) {
                 log.error("Synchronizing mailbox folders was interrupted", e);

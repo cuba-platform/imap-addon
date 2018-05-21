@@ -92,12 +92,21 @@ public class Imap implements ImapAPI, AppContext.Listener {
     public Collection<ImapFolderDto> fetchFolders(ImapMailBox box) {
         log.debug("fetch folders for box {}", box);
 
+        IMAPStore store = null;
         try {
-            IMAPStore store = imapHelper.getStore(box);
+            store = imapHelper.getExclusiveStore(box);
 
             return imapOperations.fetchFolders(store);
         } catch (MessagingException e) {
             throw new ImapException(e);
+        } finally {
+            if (store != null) {
+                try {
+                    store.close();
+                } catch (MessagingException e) {
+                    log.warn("Failed to close store for mailbox {}:{}", box.getHost(), box.getPort());
+                }
+            }
         }
     }
 
