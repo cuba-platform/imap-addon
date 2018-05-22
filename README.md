@@ -1,47 +1,52 @@
 [![license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](http://www.apache.org/licenses/LICENSE-2.0)
 
-# CUBA Platform Component - IMAP Email Client
+**Please note that the component is still in development and not stable.**
 
-This application component can be used to extend the capabilities of a [CUBA.Platform](https://www.cuba-platform.com/) application so that it can retrieve Emails via the [IMAP protocol](https://tools.ietf.org/html/rfc3501).
+# Table of Contents
 
-The main model to interact with incoming Emails is via Spring application Events. The application developer registers Hook methods as an `@EventListener` which will invoked when Events in the IMAP mailbox happen (e.g. new Email received).
+# Overview
 
-Besides the Event based programming model it is also possible to directly interact with the corresponding API methods.
+The IMAP-addon provides a readily available instrument for integrating email messaging into any CUBA-based application via the IMAP protocol. The main model of the component is designed to interact with incoming emails via Spring application events.
 
-**Please note that component still in development and not stable.**
+The component includes the following set of functionalities:
+* Integration between any IMAP servers and CUBA applications.
+* Basic API methods to work with the main email server functionalities:
+    * Connecting to servers;
+    * Retrieving and viewing emails;
+    * Searching for emails;
+    * Operating custom flags.
+* Predefined events for implementing custom business logic and processing various updates.
+* User interface for configuring IMAP connection settings and events.
+
+# Getting Started
 
 ## Installation
+To add the IMAP-addon to your project, the following steps should be taken:
 
-1. Open component in CUBA studio and invoke Run > Install app component
-1. Open your application in CUBA studio and in project properties in 'Advanced' tab enable 'Use local Maven repository'
-1. Select a version of the add-on which is compatible with the platform version used in your project:
+1. Open your application in CUBA Studio.
 
-| Platform Version | Add-on Version |
-| ---------------- | -------------- |
-| 6.8.x            | 0.1-SNAPSHOT |
+2. Edit Project properties.
 
+3. Click the plus button in the *App components* section of the *Main* tab.
+4. Specify the coordinates of the component in the corresponding field as follows: **group:name:version**. Click *OK* to confirm the operation.
+    * Artifact group: *com.haulmont.addon.imap*
+    * Artifact name: *imap-global*
+    * Version: *addon version*
+    
+    When specifying the component version, you should select the one, which is compatible with the platform version used in your project. Currently, the latest version is 
 
-The latest version is: 0.1-SNAPSHOT
+    | Platform Version | Addon Version  |
+    | ---------------- | -------------- |
+    | 6.8.x            | 0.1-SNAPSHOT   |
 
-Add custom application component to your project:
+5. Before using the component as a part of your application, it is vital to configure the following application properties in the `app.properties` file of your project.
 
-* Artifact group: `com.haulmont.addon.imap`
-* Artifact name: `imap-global`
-* Version: *add-on version*
-
-
-## Usage
-
-### IMAP encryption configuration options
-
-It is required to configure the following application properties in the `app.properties` of the application:
-
-IMAP mail box password encryption keys:
 ```
 imap.encryption.key = HBXv3Q70IlmBMiW4EMyPHw==
 imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
 ```
 
+## Usage
 
 ### Register EventListeners to interact with IMAP events
 In order to react to IMAP events in your application, you can register `@Component` methods as Event listener through the `@EventListener` Annotation. 
