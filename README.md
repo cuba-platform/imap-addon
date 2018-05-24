@@ -28,23 +28,88 @@ To add the IMAP-addon to your project, the following steps should be taken:
 2. Edit Project properties.
 
 3. Click the plus button in the *App components* section of the *Main* tab.
-4. Specify the coordinates of the component in the corresponding field as follows: **group:name:version**. Click *OK* to confirm the operation.
+
+    ![Adding custom component1](img/adding_component1.png)
+
+4. Specify the coordinates of the component in the corresponding field as follows: **group:name:version**. Click *OK* 
+to confirm the operation.
+
+    ![Adding component2](img/adding_component2.png)
+
     * Artifact group: *com.haulmont.addon.imap*
     * Artifact name: *imap-global*
     * Version: *addon version*
     
-    When specifying the component version, you should select the one, which is compatible with the platform version used in your project. Currently, the latest version is 
+    When specifying the component version, you should select the one, which is compatible with the platform version 
+    used in your project. Currently, the latest version is 
 
     | Platform Version | Addon Version  |
     | ---------------- | -------------- |
     | 6.8.x            | 0.1-SNAPSHOT   |
 
-5. Before using the component as a part of your application, it is vital to configure the following application properties in the `app.properties` file of your project.
+5. Before using the component as a part of your application, it is vital to configure the following application 
+properties in the `app.properties` file of your project.
 
 ```
 imap.encryption.key = HBXv3Q70IlmBMiW4EMyPHw==
 imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
 ```
+
+# Component Functionalities
+
+## IMAP Configuration
+
+*IMAP Configuration Browser* is designed to add and manage mailboxes from which emails are retrieved. The browser is 
+available from Menu: Administration → IMAP → IMAP Configuration.
+
+![IMAP Configuration Menu Item](img/imap_conf_item.png)
+
+Creating a new configuration is available by clicking the *Create* button. 
+
+![Creating IMAP Configuration](img/creating-IMAP-conf.png)
+
+### IMAP Configuration Editor
+
+*IMAP Configuration Editor* comprises two main sections to fill in: *Basic* and *Advanced*. All required fields are
+highlighted in red.
+
+![IMAP Configuration Editor](img/IMAP-conf-editor.png)
+
+#### Basic
+
+The *Basic* section enables to configure the main attributes for connecting to an email server via IMAP. The description of
+all fields is provided below.
+
+* *Host*: specify a host name or IP address of an email server.
+* *Port*: provide a port number to connect to an email server. The default value is *143*.
+* *Secure Connection*: select an option for secure connection if required. Available values: *STARTTLS*, *SSL/TLS*.
+* *Root Certificate*: upload a client certificate if required.
+* *Username*: provide a username to connect to an email server.
+* *Password*: provide a user password to connect to an email server.
+
+The *Basic* section comprises the *Connect* button. After providind all required information, use the button to upload
+a list of folders from the email server to work with.
+
+#### Advanced
+
+The *Advanced* section provides a set of additional options for connecting to an email server.
+
+* *Custom Flag*: specify a custom flag 
+* *Use trash folder for removal*: // to do 
+* *Use custom events generator class*: // to do 
+* *Use proxy*: if checked, proxy settings become available (see the description below).
+
+##### *Proxy Configuration*
+
+* *Proxy Host*: provide a host name or IP address of a proxy server.
+* *Proxy Port*: provide a port to connect to a proxy server.
+* *Use web proxy*: // to do
+
+#### Table of Folders
+
+Once connection to the provided email server is successfully established, the table of folders becomes available.
+
+// to do
 
 ## Usage
 
