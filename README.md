@@ -87,7 +87,7 @@ all fields is provided below.
 * *Username*: provide a username to connect to an email server.
 * *Password*: provide a user password to connect to an email server.
 
-The *Basic* section comprises the *Connect* button. After providind all required information, use the button to upload
+The *Basic* section comprises the *Connect* button. After providing all required information, use the button to upload
 a list of folders from the email server to work with.
 
 #### Advanced
@@ -95,8 +95,8 @@ a list of folders from the email server to work with.
 The *Advanced* section provides a set of additional options for connecting to an email server.
 
 * *Custom Flag*: specify a custom flag 
-* *Use trash folder for removal*: // to do 
-* *Use custom events generator class*: // to do 
+* *Use trash folder to remove emails*: 
+* *Use custom event generator class*: // to do 
 * *Use proxy*: if checked, proxy settings become available (see the description below).
 
 ##### *Proxy Configuration*
@@ -109,9 +109,15 @@ The *Advanced* section provides a set of additional options for connecting to an
 
 Once connection to the provided email server is successfully established, the table of folders becomes available.
 
-// to do
+![Table of Folders](img/folders.png)
 
-## Usage
+The table shows a list of folders from the email server you are connected to. In order to enable/disable some folders,
+use the checkboxes in the second column. If some folder is disabled, then messages from it are not retrieved.
+
+For each folder you can select a set of IMAP events by using the *Events* table and register custom logic for them 
+(for more details, please refer to []()).
+
+# Usage
 
 ### Register EventListeners to interact with IMAP events
 In order to react to IMAP events in your application, you can register `@Component` methods as Event listener through the `@EventListener` Annotation. 
