@@ -57,11 +57,6 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
         removeMissedHandlers(availableBeans);
         enableAddButton(maxHandlersCount);
 
-        if (availableBeans.isEmpty()) {
-            handlersTable.getParent().setVisible(false);
-            return;
-        }
-
         Map<ImapEventHandler, LookupField> handlerMethodLookupFields = new HashMap<>();
         if (folderEvent.getEventHandlers() != null) {
             for (ImapEventHandler eventHandler : folderEvent.getEventHandlers()) {
