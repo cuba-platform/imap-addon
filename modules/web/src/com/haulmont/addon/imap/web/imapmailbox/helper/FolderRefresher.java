@@ -40,7 +40,7 @@ public class FolderRefresher {
     }
 
     public LinkedHashMap<ImapFolder, State> refreshFolders(ImapMailBox mailBox) {
-        log.info("refresh folder for {}", mailBox);
+        log.info("refresh folders for {}", mailBox);
 //        imapService.testConnection(mailBox);
         Collection<ImapFolderDto> folderDtos = imapService.fetchFolders(mailBox);
         List<ImapFolder> folders = mailBox.getFolders();

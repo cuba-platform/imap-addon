@@ -126,8 +126,6 @@
                             <column id="selected"
                                     caption=""
                                     editable="true"/>
-                            <column id="eventsInfo"
-                                    caption="Events"/>
                         </columns>
                         <rows datasource="foldersDs"/>
                     </treeTable>
