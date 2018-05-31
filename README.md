@@ -1,47 +1,123 @@
 [![license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](http://www.apache.org/licenses/LICENSE-2.0)
 
-# CUBA Platform Component - IMAP Email Client
+**Please note that the component is still in development and not stable.**
 
-This application component can be used to extend the capabilities of a [CUBA.Platform](https://www.cuba-platform.com/) application so that it can retrieve Emails via the [IMAP protocol](https://tools.ietf.org/html/rfc3501).
+# Table of Contents
 
-The main model to interact with incoming Emails is via Spring application Events. The application developer registers Hook methods as an `@EventListener` which will invoked when Events in the IMAP mailbox happen (e.g. new Email received).
+# Overview
 
-Besides the Event based programming model it is also possible to directly interact with the corresponding API methods.
+The IMAP-addon provides a readily available instrument for integrating email messaging into any CUBA-based application via the IMAP protocol. The main model of the component is designed to interact with incoming emails via Spring application events.
 
-**Please note that component still in development and not stable.**
+The component includes the following set of functionalities:
+* Integration between any IMAP servers and CUBA applications.
+* Basic API methods to work with the main email server functionalities:
+    * Connecting to servers;
+    * Retrieving and viewing emails;
+    * Searching for emails;
+    * Operating custom flags.
+* Predefined events for implementing custom business logic and processing various updates.
+* User interface for configuring IMAP connection settings and events.
+
+# Getting Started
 
 ## Installation
+To add the IMAP-addon to your project, the following steps should be taken:
 
-1. Open component in CUBA studio and invoke Run > Install app component
-1. Open your application in CUBA studio and in project properties in 'Advanced' tab enable 'Use local Maven repository'
-1. Select a version of the add-on which is compatible with the platform version used in your project:
+1. Open your application in CUBA Studio.
 
-| Platform Version | Add-on Version |
-| ---------------- | -------------- |
-| 6.8.x            | 0.1-SNAPSHOT |
+2. Edit Project properties.
 
+3. Click the plus button in the *App components* section of the *Main* tab.
 
-The latest version is: 0.1-SNAPSHOT
+    ![Adding custom component1](img/adding_component1.png)
 
-Add custom application component to your project:
+4. Specify the coordinates of the component in the corresponding field as follows: **group:name:version**. Click *OK* 
+to confirm the operation.
 
-* Artifact group: `com.haulmont.addon.imap`
-* Artifact name: `imap-global`
-* Version: *add-on version*
+    ![Adding component2](img/adding_component2.png)
 
+    * Artifact group: *com.haulmont.addon.imap*
+    * Artifact name: *imap-global*
+    * Version: *addon version*
+    
+    When specifying the component version, you should select the one, which is compatible with the platform version 
+    used in your project. Currently, the latest version is 
 
-## Usage
+    | Platform Version | Addon Version  |
+    | ---------------- | -------------- |
+    | 6.8.x            | 0.1-SNAPSHOT   |
 
-### IMAP encryption configuration options
+5. Before using the component as a part of your application, it is vital to configure the following application 
+properties in the `app.properties` file of your project.
 
-It is required to configure the following application properties in the `app.properties` of the application:
-
-IMAP mail box password encryption keys:
 ```
 imap.encryption.key = HBXv3Q70IlmBMiW4EMyPHw==
 imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
 ```
 
+# Component Functionalities
+
+## IMAP Configuration
+
+*IMAP Configuration Browser* is designed to add and manage mailboxes from which emails are retrieved. The browser is 
+available from Menu: Administration → IMAP → IMAP Configuration.
+
+![IMAP Configuration Menu Item](img/imap_conf_item.png)
+
+Creating a new configuration is available by clicking the *Create* button. 
+
+![Creating IMAP Configuration](img/creating-IMAP-conf.png)
+
+### IMAP Configuration Editor
+
+*IMAP Configuration Editor* comprises two main sections to fill in: *Basic* and *Advanced*. All required fields are
+highlighted in red.
+
+![IMAP Configuration Editor](img/IMAP-conf-editor.png)
+
+#### Basic
+
+The *Basic* section enables to configure the main attributes for connecting to an email server via IMAP. The description of
+all fields is provided below.
+
+* *Host*: specify a host name or IP address of an email server.
+* *Port*: provide a port number to connect to an email server. The default value is *143*.
+* *Secure Connection*: select an option for secure connection if required. Available values: *STARTTLS*, *SSL/TLS*.
+* *Root Certificate*: upload a client certificate if required.
+* *Username*: provide a username to connect to an email server.
+* *Password*: provide a user password to connect to an email server.
+
+The *Basic* section comprises the *Connect* button. After providing all required information, use the button to upload
+a list of folders from the email server to work with.
+
+#### Advanced
+
+The *Advanced* section provides a set of additional options for connecting to an email server.
+
+* *Custom Flag*: specify a custom flag 
+* *Use trash folder to remove emails*: 
+* *Use custom event generator class*: // to do 
+* *Use proxy*: if checked, proxy settings become available (see the description below).
+
+##### *Proxy Configuration*
+
+* *Proxy Host*: provide a host name or IP address of a proxy server.
+* *Proxy Port*: provide a port to connect to a proxy server.
+* *Use web proxy*: // to do
+
+#### Table of Folders
+
+Once connection to the provided email server is successfully established, the table of folders becomes available.
+
+![Table of Folders](img/folders.png)
+
+The table shows a list of folders from the email server you are connected to. In order to enable/disable some folders,
+use the checkboxes in the second column. If some folder is disabled, then messages from it are not retrieved.
+
+For each folder you can select a set of IMAP events by using the *Events* table and register custom logic for them 
+(for more details, please refer to []()).
+
+# Usage
 
 ### Register EventListeners to interact with IMAP events
 In order to react to IMAP events in your application, you can register `@Component` methods as Event listener through the `@EventListener` Annotation. 
