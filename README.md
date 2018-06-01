@@ -117,6 +117,20 @@ use the checkboxes in the second column. If some folder is disabled, then messag
 For each folder you can select a set of IMAP events by using the *Events* table and register custom logic for them 
 (for more details, please refer to []()).
 
+## IMAP Message Browser
+
+All emails from connected mailboxes are displayed in IMAP Message Browser (available from Menu: Administration → IMAP → 
+IMAP Message Browser).
+
+![IMAP Message Browser](img/Imap-message-browser.png)
+
+Selecting an email and clicking *View* opens it for reading. Email Screen contains all general details of an email:
+date, author, subject, etc., and two tabs: *Body* and *Attachments*. 
+
+On the *Body* tab, the whole text of an email is displayed.
+
+The *Attachments* tab comprises the table of attachments and the button to download required elements.
+
 # Usage
 
 ### Register EventListeners to interact with IMAP events
