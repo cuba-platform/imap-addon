@@ -127,9 +127,13 @@ IMAP Message Browser).
 Selecting an email and clicking *View* opens it for reading. Email Screen contains all general details of an email:
 date, author, subject, etc., and two tabs: *Body* and *Attachments*. 
 
-On the *Body* tab, the whole text of an email is displayed.
+![Email](img/email-body.png)
+
+The *Body* tab displayes an email body, including its formatting and built-in graphic elements.
 
 The *Attachments* tab comprises the table of attachments and the button to download required elements.
+
+![Attachments](img/email-attachments.png)
 
 # Usage
 
