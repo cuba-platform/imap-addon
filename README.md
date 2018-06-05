@@ -6,7 +6,8 @@
 
 # Overview
 
-The IMAP-addon provides a readily available instrument for integrating email messaging into any CUBA-based application via the IMAP protocol. The main model of the component is designed to interact with incoming emails via Spring application events.
+The IMAP-addon provides a readily available instrument for integrating email messaging into any CUBA-based application 
+via the IMAP protocol. The main model of the component is designed to interact with incoming emails via Spring application events.
 
 The component includes the following set of functionalities:
 * Integration between any IMAP servers and CUBA applications.
@@ -127,18 +128,18 @@ IMAP Message Browser).
 Selecting an email and clicking *View* opens it for reading. Email Screen contains all general details of an email:
 date, author, subject, etc., and two tabs: *Body* and *Attachments*. 
 
-![Email](img/email-body.png)
-
-The *Body* tab displayes an email body, including its formatting and built-in graphic elements.
+On the *Body* tab, the whole text of an email is displayed.
 
 The *Attachments* tab comprises the table of attachments and the button to download required elements.
 
 ![Attachments](img/email-attachments.png)
 
-# Usage
+# Configuration
 
-### Register EventListeners to interact with IMAP events
-In order to react to IMAP events in your application, you can register `@Component` methods as Event listener through the `@EventListener` Annotation. 
+## Registering EventListeners to Interact with IMAP Events
+
+In order to make your application react to IMAP events, you can register the `@Component` methods as Event listeners by using
+the `@EventListener` annotation. The example of how to set up an event listener is provided below.
 
 ```
 import org.springframework.context.event.EventListener;
@@ -149,12 +150,12 @@ public class EmailReceiveServiceBean implements EmailReceiveService {
     @EventListener
     @Override
     public void receiveEmail(NewEmailImapEvent event) {
-      // handle IMAP event
+      // handles IMAP event
     }
 }
 ```
 
-or you can create `@Component` with method having only one parameter with correct event type
+Another option is to create `@Component` with a method having the required event type as the only parameter.
 ```
 public class EmailReceiver {
     String NAME = "ceuia_EmailReceiver";
@@ -165,13 +166,24 @@ public class EmailReceiver {
 }
 ```
 
-Once this is done, the method (in this case `receiveEmail` has to be registered on a particular Folder for a given IMAP connection. This has to be done at runtime via the IMAP configuration UI.
+Once it is done, the selected method (in the example, it is `receiveEmail`) should be registered on a particular folder 
+for a given IMAP connection. This should be done at runtime using the IMAP configuration UI (see [Creating Handlers for
+IMAP Events]). 
+After that, the method will be invoked every time, when the configured event occurs.
 
-After that the method will get invoked every time when an event occurs.
+## Creating Handlers for IMAP Events
+
+After registering EventListeners, it is required to create handlers for IMAP events related to a particular folder and 
+mailbox (for more information see [IMAP Connection](#imap-configuration)). The table of folders comprises several columns,
+each representing a certain event type (e.g. New, Seen, Replied, etc.). Clicking gear icons opens IMAP Folder Event Editor.
+
+![IMAP Folder Event Editor](img/imap-folder-event-editor.png)
+
+There you can specify required beans and methods for them.
 
 #### Event types
 
-All events contain `ImapMessage` object that can be used to determine where an event occurs (mail box, folder, message)
+All events contain `ImapMessage` object that can be used to determine where an event occurs (mailbox, folder, message)
 
 The application component allows the following kind of IMAP events:
 
