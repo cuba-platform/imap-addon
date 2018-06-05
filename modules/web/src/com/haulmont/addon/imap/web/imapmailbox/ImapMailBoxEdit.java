@@ -308,7 +308,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                 hbox.setWidthFull();
                 hbox.setFrame(getFrame());
                 if (folder.hasEvent(eventType)) {
-                    Button button = componentsFactory.createComponent(Button.class);
+                    LinkButton button = componentsFactory.createComponent(LinkButton.class);
                     button.setAction(imapEventActions.get(eventType));
                     button.setCaption("");
                     button.setIcon("icons/gear.png");
