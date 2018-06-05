@@ -6,34 +6,24 @@
         messagesPack="com.haulmont.addon.imap.web.imapfolderevent">
     <dsContext>
         <datasource id="imapFolderEventDs"
-                    allowCommit="false"
                     class="com.haulmont.addon.imap.entity.ImapFolderEvent"
+                    allowCommit="false"
                     view="imap-folder-event-edit">
-            <collectionDatasource id="handlersDs"
-                                  allowCommit="false"
-                                  property="eventHandlers"/>
+            <collectionDatasource id="handlersDs" property="eventHandlers" allowCommit="false"/>
         </datasource>
     </dsContext>
-    <dialogMode height="600"
-                width="800"/>
-    <layout expand="groupBox"
-            spacing="true">
-        <fieldGroup id="fieldGroup"
-                    datasource="imapFolderEventDs">
+
+    <dialogMode height="600" width="800"/>
+
+    <layout expand="windowActions" spacing="true">
+        <fieldGroup datasource="imapFolderEventDs">
             <column width="300px">
-                <field editable="false"
-                       property="folder"/>
-                <field editable="false"
-                       property="event"/>
+                <field property="folder" editable="false"/>
+                <field property="event" editable="false"/>
             </column>
         </fieldGroup>
-        <groupBox id="groupBox"
-                  caption="msg://eventHandlersCaption">
-            <table id="handlersTable"
-                   editable="true"
-                   height="100%"
-                   sortable="false"
-                   width="100%">
+        <groupBox caption="msg://eventHandlersCaption">
+            <table id="handlersTable" editable="true" sortable="false" width="100%" height="100%">
                 <actions>
                     <action id="add"
                             caption="mainMsg://actions.Add"
@@ -54,20 +44,15 @@
                             trackSelection="true"/>
                 </actions>
                 <columns>
-                    <column id="beanName"
-                            caption="msg://beanNameCaption"/>
-                    <column id="methodName"
-                            caption="msg://methodNameCaption"/>
+                    <column id="beanName" caption="msg://beanNameCaption" />
+                    <column id="methodName" caption="msg://methodNameCaption" />
                 </columns>
                 <rows datasource="handlersDs"/>
                 <buttonsPanel>
-                    <button id="addHandlerBtn"
-                            action="handlersTable.add"/>
-                    <button action="handlersTable.remove"/>
-                    <button id="upHandlerBtn"
-                            action="handlersTable.up"/>
-                    <button id="downHandlerBtn"
-                            action="handlersTable.down"/>
+                    <button action="handlersTable.add" id="addHandlerBtn" />
+                    <button action="handlersTable.remove" />
+                    <button action="handlersTable.up" id="upHandlerBtn" />
+                    <button action="handlersTable.down" id="downHandlerBtn" />
                 </buttonsPanel>
             </table>
         </groupBox>
