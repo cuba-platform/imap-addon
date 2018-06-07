@@ -108,6 +108,47 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         }
     }
 
+    public void enableFolder() {
+        ImapFolder folder = foldersTable.getSingleSelected();
+        changeSelection(folder, true);
+    }
+
+    public void enableFolderWithChildren() {
+        ImapFolder folder = foldersTable.getSingleSelected();
+        changeSelectionWithChildren(folder, true);
+    }
+
+    public void disableFolder() {
+        ImapFolder folder = foldersTable.getSingleSelected();
+        changeSelection(folder, false);
+    }
+
+    public void disableFolderWithChildren() {
+        ImapFolder folder = foldersTable.getSingleSelected();
+        changeSelectionWithChildren(folder, false);
+    }
+
+    private void changeSelectionWithChildren(ImapFolder folder, boolean selection) {
+        changeSelection(folder, selection);
+        if (folder != null) {
+            for (ImapFolder childFolder : foldersDs.getItems()) {
+                if (childFolder != null && folder.equals(childFolder.getParent())) {
+                    changeSelectionWithChildren(childFolder, selection);
+                }
+            }
+        }
+    }
+
+    private void changeSelection(ImapFolder folder, boolean selection) {
+        if (folder != null
+                && Boolean.TRUE.equals(folder.getSelectable())
+                && Boolean.TRUE.equals(folder.getSelected()) != selection) {
+
+            folder.setSelected(selection);
+            foldersDs.modifyItem(folder);
+        }
+    }
+
     @Override
     public void init(Map<String, Object> params) {
         getComponentNN("foldersPane").setVisible(false);

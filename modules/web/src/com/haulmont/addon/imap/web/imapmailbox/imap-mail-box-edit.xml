@@ -121,6 +121,20 @@
                                height="100%"
                                sortable="false"
                                width="100%">
+                        <actions>
+                            <action id="enableSingle"
+                                    caption="msg://enableSingleCaption"
+                                    invoke="enableFolder" />
+                            <action id="enableWithChildren"
+                                    caption="msg://enableWithChildrenCaption"
+                                    invoke="enableFolderWithChildren" />
+                            <action id="disableSingle"
+                                    caption="msg://disableSingleCaption"
+                                    invoke="disableFolder"/>
+                            <action id="disableWithChildren"
+                                    caption="msg://disableWithChildrenCaption"
+                                    invoke="disableFolderWithChildren"/>
+                        </actions>
                         <columns>
                             <column id="name"/>
                             <column id="selected"
