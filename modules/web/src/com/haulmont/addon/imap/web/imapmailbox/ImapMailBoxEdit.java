@@ -13,10 +13,6 @@ import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
 import com.haulmont.cuba.gui.data.HierarchicalDatasource;
 import com.haulmont.cuba.gui.data.impl.DatasourceImplementation;
-import com.haulmont.cuba.gui.executors.BackgroundTask;
-import com.haulmont.cuba.gui.executors.BackgroundTaskHandler;
-import com.haulmont.cuba.gui.executors.BackgroundWorker;
-import com.haulmont.cuba.gui.executors.TaskLifeCycle;
 import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +65,9 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private PickerField trashFolderPickerField;
 
     @Inject
+    private Button checkConnectionBtn;
+
+    @Inject
     private FolderRefresher folderRefresher;
 
     @Inject
@@ -87,9 +86,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private CollectionDatasource<ImapEventHandler, UUID> handlersDs;
 
     @Inject
-    private BackgroundWorker backgroundWorker;
-
-    @Inject
     private ComponentsFactory componentsFactory;
 
     @Inject
@@ -106,6 +102,10 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             log.error("Connection Error", e);
             showNotification(getMessage("connectionFailed"), NotificationType.ERROR);
         }
+    }
+
+    public void refreshFolders() {
+        refreshFolders(folderRefresher.refreshFolders(getItem()));
     }
 
     public void enableFolder() {
@@ -151,9 +151,6 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     @Override
     public void init(Map<String, Object> params) {
-        getComponentNN("foldersPane").setVisible(false);
-        setEnableForButtons(false);
-
         setupFolders();
         setupEvents();
 
@@ -376,8 +373,10 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         setProxyVisibility();
         ImapMailBox mailBox = getItem();
         if (!PersistenceHelper.isNew(mailBox)) {
-            BackgroundTaskHandler taskHandler = backgroundWorker.handle(new FoldersRefreshTask(mailBox));
-            taskHandler.execute();
+            checkConnectionBtn.setVisible(false);
+        } else {
+            getComponentNN("foldersPane").setVisible(false);
+            setEnableForButtons(false);
         }
     }
 
@@ -541,41 +540,4 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         trashFolderPickerField.setEnabled(enable);
     }
 
-    private class FoldersRefreshTask extends BackgroundTask<Integer, LinkedHashMap<ImapFolder, FolderRefresher.State>> {
-
-        private final ImapMailBox mailBox;
-
-        FoldersRefreshTask(ImapMailBox mailBox) {
-            super(0, ImapMailBoxEdit.this);
-            this.mailBox = mailBox;
-        }
-
-        @Override
-        public LinkedHashMap<ImapFolder, FolderRefresher.State> run(TaskLifeCycle<Integer> taskLifeCycle) {
-            setEnableForButtons(false);
-            try {
-                return folderRefresher.refreshFolders(mailBox);
-            } catch (ImapException e) {
-                log.error("Connection Error", e);
-                showNotification(getMessage("connectionFailed"), NotificationType.ERROR);
-            }
-            return new LinkedHashMap<>();
-        }
-
-        @Override
-        public void canceled() {
-            // Do something in UI thread if the task is canceled
-        }
-
-        @Override
-        public void done(LinkedHashMap<ImapFolder, FolderRefresher.State> result) {
-            log.debug("refreshed folders from IMAP: {}", result);
-            refreshFolders(result);
-        }
-
-        @Override
-        public void progress(List<Integer> changes) {
-            // Show current progress in UI thread
-        }
-    }
 }

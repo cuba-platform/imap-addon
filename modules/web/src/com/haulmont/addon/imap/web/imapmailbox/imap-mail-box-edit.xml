@@ -49,6 +49,7 @@
                         </column>
                     </fieldGroup>
                     <button caption="msg://checkConnectionCaption"
+                            id="checkConnectionBtn"
                             invoke="checkTheConnection"/>
                 </groupBox>
                 <vbox spacing="true">
@@ -122,6 +123,9 @@
                                sortable="false"
                                width="100%">
                         <actions>
+                            <action id="refresh"
+                                    icon="icons/refresh.png"
+                                    invoke="refreshFolders" />
                             <action id="enableSingle"
                                     caption="msg://enableSingleCaption"
                                     invoke="enableFolder" />
@@ -142,6 +146,9 @@
                                     editable="true"/>
                         </columns>
                         <rows datasource="foldersDs"/>
+                        <buttonsPanel>
+                            <button action="foldersTable.refresh"/>
+                        </buttonsPanel>
                     </treeTable>
                 </vbox>
                 <vbox height="100%"
