@@ -18,13 +18,16 @@
                                     property="folders">
                 <collectionDatasource id="eventsDs"
                                       property="events">
-                    <collectionDatasource id="handlersDs" property="eventHandlers" />
+                    <collectionDatasource id="handlersDs"
+                                          property="eventHandlers"/>
                 </collectionDatasource>
             </hierarchicalDatasource>
         </datasource>
     </dsContext>
-    <layout spacing="true" expand="scrollBox">
-        <scrollBox id="scrollBox" spacing="true">
+    <layout spacing="true">
+        <scrollBox id="scrollBox"
+                   height="100%"
+                   spacing="true">
             <hbox spacing="true">
                 <groupBox caption="msg://basicConfigurationCaption"
                           spacing="true"
@@ -48,33 +51,37 @@
                             </field>
                         </column>
                     </fieldGroup>
-                    <button caption="msg://checkConnectionCaption"
-                            id="checkConnectionBtn"
+                    <button id="checkConnectionBtn"
+                            caption="msg://checkConnectionCaption"
                             invoke="checkTheConnection"/>
                 </groupBox>
-                <vbox spacing="true">
+                <vbox spacing="true"
+                      width="500px">
                     <groupBox caption="msg://advancedConfigurationCaption"
                               spacing="true"
                               width="AUTO">
                         <fieldGroup id="advancedParams"
                                     datasource="mailBoxDs">
-                            <column width="250px">
+                            <column fieldCaptionWidth="222"
+                                    width="250px">
                                 <field description="msg://cubaFlagDescription"
                                        property="cubaFlag"/>
                                 <field id="useTrashFolderChkBoxField">
                                     <checkBox id="useTrashFolderChkBox"
                                               caption="msg://useTrashFolderForRemovalCaption"/>
                                 </field>
-                                <field id="trashFolderNameField" property="trashFolder">
+                                <field id="trashFolderNameField"
+                                       property="trashFolder">
                                     <pickerField id="trashFolderPickerField"
                                                  datasource="mailBoxDs"
-                                                 property="trashFolder" />
+                                                 property="trashFolder"/>
                                 </field>
                                 <field id="useCustomEventsGeneratorChkBoxField">
                                     <checkBox id="useCustomEventsGeneratorChkBox"
                                               caption="msg://useCustomEventsGeneratorCaption"/>
                                 </field>
-                                <field id="customEventsGeneratorClassField" property="eventsGeneratorClass">
+                                <field id="customEventsGeneratorClassField"
+                                       property="eventsGeneratorClass">
                                     <lookupField id="customEventsGeneratorClassLookup"
                                                  datasource="mailBoxDs"
                                                  property="eventsGeneratorClass"/>
@@ -87,11 +94,11 @@
                         </fieldGroup>
                     </groupBox>
                     <groupBox caption="msg://proxyConfigurationCaption"
-                              spacing="true"
-                              width="AUTO">
+                              spacing="true">
                         <fieldGroup id="proxyParams"
                                     datasource="proxyDs">
-                            <column width="250px">
+                            <column fieldCaptionWidth="222"
+                                    width="250px">
                                 <field id="proxyHostField"
                                        caption="msg://proxyHostCaption"
                                        datasource="proxyDs"
@@ -125,13 +132,13 @@
                         <actions>
                             <action id="refresh"
                                     icon="icons/refresh.png"
-                                    invoke="refreshFolders" />
+                                    invoke="refreshFolders"/>
                             <action id="enableSingle"
                                     caption="msg://enableSingleCaption"
-                                    invoke="enableFolder" />
+                                    invoke="enableFolder"/>
                             <action id="enableWithChildren"
                                     caption="msg://enableWithChildrenCaption"
-                                    invoke="enableFolderWithChildren" />
+                                    invoke="enableFolderWithChildren"/>
                             <action id="disableSingle"
                                     caption="msg://disableSingleCaption"
                                     invoke="disableFolder"/>
