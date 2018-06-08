@@ -149,7 +149,7 @@
                         <columns>
                             <column id="name"/>
                             <column id="selected"
-                                    caption="Active"
+                                    caption=""
                                     editable="true"/>
                         </columns>
                         <rows datasource="foldersDs"/>
