@@ -372,11 +372,12 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         setEventGeneratorControls();
         setProxyVisibility();
         ImapMailBox mailBox = getItem();
-        if (!PersistenceHelper.isNew(mailBox)) {
-            checkConnectionBtn.setVisible(false);
-        } else {
+        if (PersistenceHelper.isNew(mailBox)) {
             getComponentNN("foldersPane").setVisible(false);
             setEnableForButtons(false);
+        } else {
+            checkConnectionBtn.setVisible(false);
+            setEnableForButtons(true);
         }
     }
 
