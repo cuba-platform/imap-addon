@@ -13,13 +13,18 @@ import java.util.stream.Collectors;
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.entity.annotation.Listeners;
+import javax.validation.constraints.NotNull;
 
 @Listeners({"imap_MailboxPasswordListener", "imap_MailboxFlagListener"})
-@NamePattern("%s:%s|host,port")
+@NamePattern("%s:%s (%s)|host,port,name")
 @Table(name = "IMAP_MAIL_BOX")
 @Entity(name = "imap$MailBox")
 public class ImapMailBox extends StandardEntity {
     private static final long serialVersionUID = -1001337267552497620L;
+
+    @NotNull
+    @Column(name = "NAME", nullable = false)
+    protected String name;
 
     @Column(name = "HOST", nullable = false)
     private String host;
@@ -71,6 +76,15 @@ public class ImapMailBox extends StandardEntity {
 
     @Column(name = "EVENTS_GENERATOR_CLASS")
     private String eventsGeneratorClass;
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
 
     public void setEventsGeneratorClass(String eventsGeneratorClass) {
         this.eventsGeneratorClass = eventsGeneratorClass;

@@ -35,6 +35,7 @@
                     <fieldGroup id="mainParams"
                                 datasource="mailBoxDs">
                         <column width="250px">
+                            <field property="name"/>
                             <field property="host"/>
                             <field property="port"/>
                             <field property="secureMode"/>

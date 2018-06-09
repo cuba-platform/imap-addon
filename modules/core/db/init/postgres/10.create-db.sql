@@ -30,6 +30,7 @@ create table IMAP_MAIL_BOX (
     DELETE_TS timestamp,
     DELETED_BY varchar(50),
     --
+    NAME varchar(255) not null,
     HOST varchar(255) not null,
     PORT integer not null,
     SECURE_MODE varchar(50),
