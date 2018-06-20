@@ -11,6 +11,7 @@ import com.haulmont.cuba.core.global.Metadata;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import com.sun.mail.imap.IMAPStore;
+import com.sun.mail.imap.protocol.BASE64MailboxDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +50,7 @@ public class ImapOperations {
         Folder[] allFolders = defaultFolder.list("*");
 
         List<String> sortedFolderNames = Arrays.stream(allFolders)
-                .map(Folder::getFullName)
+                .map(this::fullName)
                 .sorted()
                 .collect(Collectors.toList());
         Map<String, ImapFolderDto> foldersByFullName = new HashMap<>();
@@ -57,7 +58,7 @@ public class ImapOperations {
         while (folders.length > 0) {
             List<Folder> unprocessedFolders = new ArrayList<>();
             for (Folder folder : folders) {
-                String fullName = folder.getFullName();
+                String fullName = fullName(folder);
                 int i = Collections.binarySearch(sortedFolderNames, fullName);
                 String parentName = null;
                 for (int j = i - 1; j >= 0; j--) {
@@ -92,13 +93,17 @@ public class ImapOperations {
     private ImapFolderDto map(IMAPFolder folder) throws MessagingException {
         ImapFolderDto dto = metadata.create(ImapFolderDto.class);
         dto.setName(folder.getName());
-        dto.setFullName(folder.getFullName());
+        dto.setFullName(fullName(folder));
         dto.setCanHoldMessages(ImapHelper.canHoldMessages(folder));
         dto.setChildren(new ArrayList<>());
         dto.setImapFolder(folder);
 
         return dto;
 
+    }
+
+    private String fullName(Folder folder) {
+        return BASE64MailboxDecoder.decode(folder.getFullName());
     }
 
     public List<IMAPMessage> search(IMAPFolder folder, SearchTerm searchTerm, ImapMailBox mailBox) throws MessagingException {
