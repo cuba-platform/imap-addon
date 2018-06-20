@@ -53,12 +53,15 @@ public class ImapMessage extends StandardEntity {
     @Column(name = "THREAD_ID")
     private Long threadId;
 
+    @Lob
     @Column(name = "REFERENCE_ID")
     private String referenceId;
 
+    @Lob
     @Column(name = "MESSAGE_ID")
     private String messageId;
 
+    @Lob
     @NotNull
     @Column(name = "CAPTION", nullable = false)
     private String caption;

@@ -80,9 +80,9 @@ create table IMAP_MESSAGE (
     MSG_UID bigint not null,
     MSG_NUM integer not null,
     THREAD_ID bigint,
-    REFERENCE_ID varchar(255),
-    MESSAGE_ID varchar(255),
-    CAPTION varchar(255) not null,
+    REFERENCE_ID text,
+    MESSAGE_ID text,
+    CAPTION text not null,
     --
     primary key (ID)
 )^
