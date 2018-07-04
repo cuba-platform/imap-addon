@@ -51,15 +51,13 @@ public class ImapStoreBuilder {
         this.encryptor = encryptor;
     }
 
-    IMAPStore buildStore(ImapMailBox mailBox, String persistedPassword, boolean useTimeout) throws MessagingException {
+    IMAPStore buildStore(ImapMailBox mailBox, String password, boolean decryptPassword) throws MessagingException {
         String protocol = mailBox.getSecureMode() == ImapSecureMode.TLS ? "imaps" : "imap";
 
         Properties props = new Properties(System.getProperties());
         props.setProperty("mail.store.protocol", protocol);
-        if (useTimeout) {
-            props.setProperty("mail." + protocol + ".connectiontimeout", "5000");
-            props.setProperty("mail." + protocol + ".timeout", "5000");
-        }
+        props.setProperty("mail." + protocol + ".connectiontimeout", "5000");
+        props.setProperty("mail." + protocol + ".timeout", "5000");
         if (mailBox.getSecureMode() == ImapSecureMode.STARTTLS) {
             props.setProperty("mail.imap.starttls.enable", "true");
         }
@@ -81,7 +79,7 @@ public class ImapStoreBuilder {
         session.setDebug(config.getDebug());
 
         IMAPStore store = (IMAPStore) session.getStore(protocol);
-        String passwordToConnect = decryptedPassword(mailBox, persistedPassword);
+        String passwordToConnect = decryptPassword ? decryptedPassword(mailBox, password) : password;
         store.connect(mailBox.getHost(), mailBox.getPort(), mailBox.getAuthentication().getUsername(), passwordToConnect);
 
         return store;

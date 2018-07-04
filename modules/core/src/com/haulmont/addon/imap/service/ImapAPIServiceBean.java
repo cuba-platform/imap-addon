@@ -3,22 +3,17 @@ package com.haulmont.addon.imap.service;
 import com.haulmont.addon.imap.api.ImapAPI;
 import com.haulmont.addon.imap.api.ImapAttachmentsAPI;
 import com.haulmont.addon.imap.api.ImapFlag;
-import com.haulmont.addon.imap.core.ImapHelper;
-import com.haulmont.addon.imap.core.ImapOperations;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.exception.ImapException;
-import com.sun.mail.imap.IMAPFolder;
-import com.sun.mail.imap.IMAPStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.inject.Inject;
-import javax.mail.*;
 import java.util.*;
 
 @Service(ImapAPIService.NAME)
@@ -26,18 +21,12 @@ public class ImapAPIServiceBean implements ImapAPIService {
 
     private final static Logger log = LoggerFactory.getLogger(ImapAPIServiceBean.class);
 
-    private final ImapHelper imapHelper;
-    private final ImapOperations imapOperations;
     private final ImapAPI imapAPI;
     private final ImapAttachmentsAPI imapAttachmentsAPI;
 
     @Inject
-    public ImapAPIServiceBean(ImapHelper imapHelper,
-                              ImapOperations imapOperations,
-                              ImapAPI imapAPI,
+    public ImapAPIServiceBean(ImapAPI imapAPI,
                               ImapAttachmentsAPI imapAttachmentsAPI) {
-        this.imapHelper = imapHelper;
-        this.imapOperations = imapOperations;
         this.imapAPI = imapAPI;
         this.imapAttachmentsAPI = imapAttachmentsAPI;
     }
@@ -45,7 +34,7 @@ public class ImapAPIServiceBean implements ImapAPIService {
     @Override
     public void testConnection(ImapMailBox box) throws ImapException {
         log.info("Check connection for {}", box);
-        try {
+        /*try {
             IMAPStore store = imapHelper.getStore(box);
             IMAPFolder defaultFolder = (IMAPFolder) store.getDefaultFolder();
             IMAPFolder folderToExamine;
@@ -66,22 +55,15 @@ public class ImapAPIServiceBean implements ImapAPIService {
             }
         } catch (MessagingException e) {
             throw new ImapException(e);
-        }
+        }*/
+
+        fetchFolders(box);
 
     }
 
     @Override
     public Collection<ImapFolderDto> fetchFolders(ImapMailBox box) {
-        try {
-            IMAPStore store = imapHelper.getExclusiveStore(box);
-            try {
-                return imapOperations.fetchFolders(store);
-            } finally {
-                store.close();
-            }
-        } catch (MessagingException e) {
-            throw new ImapException(e);
-        }
+        return imapAPI.fetchFolders(box);
     }
 
     @Override

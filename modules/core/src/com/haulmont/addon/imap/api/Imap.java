@@ -1,20 +1,19 @@
 package com.haulmont.addon.imap.api;
 
 import com.haulmont.addon.imap.config.ImapConfig;
-import com.haulmont.addon.imap.core.ImapHelper;
-import com.haulmont.addon.imap.core.ImapOperations;
-import com.haulmont.addon.imap.core.MessageFunction;
-import com.haulmont.addon.imap.core.Task;
+import com.haulmont.addon.imap.core.*;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
-import com.haulmont.addon.imap.exception.ImapException;
+import com.haulmont.addon.imap.execution.GlobalMailboxTask;
+import com.haulmont.addon.imap.execution.ImapExecutor;
+import com.haulmont.addon.imap.execution.ImmediateTask;
 import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.sys.AppContext;
+import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
-import com.sun.mail.imap.IMAPStore;
 import org.apache.commons.lang.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +41,7 @@ public class Imap implements ImapAPI, AppContext.Listener {
     private final ImapOperations imapOperations;
     private final Metadata metadata;
     private final ImapConfig imapConfig;
+    private final ImapExecutor imapExecutor;
     private ExecutorService fetchMessagesExecutor;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
@@ -49,12 +49,14 @@ public class Imap implements ImapAPI, AppContext.Listener {
     public Imap(ImapHelper imapHelper,
                 ImapOperations imapOperations,
                 Metadata metadata,
-                @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig) {
+                @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig,
+                ImapExecutor imapExecutor) {
 
         this.imapHelper = imapHelper;
         this.imapOperations = imapOperations;
         this.metadata = metadata;
         this.imapConfig = imapConfig;
+        this.imapExecutor = imapExecutor;
     }
 
     @PostConstruct
@@ -92,22 +94,11 @@ public class Imap implements ImapAPI, AppContext.Listener {
     public Collection<ImapFolderDto> fetchFolders(ImapMailBox box) {
         log.debug("fetch folders for box {}", box);
 
-        IMAPStore store = null;
-        try {
-            store = imapHelper.getExclusiveStore(box);
-
-            return imapOperations.fetchFolders(store);
-        } catch (MessagingException e) {
-            throw new ImapException(e);
-        } finally {
-            if (store != null) {
-                try {
-                    store.close();
-                } catch (MessagingException e) {
-                    log.warn("Failed to close store for mailbox {}:{}", box.getHost(), box.getPort());
-                }
-            }
-        }
+        return imapExecutor.invokeGlobal(new GlobalMailboxTask<>(
+                box,
+                imapOperations::fetchFolders,
+                "fetch all folders"
+        ));
     }
 
     @Override
@@ -138,7 +129,7 @@ public class Imap implements ImapAPI, AppContext.Listener {
 
             return toDto(mailBox, message, nativeMessage);
 
-        }, "fetch and transform message");
+        }, "fetch and transform message with uid " + message.getUuid());
     }
 
     @Override
@@ -153,27 +144,13 @@ public class Imap implements ImapAPI, AppContext.Listener {
 
                     for (Map.Entry<String, List<ImapMessage>> folderGroup : byFolder.entrySet()) {
                         String folderName = folderGroup.getKey();
-                        imapHelper.doWithFolder(
-                                mailBox,
-                                folderName,
-                                true,
-                                new Task<>(
-                                        "fetch messages",
-                                        false,
-                                        f -> {
-                                            for (ImapMessage message : folderGroup.getValue()) {
-                                                long uid = message.getMsgUid();
-                                                IMAPMessage nativeMessage = (IMAPMessage) f.getMessageByUID(uid);
-                                                if (nativeMessage == null) {
-                                                    continue;
-                                                }
-                                                mailMessageDtos.add(new Pair<>(
-                                                        toDto(mailBox, message, nativeMessage), message)
-                                                );
-                                            }
-                                            return null;
-                                        })
-                        );
+                        for (ImapMessage message : folderGroup.getValue()) {
+                            Pair<ImapMessageDto, ImapMessage> dtoWithMessage = fetchDtoWithMessage(mailBox, folderName, message);
+                            if (dtoWithMessage != null) {
+                                mailMessageDtos.add(dtoWithMessage);
+                            }
+                        }
+
                     }
                 })
         ));
@@ -200,6 +177,24 @@ public class Imap implements ImapAPI, AppContext.Listener {
                 .map(Pair::getFirst)
                 .collect(Collectors.toList());
     }
+
+    private Pair<ImapMessageDto, ImapMessage> fetchDtoWithMessage(ImapMailBox mailBox, String folderName, ImapMessage message) {
+        long uid = message.getMsgUid();
+        return imapExecutor.invokeImmediate(new ImmediateTask<>(
+                folderKey(mailBox, folderName),
+                imapFolder -> {
+                    IMAPMessage nativeMessage = (IMAPMessage) imapFolder.getMessageByUID(uid);
+                    if (nativeMessage == null) {
+                        return null;
+                    }
+                    return new Pair<>(
+                            toDto(mailBox, message, nativeMessage), message);
+                },
+                "fetch message with uid " + uid
+        ));
+    }
+
+
 
     private ImapMessageDto toDto(ImapMailBox mailBox, ImapMessage imapMessage, IMAPMessage nativeMessage) throws MessagingException {
         if (nativeMessage == null) {
@@ -240,9 +235,8 @@ public class Imap implements ImapAPI, AppContext.Listener {
                 msg.setFlag(Flags.Flag.DELETED, true);
                 msg.getFolder().expunge();
                 return null;
-            }, "Mark message#" + message.getMsgUid() + " as DELETED");
+            }, "Mark message with uid " + message.getMsgUid() + " as DELETED");
         }
-
     }
 
     @Override
@@ -253,30 +247,30 @@ public class Imap implements ImapAPI, AppContext.Listener {
     }
 
     private void doMove(ImapMessage msg, String newFolderName, ImapMailBox mailBox) {
-        if (msg.getFolder().getName().equals(newFolderName)) {
+        String oldFolderName = msg.getFolder().getName();
+        if (oldFolderName.equals(newFolderName)) {
             return;
         }
-        Message message = consumeMessage(msg, _msg -> _msg, "Get message#" + msg.getMsgUid());
-        imapHelper.doWithFolder(
-                mailBox,
-                newFolderName,
-                new Task<>(
-                        "move message to folder " + newFolderName,
-                        false,
-                        f -> {
-                            Folder folder = message.getFolder();
-                            if (!folder.isOpen()) {
-                                folder.open(Folder.READ_WRITE);
-                            }
-                            log.debug("[move]delete message {} from folder {}", msg, folder.getFullName());
-                            folder.setFlags(new Message[]{message}, new Flags(Flags.Flag.DELETED), true);
-                            log.debug("[move]append message {} to folder {}", msg, f.getFullName());
-                            f.appendMessages(new Message[]{message});
-                            folder.expunge();
-
-                            return null;
-                        }
-                ));
+        Message message = imapExecutor.invokeImmediate(new ImmediateTask<>(
+                folderKey(mailBox, oldFolderName),
+                imapFolder -> {
+                    Message m = imapFolder.getMessageByUID(msg.getMsgUid());
+                    log.debug("[move]delete message {} from folder {}", msg, imapFolder.getFullName());
+                    imapFolder.setFlags(new Message[]{m}, new Flags(Flags.Flag.DELETED), true);
+                    return m;
+                },
+                "deleting message with uid " + msg.getUuid()
+        ));
+        imapExecutor.invokeImmediate(ImmediateTask.noResultTask(
+                folderKey(mailBox, newFolderName),
+                imapFolder -> imapFolder.appendMessages(new Message[]{message}),
+                "append message with uid " + msg.getUuid()
+        ));
+        imapExecutor.invokeImmediate(ImmediateTask.noResultTask(
+                folderKey(mailBox, oldFolderName),
+                IMAPFolder::expunge,
+                "expunge"
+        ));
     }
 
     @Override
@@ -285,24 +279,20 @@ public class Imap implements ImapAPI, AppContext.Listener {
         consumeMessage(message, msg -> {
             msg.setFlags(flag.imapFlags(), set);
             return null;
-        }, "Set flag " + flag + " of message " + message.getMsgUid() + " to " + set);
+        }, "Set flag " + flag + " of message with uid " + message.getMsgUid() + " to " + set);
     }
 
-    private <T> T consumeMessage(ImapMessage msg, MessageFunction<IMAPMessage, T> consumer, String actionDescription) {
+    private <T> T consumeMessage(ImapMessage msg, ImapFunction<IMAPMessage, T> consumer, String actionDescription) {
         log.trace("perform {} on message {} ", actionDescription, msg);
         ImapMailBox mailBox = msg.getFolder().getMailBox();
         String folderName = msg.getFolder().getName();
         long uid = msg.getMsgUid();
 
-        return imapHelper.doWithFolder(
-                mailBox,
-                folderName,
-                new Task<>(
-                        actionDescription,
-                        true,
-                        f -> consumer.apply((IMAPMessage) f.getMessageByUID(uid))
-                )
-        );
+        return imapExecutor.invokeImmediate(new ImmediateTask<>(
+                folderKey(mailBox, folderName),
+                imapFolder -> consumer.apply((IMAPMessage) imapFolder.getMessageByUID(uid)),
+                actionDescription
+        ));
     }
 
     private List<String> getAddressList(Address[] addresses) {
@@ -350,5 +340,9 @@ public class Imap implements ImapAPI, AppContext.Listener {
         }
 
         return flagNames;
+    }
+
+    private FolderKey folderKey(ImapMailBox mailBox, String folderName) {
+        return new FolderKey(new MailboxKey(mailBox), folderName);
     }
 }

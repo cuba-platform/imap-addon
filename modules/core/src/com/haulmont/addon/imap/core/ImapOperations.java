@@ -2,11 +2,7 @@ package com.haulmont.addon.imap.core;
 
 import com.haulmont.addon.imap.core.ext.ThreadExtension;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
-import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
-import com.haulmont.addon.imap.entity.ImapMessage;
-import com.haulmont.addon.imap.events.BaseImapEvent;
-import com.haulmont.addon.imap.events.EmailAnsweredImapEvent;
 import com.haulmont.cuba.core.global.Metadata;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
@@ -122,35 +118,6 @@ public class ImapOperations {
         return fetch(folder, fetchProfile, messages);
     }
 
-    public List<IMAPMessage> fetchUIDs(IMAPFolder folder, Message[] messages) throws MessagingException {
-        FetchProfile fetchProfile = new FetchProfile();
-        fetchProfile.add(UIDFolder.FetchProfileItem.UID);
-        return fetch(folder, fetchProfile, messages);
-    }
-
-    public void setAnsweredFlag(ImapMailBox mailBox, Collection<BaseImapEvent> imapEvents) {
-        Map<ImapFolder, List<ImapMessage>> answeredMessagesByFolder = imapEvents.stream()
-                .filter(event -> event instanceof EmailAnsweredImapEvent)
-                .map(BaseImapEvent::getMessage)
-                .collect(Collectors.groupingBy(ImapMessage::getFolder));
-        for (Map.Entry<ImapFolder, List<ImapMessage>> folderReplies : answeredMessagesByFolder.entrySet()) {
-            imapHelper.doWithFolder(
-                    mailBox,
-                    folderReplies.getKey().getName(),
-                    new Task<>("set answered flag", false, folder -> {
-                        long[] messageUIDs = folderReplies.getValue().stream().mapToLong(ImapMessage::getMsgUid).toArray();
-                        Message[] messages = folder.getMessagesByUID(messageUIDs);
-                        folder.setFlags(
-                                messages,
-                                new Flags(Flags.Flag.ANSWERED),
-                                true
-                        );
-                        return null;
-                    })
-            );
-        }
-    }
-
     public List<IMAPMessage> getAllByUIDs(IMAPFolder folder, long[] messageUIDs, ImapMailBox mailBox) throws MessagingException {
         if (log.isDebugEnabled()) {
             log.debug("get messages by messageUIDs {} in {}", Arrays.toString(messageUIDs), folder.getFullName());
@@ -175,7 +142,7 @@ public class ImapOperations {
     }
 
     public Long getThreadId(IMAPMessage message, ImapMailBox mailBox) throws MessagingException {
-        if (!imapHelper.supportsCapability(mailBox, ThreadExtension.CAPABILITY_NAME)) {
+        if (!imapHelper.supportsThreading(mailBox)) {
             return null;
         }
         Object threadItem = message.getItem(ThreadExtension.FETCH_ITEM);
@@ -205,7 +172,7 @@ public class ImapOperations {
         return result;
     }
 
-    private FetchProfile headerProfile(ImapMailBox mailBox) throws MessagingException {
+    private FetchProfile headerProfile(ImapMailBox mailBox) {
         FetchProfile profile = new FetchProfile();
         profile.add(FetchProfile.Item.FLAGS);
         profile.add(UIDFolder.FetchProfileItem.UID);
@@ -214,7 +181,7 @@ public class ImapOperations {
         profile.add(SUBJECT_HEADER);
         profile.add(MESSAGE_ID_HEADER);
 
-        if (imapHelper.getStore(mailBox).hasCapability(ThreadExtension.CAPABILITY_NAME)) {
+        if (imapHelper.supportsThreading(mailBox)) {
             profile.add(ThreadExtension.FetchProfileItem.X_GM_THRID);
         }
 

@@ -71,4 +71,9 @@
         <property name="folder" view="_minimal" />
         <property name="eventHandlers" view="_local" />
     </view>
+    <view class="com.haulmont.addon.imap.entity.ImapMessageSync"
+          extends="_local"
+          name="imap-msg-sync-with-message">
+        <property name="message" view="imap-msg-full"/>
+    </view>
 </views>

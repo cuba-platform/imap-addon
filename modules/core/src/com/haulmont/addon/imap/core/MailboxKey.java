@@ -3,17 +3,20 @@ package com.haulmont.addon.imap.core;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 
 import java.util.Objects;
+import java.util.UUID;
 
-class MailboxKey {
-    private final String host;
-    private final int port;
-    private final String userName;
+public class MailboxKey {
+    final UUID id;
+    final String host;
+    final int port;
+    final String userName;
 
-    MailboxKey(ImapMailBox mailBox) {
-        this(mailBox.getHost(), mailBox.getPort(), mailBox.getAuthentication().getUsername());
+    public MailboxKey(ImapMailBox mailBox) {
+        this(mailBox.getId(), mailBox.getHost(), mailBox.getPort(), mailBox.getAuthentication().getUsername());
     }
 
-    MailboxKey(String host, int port, String userName) {
+    MailboxKey(UUID id, String host, int port, String userName) {
+        this.id = id;
         this.host = host;
         this.port = port;
         this.userName = userName;
@@ -31,7 +34,6 @@ class MailboxKey {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(host, port, userName);
     }
 

@@ -3,13 +3,11 @@ package com.haulmont.addon.imap.sync.events;
 import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.events.BaseImapEvent;
-import com.haulmont.addon.imap.sync.events.standard.ImapStandardEventsGenerator;
 import com.haulmont.bali.util.ReflectionHelper;
 import com.haulmont.cuba.core.global.AppBeans;
 import com.haulmont.cuba.core.global.Events;
 import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.security.app.Authentication;
-import com.sun.mail.imap.IMAPMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -17,7 +15,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import javax.inject.Inject;
-import javax.mail.Message;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -45,6 +42,26 @@ public class ImapEvents {
         this.imapDao = imapDao;
     }
 
+    public void init(ImapMailBox mailBox) {
+        for (ImapFolder cubaFolder : mailBox.getProcessableFolders()) {
+            init(cubaFolder);
+        }
+    }
+
+    public void init(ImapFolder cubaFolder) {
+        getEventsGeneratorImplementation(cubaFolder.getMailBox()).init(cubaFolder);
+    }
+
+    public void shutdown(ImapMailBox mailBox) {
+        for (ImapFolder cubaFolder : mailBox.getProcessableFolders()) {
+            shutdown(cubaFolder);
+        }
+    }
+
+    public void shutdown(ImapFolder cubaFolder) {
+        getEventsGeneratorImplementation(cubaFolder.getMailBox()).shutdown(cubaFolder);
+    }
+
     public void handleNewMessages(ImapFolder cubaFolder) {
         fireEvents( cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForNewMessages(cubaFolder) );
     }
@@ -55,39 +72,6 @@ public class ImapEvents {
 
     public void handleMissedMessages(ImapFolder cubaFolder) {
         fireEvents( cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForMissedMessages(cubaFolder) );
-    }
-
-    public void handleNewMessages(ImapFolder cubaFolder, Message[] newMessages) {
-        Collection<IMAPMessage> imapMessages = new ArrayList<>(newMessages.length);
-        for (Message message : newMessages) {
-            imapMessages.add((IMAPMessage) message);
-        }
-        fireEvents(
-                cubaFolder,
-                getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForNewMessages(cubaFolder, imapMessages)
-        );
-    }
-
-    public void handleChangedMessages(ImapFolder cubaFolder, Message[] changedMessages) {
-        Collection<IMAPMessage> imapMessages = new ArrayList<>(changedMessages.length);
-        for (Message message : changedMessages) {
-            imapMessages.add((IMAPMessage) message);
-        }
-        fireEvents(
-                cubaFolder,
-                getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForChangedMessages(cubaFolder, imapMessages)
-        );
-    }
-
-    public void handleMissedMessages(ImapFolder cubaFolder, Message[] missedMessages) {
-        Collection<IMAPMessage> imapMessages = new ArrayList<>(missedMessages.length);
-        for (Message message : missedMessages) {
-            imapMessages.add((IMAPMessage) message);
-        }
-        fireEvents(
-                cubaFolder,
-                getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForMissedMessages(cubaFolder, imapMessages)
-        );
     }
 
     private ImapEventsGenerator getEventsGeneratorImplementation(ImapMailBox mailBox) {

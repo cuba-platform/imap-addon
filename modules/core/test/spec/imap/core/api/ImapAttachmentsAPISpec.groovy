@@ -164,6 +164,7 @@ class ImapAttachmentsAPISpec extends Specification {
         mailBox.authentication = new ImapSimpleAuthentication()
         mailBox.authentication.password = user.password
         mailBox.authentication.username = user.login
+        mailBox.name = "$LOCALHOST:${mailBox.port}"
 
         cont.persistence().runInTransaction() { em ->
             em.persist(mailBox.authentication)

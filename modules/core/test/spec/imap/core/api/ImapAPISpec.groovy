@@ -3,14 +3,17 @@ package spec.imap.core.api
 import com.haulmont.addon.imap.ImapTestContainer
 import com.haulmont.addon.imap.api.ImapAPI
 import com.haulmont.addon.imap.api.ImapFlag
+import com.haulmont.addon.imap.crypto.Encryptor
 import com.haulmont.addon.imap.dto.ImapMessageDto
 import com.haulmont.addon.imap.entity.ImapAuthenticationMethod
 import com.haulmont.addon.imap.entity.ImapFolder
 import com.haulmont.addon.imap.entity.ImapMailBox
 import com.haulmont.addon.imap.entity.ImapMessage
 import com.haulmont.addon.imap.entity.ImapSimpleAuthentication
+import com.haulmont.addon.imap.entity.events.ImapPasswordChangedEvent
 import com.haulmont.addon.imap.exception.ImapException
 import com.haulmont.cuba.core.global.AppBeans
+import com.haulmont.cuba.core.global.Events
 import com.icegreen.greenmail.imap.ImapConstants
 import com.icegreen.greenmail.imap.ImapHostManager
 import com.icegreen.greenmail.store.StoredMessage
@@ -18,6 +21,7 @@ import com.icegreen.greenmail.user.GreenMailUser
 import com.icegreen.greenmail.util.GreenMail
 import com.icegreen.greenmail.util.ServerSetup
 import com.sun.mail.imap.IMAPFolder
+import org.apache.commons.lang.RandomStringUtils
 import org.junit.ClassRule
 import spock.lang.Shared
 import spock.lang.Specification
@@ -184,7 +188,17 @@ class ImapAPISpec extends Specification {
 
         when: "try to fetch message pointing to mailbox with wrong connection details"
         imapMessage.folder.name = "INBOX"
-        mailBoxConfig.authentication.password += "1"
+        mailBoxConfig.authentication.password = USER_PASSWORD + "1"
+
+        cont.persistence().runInTransaction() { em ->
+            em.createQuery("update imap\$SimpleAuthentication auth set auth.password = :password where auth.id = " +
+                    "( select mb.authentication.id from imap\$MailBox mb where mb.id = :mailBox)")
+                    .setParameter("password", AppBeans.get(Encryptor).getEncryptedPassword(mailBoxConfig))
+                    .setParameter("mailBox", mailBoxConfig)
+                    .executeUpdate()
+            em.flush()
+        }
+        AppBeans.get(Events).publish(new ImapPasswordChangedEvent(mailBoxConfig, mailBoxConfig.authentication.password))
         imapAPI.fetchMessage(imapMessage)
 
         then: "exception is raised"
@@ -432,6 +446,7 @@ class ImapAPISpec extends Specification {
         mailBox.authentication = new ImapSimpleAuthentication()
         mailBox.authentication.password = user.password
         mailBox.authentication.username = user.login
+        mailBox.name = "$LOCALHOST:${mailBox.port}:${RandomStringUtils.random(3)}"
 
         cont.persistence().runInTransaction() { em ->
             em.persist(mailBox.authentication)

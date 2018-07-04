@@ -1,11 +1,15 @@
 package com.haulmont.addon.imap.api;
 
+import com.haulmont.addon.imap.core.FolderKey;
 import com.haulmont.addon.imap.core.ImapHelper;
+import com.haulmont.addon.imap.core.MailboxKey;
 import com.haulmont.addon.imap.core.Task;
 import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
+import com.haulmont.addon.imap.execution.ImapExecutor;
+import com.haulmont.addon.imap.execution.ImmediateTask;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.TimeSource;
 import com.sun.mail.imap.IMAPMessage;
@@ -35,14 +39,20 @@ public class ImapAttachments implements ImapAttachmentsAPI {
     private final static Logger log = LoggerFactory.getLogger(ImapAttachments.class);
 
     private final ImapHelper imapHelper;
+    private final ImapExecutor imapExecutor;
     private final ImapDao dao;
     private final TimeSource timeSource;
     private final Metadata metadata;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapAttachments(ImapHelper imapHelper, ImapDao dao, TimeSource timeSource, Metadata metadata) {
+    public ImapAttachments(ImapHelper imapHelper,
+                           ImapExecutor imapExecutor,
+                           ImapDao dao,
+                           TimeSource timeSource,
+                           Metadata metadata) {
         this.imapHelper = imapHelper;
+        this.imapExecutor = imapExecutor;
         this.dao = dao;
         this.timeSource = timeSource;
         this.metadata = metadata;
@@ -65,17 +75,17 @@ public class ImapAttachments implements ImapAttachmentsAPI {
         ImapMailBox mailBox = msg.getFolder().getMailBox();
         String folderName = msg.getFolder().getName();
 
-        return imapHelper.doWithFolder(mailBox, folderName, true, new Task<>(
-                        "extracting attachments", true, f -> {
+        Collection<ImapMessageAttachment> attachments = imapExecutor.invokeImmediate(new ImmediateTask<>(
+                new FolderKey(new MailboxKey(mailBox), folderName),
+                imapFolder -> {
+                    IMAPMessage imapMsg = (IMAPMessage) imapFolder.getMessageByUID(msg.getMsgUid());
+                    return makeAttachments(imapMsg);
+                },
+                "fetching attachments of message with uid " + msg.getMsgUid()
+        ));
 
-                    IMAPMessage imapMsg = (IMAPMessage) f.getMessageByUID(msg.getMsgUid());
-                    Collection<ImapMessageAttachment> attachments = makeAttachments(imapMsg);
-                    dao.saveAttachments(msg, attachments);
-
-                    return attachments;
-                })
-        );
-
+        dao.saveAttachments(msg, attachments);
+        return attachments;
     }
 
     private Collection<ImapMessageAttachment> makeAttachments(IMAPMessage msg) throws MessagingException {
@@ -135,11 +145,10 @@ public class ImapAttachments implements ImapAttachmentsAPI {
         ImapMailBox mailBox = msg.getFolder().getMailBox();
         String folderName = msg.getFolder().getName();
 
-        return imapHelper.doWithFolder(mailBox, folderName, true, new Task<>(
-                "fetch attachment content",
-                true,
-                f -> {
-                    IMAPMessage imapMessage = (IMAPMessage) f.getMessageByUID(msg.getMsgUid());
+        return imapExecutor.invokeImmediate(new ImmediateTask<>(
+                new FolderKey(new MailboxKey(mailBox), folderName),
+                imapFolder -> {
+                    IMAPMessage imapMessage = (IMAPMessage) imapFolder.getMessageByUID(msg.getMsgUid());
                     imapMessage.setPeek(true);
                     try {
                         Multipart multipart = (Multipart) imapMessage.getContent();
@@ -150,7 +159,9 @@ public class ImapAttachments implements ImapAttachmentsAPI {
                     } catch (IOException e) {
                         throw new RuntimeException("Can't read content of attachment/message", e);
                     }
-                }
+                },
+                "fetch content for attachment#" + attachment.getOrderNumber()
+                        + " of message with uid " + msg.getMsgUid()
         ));
     }
 }

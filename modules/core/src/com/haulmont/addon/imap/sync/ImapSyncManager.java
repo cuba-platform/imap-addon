@@ -1,12 +1,8 @@
 package com.haulmont.addon.imap.sync;
 
-import com.haulmont.addon.imap.api.ImapAPI;
 import com.haulmont.addon.imap.dao.ImapDao;
-import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.sync.events.ImapEvents;
-import com.haulmont.addon.imap.sync.listener.ImapFolderSyncActivationEvent;
-import com.haulmont.addon.imap.sync.listener.ImapFolderListener;
 import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.security.app.Authentication;
 import org.slf4j.Logger;
@@ -22,24 +18,22 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Component("imap_Sync")
-public class ImapSync implements AppContext.Listener, Ordered {
+@Component("imap_SyncManager")
+public class ImapSyncManager implements AppContext.Listener, Ordered {
 
-    private final static Logger log = LoggerFactory.getLogger(ImapSync.class);
+    private final static Logger log = LoggerFactory.getLogger(ImapSyncManager.class);
     private static boolean TRACK_FOLDER_ACTIVATION = true;
 
     private final ImapDao dao;
     private final ImapEvents imapEvents;
     private final Authentication authentication;
-    private final ImapAPI imapAPI;
-    private final ImapFolderListener imapFolderListener;
 
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final AtomicInteger threadNumber = new AtomicInteger(1);
         @Override
         public Thread newThread(@Nonnull Runnable r) {
             Thread thread = new Thread(
-                    r, "ImapMailBoxFullSync-" + threadNumber.getAndIncrement()
+                    r, "ImapMailBoxSync-" + threadNumber.getAndIncrement()
             );
             thread.setDaemon(true);
             return thread;
@@ -48,28 +42,24 @@ public class ImapSync implements AppContext.Listener, Ordered {
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(
-                r, "ImapMailBoxFullSyncRefresher"
+                r, "ImapMailBoxSyncRefresher"
         );
         thread.setDaemon(true);
         return thread;
     });
 
-    private final ConcurrentMap<UUID, ScheduledFuture<?>> fullSyncRefreshers = new ConcurrentHashMap<>();
-    private final ConcurrentMap<UUID, Future<?>> fullSyncTasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, ScheduledFuture<?>> syncRefreshers = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, Future<?>> syncTasks = new ConcurrentHashMap<>();
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapSync(ImapDao dao,
-                    ImapEvents imapEvents,
-                    Authentication authentication,
-                    ImapAPI imapAPI,
-                    ImapFolderListener imapFolderListener) {
+    public ImapSyncManager(ImapDao dao,
+                           ImapEvents imapEvents,
+                           Authentication authentication) {
 
         this.dao = dao;
         this.imapEvents = imapEvents;
         this.authentication = authentication;
-        this.imapAPI = imapAPI;
-        this.imapFolderListener = imapFolderListener;
     }
 
     @PostConstruct
@@ -81,32 +71,16 @@ public class ImapSync implements AppContext.Listener, Ordered {
     public void applicationStarted() {
         authentication.begin();
         try {
-            Collection<ImapFolder> allListenedFolders = new ArrayList<>();
             Collection<Future<?>> tasks = new ArrayList<>();
             for (ImapMailBox mailBox : dao.findMailBoxes()) {
                 log.debug("{}: synchronizing", mailBox);
-                Collection<ImapFolderDto> allFolders = ImapFolderDto.flattenList(imapAPI.fetchFolders(mailBox));
-                Collection<ImapFolder> processableFolders = mailBox.getProcessableFolders();
-                Collection<ImapFolder> listenedFolders = new ArrayList<>(processableFolders.size());
-                for (ImapFolder cubaFolder : processableFolders) {
-                    boolean imapFolderExists = allFolders.stream()
-                            .filter(f -> f.getName().equals(cubaFolder.getName()))
-                            .findFirst()
-                            .map(ImapFolderDto::getImapFolder).isPresent();
-
-                    if (!imapFolderExists) {
-                        log.info("Can't find folder {}. Probably it was removed", cubaFolder.getName());
-                        continue;
-                    }
-                    listenedFolders.add(cubaFolder);
-                    tasks.add(folderFullSyncTask(cubaFolder));
+                imapEvents.init(mailBox);
+                for (ImapFolder cubaFolder : mailBox.getProcessableFolders()) {
+                    tasks.add(folderSyncTask(cubaFolder));
                 }
-
-                allListenedFolders.addAll(listenedFolders);
             }
 
-            executeFullSyncTasks(tasks);
-            allListenedFolders.forEach(imapFolderListener::subscribe);
+            executeSyncTasks(tasks);
         } finally {
             authentication.end();
         }
@@ -125,6 +99,14 @@ public class ImapSync implements AppContext.Listener, Ordered {
         } catch (Exception e) {
             log.warn("Exception while shutting down scheduled executor", e);
         }
+
+        for (ImapMailBox mailBox : dao.findMailBoxes()) {
+            try {
+                imapEvents.shutdown(mailBox);
+            } catch (Exception e) {
+                log.warn("Exception while shutting down imapEvents for mailbox " + mailBox, e);
+            }
+        }
     }
 
     @Override
@@ -140,17 +122,17 @@ public class ImapSync implements AppContext.Listener, Ordered {
         ImapFolder cubaFolder = event.getFolder();
 
         if (event.getType() == ImapFolderSyncActivationEvent.Type.ACTIVATE) {
-            executeFullSyncTasks(Collections.singleton(folderFullSyncTask(cubaFolder)));
-            imapFolderListener.subscribe(cubaFolder);
+            imapEvents.init(cubaFolder);
+            executeSyncTasks(Collections.singleton(folderSyncTask(cubaFolder)));
         } else {
-            cancel(fullSyncRefreshers.remove(cubaFolder.getId()), false);
-            cancel(fullSyncTasks.remove(cubaFolder.getId()), true);
-            imapFolderListener.unsubscribe(cubaFolder);
+            imapEvents.shutdown(cubaFolder);
+            cancel(syncRefreshers.remove(cubaFolder.getId()), false);
+            cancel(syncTasks.remove(cubaFolder.getId()), true);
         }
 
     }
 
-    private void executeFullSyncTasks(Collection<Future<?>> tasks) {
+    private void executeSyncTasks(Collection<Future<?>> tasks) {
         executor.submit(() -> {
             try {
                 for (Future<?> task : tasks) {
@@ -169,9 +151,9 @@ public class ImapSync implements AppContext.Listener, Ordered {
         });
     }
 
-    private Future<?> folderFullSyncTask(@Nonnull ImapFolder cubaFolder) {
+    private Future<?> folderSyncTask(@Nonnull ImapFolder cubaFolder) {
         UUID folderId = cubaFolder.getId();
-        Future<?> task = fullSyncTasks.get(folderId);
+        Future<?> task = syncTasks.get(folderId);
         if (task != null && !task.isDone() && !task.isCancelled()) {
             return task;
         }
@@ -181,29 +163,19 @@ public class ImapSync implements AppContext.Listener, Ordered {
             imapEvents.handleMissedMessages(cubaFolder);
             imapEvents.handleChangedMessages(cubaFolder);
             ScheduledFuture<?> newTask = scheduledExecutorService.schedule(() -> {
-                ImapFolder folder = getFolder(folderId);
+                ImapFolder folder = dao.findFolder(folderId);
                 if (folder != null) {
-                    folderFullSyncTask(cubaFolder);
-                    imapFolderListener.subscribe(cubaFolder);
+                    folderSyncTask(cubaFolder);
                 }
-                fullSyncRefreshers.remove(folderId);
+                syncRefreshers.remove(folderId);
             }, 5, TimeUnit.SECONDS);
 
-            ScheduledFuture<?> oldTask = fullSyncRefreshers.put(folderId, newTask);
+            ScheduledFuture<?> oldTask = syncRefreshers.put(folderId, newTask);
             cancel(oldTask, false);
         }, executor);
-        fullSyncTasks.put(folderId, cf);
-        cf.thenAccept(ignore -> fullSyncTasks.remove(folderId, cf));
+        syncTasks.put(folderId, cf);
+        cf.thenAccept(ignore -> syncTasks.remove(folderId, cf));
         return cf;
-    }
-
-    private ImapFolder getFolder(UUID folderId) {
-        authentication.begin();
-        try {
-            return dao.findFolder(folderId);
-        } finally {
-            authentication.end();
-        }
     }
 
     private void cancel(Future<?> task, boolean interrupt) {

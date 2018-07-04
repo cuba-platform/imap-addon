@@ -1,4 +1,4 @@
-package com.haulmont.addon.imap.sync.listener;
+package com.haulmont.addon.imap.sync;
 
 import com.haulmont.addon.imap.entity.ImapFolder;
 import org.springframework.context.ApplicationEvent;

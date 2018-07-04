@@ -2,12 +2,12 @@ package com.haulmont.addon.imap.core;
 
 import java.util.Objects;
 
-class FolderKey {
+public class FolderKey {
 
     private final MailboxKey mailboxKey;
     private final String folderFullName;
 
-    FolderKey(MailboxKey mailboxKey, String folderFullName) {
+    public FolderKey(MailboxKey mailboxKey, String folderFullName) {
         this.mailboxKey = mailboxKey;
         this.folderFullName = folderFullName;
     }
@@ -31,7 +31,6 @@ class FolderKey {
 
     @Override
     public int hashCode() {
-
         return Objects.hash(mailboxKey, folderFullName);
     }
 

@@ -1,6 +1,6 @@
 package com.haulmont.addon.imap.entity.listener;
 
-import com.haulmont.addon.imap.sync.listener.ImapFolderSyncActivationEvent;
+import com.haulmont.addon.imap.sync.ImapFolderSyncActivationEvent;
 import com.haulmont.cuba.core.PersistenceTools;
 import com.haulmont.cuba.core.global.Events;
 import org.springframework.stereotype.Component;

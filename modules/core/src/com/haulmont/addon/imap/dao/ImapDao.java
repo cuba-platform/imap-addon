@@ -118,23 +118,27 @@ public class ImapDao {
         }
     }
 
-    public boolean addFlag(ImapMessage imapMessage, ImapFlag flag, EntityManager em) {
+    public boolean addFlag(ImapMessage imapMessage, ImapFlag flag) {
         Flags imapFlags = imapMessage.getImapFlags();
         if (!imapFlags.contains(flag.imapFlags())) {
             imapFlags.add(flag.imapFlags());
             imapMessage.setImapFlags(imapFlags);
 
-            if (PersistenceHelper.isNew(imapMessage)) {
-                em.persist(imapMessage);
-            } else {
-                em.createQuery("update imap$Message m set m.updateTs = :updateTs, m.flags = :flags " +
-                        "where m.id = :id")
-                        .setParameter("updateTs", new Date())
-                        .setParameter("flags", imapMessage.getFlags())
-                        .setParameter("id", imapMessage.getId())
-                        .executeUpdate();
+            try (Transaction tx = persistence.createTransaction()) {
+                EntityManager em = persistence.getEntityManager();
+                if (PersistenceHelper.isNew(imapMessage)) {
+                    em.persist(imapMessage);
+                } else {
+                    em.createQuery("update imap$Message m set m.updateTs = :updateTs, m.flags = :flags " +
+                            "where m.id = :id")
+                            .setParameter("updateTs", new Date())
+                            .setParameter("flags", imapMessage.getFlags())
+                            .setParameter("id", imapMessage.getId())
+                            .executeUpdate();
+                }
+                tx.commit();
+                return true;
             }
-            return true;
         }
 
         return false;
