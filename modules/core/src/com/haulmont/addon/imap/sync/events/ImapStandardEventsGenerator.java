@@ -69,7 +69,13 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
         syncRefreshers.put(
                 cubaFolder.getId(),
                 scheduledExecutorService.scheduleWithFixedDelay(
-                        () -> imapSynchronizer.synchronize(cubaFolder),
+                        () -> {
+                            try {
+                                imapSynchronizer.synchronize(cubaFolder);
+                            } catch (Exception e) {
+                                log.error("Syncronization of folder " + cubaFolder.getName() + " failed with error", e);
+                            }
+                        },
                         30, 30, TimeUnit.SECONDS)
         );
     }
@@ -108,30 +114,46 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
 
     @Override
     public Collection<? extends BaseImapEvent> generateForNewMessages(ImapFolder cubaFolder) {
-        Collection<ImapMessage> newMessages = messageSyncDao.findMessagesWithSyncStatus(cubaFolder.getId(), ImapSyncStatus.ADDED);
+        authentication.begin();
+        try {
+            Collection<ImapMessage> newMessages = messageSyncDao.findMessagesWithSyncStatus(cubaFolder.getId(), ImapSyncStatus.ADDED);
 
-        Collection<BaseImapEvent> newMessageEvents = newMessages.stream()
-                .map(NewEmailImapEvent::new)
-                .collect(Collectors.toList());
+            Collection<BaseImapEvent> newMessageEvents = newMessages.stream()
+                    .map(NewEmailImapEvent::new)
+                    .collect(Collectors.toList());
 
-        messageSyncDao.removeMessagesSyncs(newMessages.stream().map(ImapMessage::getId).collect(Collectors.toList()));
+            messageSyncDao.removeMessagesSyncs(newMessages.stream().map(ImapMessage::getId).collect(Collectors.toList()));
 
-        return newMessageEvents;
+            return newMessageEvents;
+        } catch (Exception e) {
+            log.error("New messages events for " + cubaFolder.getName() + " failure", e);
+            return Collections.emptyList();
+        } finally {
+            authentication.end();
+        }
     }
 
     @Override
     public Collection<? extends BaseImapEvent> generateForChangedMessages(ImapFolder cubaFolder) {
-        Collection<ImapMessageSync> remainMessageSyncs = messageSyncDao.findMessagesSyncs(cubaFolder.getId(), ImapSyncStatus.REMAIN);
+        authentication.begin();
+        try {
+            Collection<ImapMessageSync> remainMessageSyncs = messageSyncDao.findMessagesSyncs(cubaFolder.getId(), ImapSyncStatus.REMAIN);
 
-        Collection<BaseImapEvent> updateMessageEvents = remainMessageSyncs.stream()
-                .flatMap(messageSync -> generateUpdateEvents(messageSync).stream())
-                .collect(Collectors.toList());
+            Collection<BaseImapEvent> updateMessageEvents = remainMessageSyncs.stream()
+                    .flatMap(messageSync -> generateUpdateEvents(messageSync).stream())
+                    .collect(Collectors.toList());
 
-        messageSyncDao.removeMessagesSyncs(remainMessageSyncs.stream()
-                .map(ms -> ms.getMessage().getId())
-                .collect(Collectors.toList()));
+            messageSyncDao.removeMessagesSyncs(remainMessageSyncs.stream()
+                    .map(ms -> ms.getMessage().getId())
+                    .collect(Collectors.toList()));
 
-        return updateMessageEvents;
+            return updateMessageEvents;
+        } catch (Exception e) {
+            log.error("Changed messages events for " + cubaFolder.getName() + " failure", e);
+            return Collections.emptyList();
+        } finally {
+            authentication.end();
+        }
 
     }
 
@@ -207,36 +229,44 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
 
     @Override
     public Collection<? extends BaseImapEvent> generateForMissedMessages(ImapFolder cubaFolder) {
-        Collection<ImapMessage> removed = messageSyncDao.findMessagesWithSyncStatus(cubaFolder.getId(), ImapSyncStatus.REMOVED);
-        Collection<ImapMessageSync> moved = messageSyncDao.findMessagesSyncs(cubaFolder.getId(), ImapSyncStatus.MOVED);
+        authentication.begin();
+        try {
+            Collection<ImapMessage> removed = messageSyncDao.findMessagesWithSyncStatus(cubaFolder.getId(), ImapSyncStatus.REMOVED);
+            Collection<ImapMessageSync> moved = messageSyncDao.findMessagesSyncs(cubaFolder.getId(), ImapSyncStatus.MOVED);
 
-        Collection<BaseImapEvent> missedMessageEvents = new ArrayList<>(removed.size() + moved.size());
-        List<Integer> missedMessageNums = new ArrayList<>(removed.size() + moved.size());
-        for (ImapMessage imapMessage : removed) {
-            missedMessageEvents.add(new EmailDeletedImapEvent(imapMessage));
-            missedMessageNums.add(imapMessage.getMsgNum());
-        }
-        for (ImapMessageSync imapMessageSync : moved) {
-            missedMessageEvents.add(new EmailMovedImapEvent(imapMessageSync.getMessage(), imapMessageSync.getNewFolderName()));
-            missedMessageNums.add(imapMessageSync.getMessage().getMsgNum());
-        }
-
-        try (Transaction tx = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-            for (BaseImapEvent missedMessageEvent : missedMessageEvents) {
-                em.remove(missedMessageEvent.getMessage());
+            Collection<BaseImapEvent> missedMessageEvents = new ArrayList<>(removed.size() + moved.size());
+            List<Integer> missedMessageNums = new ArrayList<>(removed.size() + moved.size());
+            for (ImapMessage imapMessage : removed) {
+                missedMessageEvents.add(new EmailDeletedImapEvent(imapMessage));
+                missedMessageNums.add(imapMessage.getMsgNum());
             }
-            tx.commit();
-        }
+            for (ImapMessageSync imapMessageSync : moved) {
+                missedMessageEvents.add(new EmailMovedImapEvent(imapMessageSync.getMessage(), imapMessageSync.getNewFolderName()));
+                missedMessageNums.add(imapMessageSync.getMessage().getMsgNum());
+            }
 
-        recalculateMessageNumbers(cubaFolder, missedMessageNums);
+            try (Transaction tx = persistence.createTransaction()) {
+                EntityManager em = persistence.getEntityManager();
+                for (BaseImapEvent missedMessageEvent : missedMessageEvents) {
+                    em.remove(missedMessageEvent.getMessage());
+                }
+                tx.commit();
+            }
+
+            recalculateMessageNumbers(cubaFolder, missedMessageNums);
 
 
         /*messageSyncDao.removeMessagesSyncs(missedMessageEvents.stream()
                 .map(event -> event.getMessage().getId())
                 .collect(Collectors.toList()));*/
 
-        return missedMessageEvents;
+            return missedMessageEvents;
+        } catch (Exception e) {
+            log.error("Missed messages events for " + cubaFolder.getName() + " failure", e);
+            return Collections.emptyList();
+        } finally {
+            authentication.end();
+        }
     }
 
     private void recalculateMessageNumbers(ImapFolder cubaFolder, List<Integer> messageNumbers) {

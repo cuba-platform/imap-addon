@@ -100,12 +100,17 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
             log.warn("Exception while shutting down scheduled executor", e);
         }
 
-        for (ImapMailBox mailBox : dao.findMailBoxes()) {
-            try {
-                imapEvents.shutdown(mailBox);
-            } catch (Exception e) {
-                log.warn("Exception while shutting down imapEvents for mailbox " + mailBox, e);
+        authentication.begin();
+        try {
+            for (ImapMailBox mailBox : dao.findMailBoxes()) {
+                try {
+                    imapEvents.shutdown(mailBox);
+                } catch (Exception e) {
+                    log.warn("Exception while shutting down imapEvents for mailbox " + mailBox, e);
+                }
             }
+        } finally {
+            authentication.end();
         }
     }
 
@@ -164,11 +169,16 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
             imapEvents.handleMissedMessages(cubaFolder);
             imapEvents.handleChangedMessages(cubaFolder);
             ScheduledFuture<?> newTask = scheduledExecutorService.schedule(() -> {
-                ImapFolder folder = dao.findFolder(folderId);
-                if (folder != null) {
-                    folderSyncTask(cubaFolder);
+                authentication.begin();
+                try {
+                    ImapFolder folder = dao.findFolder(folderId);
+                    if (folder != null) {
+                        folderSyncTask(cubaFolder);
+                    }
+                    syncRefreshers.remove(folderId);
+                } finally {
+                    authentication.end();
                 }
-                syncRefreshers.remove(folderId);
             }, 5, TimeUnit.SECONDS);
 
             ScheduledFuture<?> oldTask = syncRefreshers.put(folderId, newTask);

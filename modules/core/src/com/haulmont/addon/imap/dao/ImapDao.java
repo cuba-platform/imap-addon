@@ -1,17 +1,13 @@
 package com.haulmont.addon.imap.dao;
 
-import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.cuba.core.*;
-import com.haulmont.cuba.core.global.PersistenceHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
-import javax.mail.Flags;
 import java.util.Collection;
-import java.util.Date;
 import java.util.UUID;
 
 @Component("imap_Dao")
@@ -68,20 +64,6 @@ public class ImapDao {
         }
     }
 
-    public Collection<ImapMessage> findMessagesByImapNumbers(UUID folderId, Collection<Integer> messageNumbers) {
-        try (Transaction ignored = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-
-            return em.createQuery(
-                    "select m from imap$Message m where m.folder.id = :folderId and m.msgNum in :msgNumbers",
-                    ImapMessage.class)
-                    .setParameter("folderId", folderId)
-                    .setParameter("msgNumbers", messageNumbers)
-                    .setViewName("imap-msg-full")
-                    .getResultList();
-        }
-    }
-
     public ImapMessage findMessageById(UUID messageId) {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
@@ -116,32 +98,6 @@ public class ImapDao {
                     .setViewName("imap-msg-full")
                     .getFirstResult();
         }
-    }
-
-    public boolean addFlag(ImapMessage imapMessage, ImapFlag flag) {
-        Flags imapFlags = imapMessage.getImapFlags();
-        if (!imapFlags.contains(flag.imapFlags())) {
-            imapFlags.add(flag.imapFlags());
-            imapMessage.setImapFlags(imapFlags);
-
-            try (Transaction tx = persistence.createTransaction()) {
-                EntityManager em = persistence.getEntityManager();
-                if (PersistenceHelper.isNew(imapMessage)) {
-                    em.persist(imapMessage);
-                } else {
-                    em.createQuery("update imap$Message m set m.updateTs = :updateTs, m.flags = :flags " +
-                            "where m.id = :id")
-                            .setParameter("updateTs", new Date())
-                            .setParameter("flags", imapMessage.getFlags())
-                            .setParameter("id", imapMessage.getId())
-                            .executeUpdate();
-                }
-                tx.commit();
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public Collection<ImapMessageAttachment> findAttachments(UUID messageId) {

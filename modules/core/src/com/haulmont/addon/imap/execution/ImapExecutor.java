@@ -5,6 +5,7 @@ import com.haulmont.addon.imap.core.MailboxKey;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.events.ImapPasswordChangedEvent;
 import com.haulmont.addon.imap.exception.ImapException;
+import com.haulmont.cuba.security.app.Authentication;
 import com.sun.mail.imap.IMAPStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +25,12 @@ public class ImapExecutor implements TaskExecutor {
     private final static Logger log = LoggerFactory.getLogger(ImapExecutor.class);
 
     private final ImapHelper imapHelper;
+    private final Authentication authentication;
 
     @Inject
-    public ImapExecutor(ImapHelper imapHelper) {
+    public ImapExecutor(ImapHelper imapHelper, Authentication authentication) {
         this.imapHelper = imapHelper;
+        this.authentication = authentication;
     }
 
     private ConcurrentMap<MailboxKey, ImapMailboxExecutor> mailboxExecutors = new ConcurrentHashMap<>();
@@ -73,11 +76,14 @@ public class ImapExecutor implements TaskExecutor {
         mailboxExecutors.computeIfPresent(mailboxKey, (key, executor) -> {
             log.debug("Apply new password for IMAP store of {}", key);
             executor.resetStore(() -> {
+                authentication.begin();
                 try {
                     return imapHelper.store(key, event.rawPassword);
                 } catch (MessagingException e) {
                     log.warn("can't reset store of " + mailboxKey, e);
                     return null;
+                } finally {
+                    authentication.end();
                 }
             });
             return executor;
@@ -101,7 +107,12 @@ public class ImapExecutor implements TaskExecutor {
                 mailboxKey,
                 key -> {
                     log.debug("constructing new executor for mailbox {}", key);
-                    return new ImapMailboxExecutor(key, imapHelper::store);
+                    authentication.begin();
+                    try {
+                        return new ImapMailboxExecutor(key, imapHelper::store);
+                    } finally {
+                        authentication.end();
+                    }
                 }
         );
         return mailboxExecutors.get(mailboxKey);

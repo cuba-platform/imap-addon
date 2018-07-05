@@ -49,6 +49,24 @@ public class ImapMessageSyncDao {
         }
     }
 
+    public Collection<ImapMessage> findMessagesWithSyncStatus(UUID folderId, ImapSyncStatus status, Date minUpdateDate, Date maxUpdateDate) {
+        try (Transaction ignored = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            TypedQuery<ImapMessage> query = em.createQuery(
+                    "select m from imap$Message m where m.id in " +
+                            "(select ms.message.id from imap$MessageSync ms where ms.folder.id = :folder and ms.status = :status" +
+                            " and ms.updateTs >= :minUpdateDate and ms.updateTs < :maxUpdateDate)",
+                    ImapMessage.class
+            )
+                    .setParameter("folder", folderId)
+                    .setParameter("status", status)
+                    .setParameter("minUpdateDate", minUpdateDate)
+                    .setParameter("maxUpdateDate", maxUpdateDate)
+                    .setViewName("imap-msg-full");
+            return query.getResultList();
+        }
+    }
+
     public Collection<ImapMessageSync> findMessagesSyncs(UUID folderId, ImapSyncStatus status) {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
@@ -86,13 +104,6 @@ public class ImapMessageSyncDao {
             }
 
             tx.commit();
-        }
-    }
-
-    public ImapMessageSync findMessageSync(ImapMessage message) {
-        try (Transaction ignore = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-            return msgSyncQuery(message, em).getFirstResult();
         }
     }
 
