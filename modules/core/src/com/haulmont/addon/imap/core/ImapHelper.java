@@ -53,7 +53,9 @@ public class ImapHelper {
     public IMAPStore getStore(ImapMailBox box) throws MessagingException {
         log.debug("Accessing imap store for {}", box);
 
-        return buildStore(box);
+        String persistedPassword = dao.getPersistedPassword(box);
+        return Objects.equals(box.getAuthentication().getPassword(), persistedPassword)
+                ? buildStore(box) : buildStore(box, box.getAuthentication().getPassword());
     }
 
     public Flags cubaFlags(ImapMailBox mailBox) {

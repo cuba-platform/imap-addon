@@ -3,6 +3,8 @@ package com.haulmont.addon.imap.execution;
 import com.haulmont.addon.imap.core.FolderKey;
 import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.bali.datastruct.Pair;
+import com.haulmont.cuba.core.global.AppBeans;
+import com.haulmont.cuba.security.app.Authentication;
 import com.sun.mail.imap.IMAPFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 public class ImapFolderExecutor implements TaskExecutor {
 
@@ -26,14 +28,14 @@ public class ImapFolderExecutor implements TaskExecutor {
 
     final FolderKey folderKey;
     private final Function<FolderKey, IMAPFolder> folderBuilder;
-    private final Predicate<ImapFolderExecutor> iamDone;
+    private final Consumer<ImapFolderExecutor> iamDone;
     private volatile IMAPFolder folder;
 
     private final Queue<DelayableTask> taskQueue = new ConcurrentLinkedQueue<>();
     private final AtomicInteger queueSize = new AtomicInteger(0);
     private volatile DelayableTask currentDelayable;
-    private final ExecutorService delayablesExecutor = Executors.newSingleThreadExecutor();
-    private final ExecutorService callbackExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService delayablesExecutor;
+    private final ExecutorService callbackExecutor;
 
     final AtomicInteger blockingNumber = new AtomicInteger(0);
 
@@ -45,12 +47,22 @@ public class ImapFolderExecutor implements TaskExecutor {
 
     final AtomicBoolean suspended = new AtomicBoolean(false);
 
-    ImapFolderExecutor(FolderKey folderKey, Function<FolderKey, IMAPFolder> folderBuilder, Predicate<ImapFolderExecutor> iamDone) {
+    ImapFolderExecutor(FolderKey folderKey, Function<FolderKey, IMAPFolder> folderBuilder, Consumer<ImapFolderExecutor> iamDone) {
         this.folderKey = folderKey;
         this.folderBuilder = folderBuilder;
         this.iamDone = iamDone;
 
         this.folder = folderBuilder.apply(folderKey);
+        this.delayablesExecutor = Executors.newSingleThreadExecutor(r -> {
+            Thread thread = new Thread(r, String.format("[FolderExec %s][Delayble]", folderKey));
+            thread.setDaemon(true);
+            return thread;
+        });
+        this.callbackExecutor = Executors.newSingleThreadExecutor(r -> {
+            Thread thread = new Thread(r, String.format("[FolderExec %s][CallBack]", folderKey));
+            thread.setDaemon(true);
+            return thread;
+        });
     }
 
     public <T> T invokeImmediate(ImmediateTask<T> task) {
@@ -111,6 +123,22 @@ public class ImapFolderExecutor implements TaskExecutor {
         return acquired;
     }
 
+    void close() {
+        log.info("[FolderExec <{}>] close", folderKey);
+        suspend();
+
+        try {
+            delayablesExecutor.shutdownNow();
+        } catch (Exception e) {
+            log.warn("Exception while shutting down delayable executor", e);
+        }
+        try {
+            callbackExecutor.shutdownNow();
+        } catch (Exception e) {
+            log.warn("Exception while shutting down callback executor", e);
+        }
+    }
+
     void resume() {
         log.debug("[FolderExec <{}>] resume", folderKey);
         suspended.set(false);
@@ -142,15 +170,19 @@ public class ImapFolderExecutor implements TaskExecutor {
     private <T> Pair<Boolean, T> doInvokeDelayable(DelayableTask<T> task) {
         log.debug("[FolderExec <{}>] invoke task from queue {}", folderKey, currentDelayable.description);
         if (blockingNumber.incrementAndGet() == 1) {
+            Authentication authentication = AppBeans.get(Authentication.class);
+            authentication.begin();
             try {
                 log.trace("[FolderExec <{}>] invoking task from queue {}: wait for resume", folderKey, task.description);
                 waitForResumeIfNeed();
-                log.debug("[FolderExec <{}>] do invoke task from queue {}", folderKey, currentDelayable.description);
-                return new Pair<>( true, task.action.apply(folder()) );
-            } catch (MessagingException e) {
+                log.debug("[FolderExec <{}>] do invoke task from queue {}", folderKey, task.description);
+                T result = task.action.apply(folder());
+                log.debug("[FolderExec <{}>] invoking task from queue {}: result is {}", folderKey, task.description, result);
+                return new Pair<>( true, result);
+            } catch (/*MessagingException*/Exception e) {
                 log.error(
-                        String.format("[FolderExec <%s>] do invoke task from queue %s failed with error",
-                                folderKey, currentDelayable.description),
+                        String.format("[FolderExec %s] do invoke task from queue %s failed with error",
+                                folderKey, task.description),
                         e
                 );
                 return new Pair<>(false, null);
@@ -158,6 +190,7 @@ public class ImapFolderExecutor implements TaskExecutor {
                 finishTask();
                 currentDelayable = null;
                 maybeInvokeDelayable();
+                authentication.end();
             }
         } else {
             if (blockingNumber.decrementAndGet() > 0) {
@@ -189,19 +222,25 @@ public class ImapFolderExecutor implements TaskExecutor {
     private void finishTask() {
         log.trace("[FolderExec <{}>] finish task", folderKey);
         lock.lock();
+        boolean finished = false;
         try {
             if (blockingNumber.decrementAndGet() == 0) {
-                log.debug("[FolderExec <{}>] finishing task: no other blocking tasks", folderKey);
-                if (queueSize.get() == 0 && iamDone.test(this)) {
-                    log.debug("[FolderExec <{}>] finishing task: no work to do- I'm done", folderKey);
+                log.debug("[FolderExec <{}>] finishing task: there is no other blocking tasks", folderKey);
+                if (queueSize.get() == 0) {
                     suspend();
+                    finished = true;
                 }
                 isReleased.signal();
+            } else {
+                log.debug("[FolderExec <{}>] finishing task: there are other blocking tasks to do", folderKey);
             }
-            log.debug("[FolderExec <{}>] finishing task: other blocking tasks to do", folderKey);
             isFree.signalAll();
         } finally {
             lock.unlock();
+        }
+        if (finished) {
+            log.debug("[FolderExec <{}>] finishing task: no work to do- I'm done", folderKey);
+            iamDone.accept(this);
         }
     }
 

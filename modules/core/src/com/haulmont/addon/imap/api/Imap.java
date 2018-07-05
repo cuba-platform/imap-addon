@@ -255,8 +255,15 @@ public class Imap implements ImapAPI, AppContext.Listener {
                 folderKey(mailBox, oldFolderName),
                 imapFolder -> {
                     Message m = imapFolder.getMessageByUID(msg.getMsgUid());
+                    FetchProfile fp = new FetchProfile();
+                    fp.add(FetchProfile.Item.FLAGS);
+                    fp.add(FetchProfile.Item.ENVELOPE);
+                    fp.add(IMAPFolder.FetchProfileItem.MESSAGE);
+                    imapFolder.fetch(new Message[]{m}, fp);
                     log.debug("[move]delete message {} from folder {}", msg, imapFolder.getFullName());
                     imapFolder.setFlags(new Message[]{m}, new Flags(Flags.Flag.DELETED), true);
+                    m.getReceivedDate();
+                    m.getLineCount();
                     return m;
                 },
                 "deleting message with uid " + msg.getUuid()

@@ -122,10 +122,11 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
         ImapFolder cubaFolder = event.getFolder();
 
         if (event.getType() == ImapFolderSyncActivationEvent.Type.ACTIVATE) {
-            imapEvents.init(cubaFolder);
-            executeSyncTasks(Collections.singleton(folderSyncTask(cubaFolder)));
+            CompletableFuture.runAsync(() -> imapEvents.init(cubaFolder), executor).thenAcceptAsync(ignore ->
+                    executeSyncTasks(Collections.singleton(folderSyncTask(cubaFolder)))
+            );
         } else {
-            imapEvents.shutdown(cubaFolder);
+            CompletableFuture.runAsync(() -> imapEvents.shutdown(cubaFolder), executor);
             cancel(syncRefreshers.remove(cubaFolder.getId()), false);
             cancel(syncTasks.remove(cubaFolder.getId()), true);
         }

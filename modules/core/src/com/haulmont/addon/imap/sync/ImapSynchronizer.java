@@ -11,6 +11,7 @@ import com.haulmont.addon.imap.dao.ImapMessageSyncDao;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.execution.DelayableTask;
 import com.haulmont.addon.imap.execution.ImapExecutor;
+import com.haulmont.bali.datastruct.Pair;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
@@ -94,9 +95,10 @@ public class ImapSynchronizer {
                     );
                     log.trace("[{}]synchronize: sync existing messages: messages from db: {}, from IMAP server: {}",
                             cubaFolder, messagesForSync, imapMessages);
-
+                    List<ImapMessage> remainMessages = new ArrayList<>(imapMessages.size());
                     for (IMAPMessage imapMessage : imapMessages) {
                         ImapMessage cubaMessage = messagesByUid.remove(imapFolder.getUID(imapMessage));
+                        remainMessages.add(cubaMessage);
                         messageSyncDao.updateSyncStatus(cubaMessage,
                                 ImapSyncStatus.REMAIN, ImapSyncStatus.IN_SYNC,
                                 imapMessage.getFlags(), null, null);
@@ -108,9 +110,12 @@ public class ImapSynchronizer {
                                 ImapSyncStatus.MISSED, ImapSyncStatus.IN_SYNC,
                                 null, otherFolders.size(), null);
                     }
-                    return messagesByUid.values();
+                    return new Pair<>(remainMessages, messagesByUid.values());
                 },
-                cubaMessages -> handleMissedMessages(cubaFolder, cubaMessages, otherFolders),
+                remainAndMissedMessages -> {
+                    handleAnswers(remainAndMissedMessages.getFirst());
+                    handleMissedMessages(cubaFolder, remainAndMissedMessages.getSecond(), otherFolders);
+                },
                 "sync existing messages"
         ));
     }
@@ -230,39 +235,31 @@ public class ImapSynchronizer {
                 folderKey,
                 imapFolder -> {
                     log.debug("[{}]synchronize: fetch new messages", cubaFolder);
-                    return imapOperations.search(
+                    List<IMAPMessage> imapMessages = imapOperations.search(
                             imapFolder,
                             new FlagTerm(imapHelper.cubaFlags(mailBox), false),
                             mailBox
                     );
+                    List<ImapMessage> cubaMessages = new ArrayList<>(imapMessages.size());
+                    for (IMAPMessage imapMessage : imapMessages) {
+                        if (Boolean.TRUE.equals(imapConfig.getClearCustomFlags())) {
+                            log.trace("[{}]clear custom flags for message with uid {}",
+                                    cubaFolder, imapFolder.getUID(imapMessage));
+                            unsetCustomFlags(imapMessage);
+                        }
+                        imapMessage.setFlags(imapHelper.cubaFlags(cubaFolder.getMailBox()), true);
+                        log.debug("[{}]insert message with uid {} to db after changing flags on server",
+                                cubaFolder, imapFolder.getUID(imapMessage));
+                        ImapMessage cubaMessage = insertNewMessage(imapMessage, cubaFolder);
+                        if (cubaMessage != null) {
+                            cubaMessages.add(cubaMessage);
+                        }
+                    }
+                    return cubaMessages;
                 },
-                imapMessages -> handleNewMessages(cubaFolder, imapMessages),
+                this::handleAnswers,
                 "fetch new messages using flag"
         ));
-    }
-
-    private void handleNewMessages(ImapFolder cubaFolder, List<IMAPMessage> imapMessages) {
-        log.debug("[{}]handle new messages: {}", cubaFolder, imapMessages);
-        for (IMAPMessage imapMessage : imapMessages) {
-            imapExecutor.submitDelayable(new DelayableTask<>(
-                folderKey(cubaFolder),
-                imapFolder -> {
-                    if (Boolean.TRUE.equals(imapConfig.getClearCustomFlags())) {
-                        log.trace("[{}]clear custom flags for message with uid {}",
-                                cubaFolder, imapFolder.getUID(imapMessage));
-                        unsetCustomFlags(imapMessage);
-                    }
-                    imapMessage.setFlags(imapHelper.cubaFlags(cubaFolder.getMailBox()), true);
-                    return insertNewMessage(imapMessage, cubaFolder);
-                },
-                cubaMessage -> {
-                    if (cubaMessage != null) {
-                        handleAnswer(cubaMessage);
-                    }
-                },
-                "handle new message"
-            ));
-        }
     }
 
     private ImapMessage insertNewMessage(IMAPMessage msg,
@@ -316,48 +313,24 @@ public class ImapSynchronizer {
         }
     }
 
-    private void handleAnswer(ImapMessage cubaMessage) {
-        if (cubaMessage.getReferenceId() != null) {
-            ImapMessage parentMessage = dao.findMessageByImapMessageId(
-                    cubaMessage.getFolder().getMailBox().getId(), cubaMessage.getReferenceId()
-            );
-            imapExecutor.submitDelayable(DelayableTask.noResultTask(
-                    folderKey(cubaMessage.getFolder()),
-                    imapFolder -> {
-                        Message imapMessage = imapFolder.getMessageByUID(cubaMessage.getMsgUid());
-                        imapMessage.setFlag(Flags.Flag.ANSWERED, true);
-                    },
-                    "set ANSWERED flag on IMAP server for " + cubaMessage
-            ));
-            if (parentMessage != null && !parentMessage.getImapFlags().contains(ImapFlag.ANSWERED.imapFlags())) {
-                addAnsweredToSync(parentMessage);
+    private void handleAnswers(List<ImapMessage> cubaMessages) {
+        for (ImapMessage cubaMessage : cubaMessages) {
+            if (cubaMessage.getReferenceId() != null) {
+                ImapMessage parentMessage = dao.findMessageByImapMessageId(
+                        cubaMessage.getFolder().getMailBox().getId(), cubaMessage.getReferenceId()
+                );
+
+                if (parentMessage != null && !parentMessage.getImapFlags().contains(ImapFlag.ANSWERED.imapFlags())) {
+                    imapExecutor.submitDelayable(DelayableTask.noResultTask(
+                            folderKey(parentMessage.getFolder()),
+                            imapFolder -> {
+                                Message imapMessage = imapFolder.getMessageByUID(parentMessage.getMsgUid());
+                                imapMessage.setFlag(Flags.Flag.ANSWERED, true);
+                            },
+                            "set ANSWERED flag on IMAP server for message with uid " + parentMessage.getMsgUid()
+                    ));
+                }
             }
-        }
-    }
-
-    private void addAnsweredToSync(ImapMessage cubaMessage) {
-        ImapMessageSync messageSync = messageSyncDao.findMessageSync(cubaMessage);
-        Flags flags = new Flags(cubaMessage.getImapFlags());
-        if (messageSync != null) {
-            if (messageSync.getFlags() != null) {
-                flags = messageSync.getImapFlags();
-            }
-            flags.add(ImapFlag.ANSWERED.imapFlags());
-
-        } else {
-            messageSync = metadata.create(ImapMessageSync.class);
-            messageSync.setMessage(cubaMessage);
-            messageSync.setFolder(cubaMessage.getFolder());
-        }
-
-        try (Transaction tx = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-
-            messageSync.setImapFlags(flags);
-            messageSync.setStatus(ImapSyncStatus.REMAIN);
-            em.persist(messageSync);
-
-            tx.commit();
         }
     }
 

@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
+import javax.annotation.Nonnull;
 import javax.mail.Folder;
 import javax.mail.MessagingException;
 import java.util.*;
@@ -18,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static com.haulmont.addon.imap.core.ImapHelper.canHoldMessages;
@@ -32,10 +34,25 @@ public class ImapMailboxExecutor implements TaskExecutor {
     final MailboxKey mailboxKey;
     private final ImapFunction<MailboxKey, IMAPStore> storeBuilder;
     private volatile IMAPStore store;
+    private AtomicInteger maxExecutorsNum;
+    private final ExecutorService folderBulkExecutor;
 
     ImapMailboxExecutor(MailboxKey mailboxKey, ImapFunction<MailboxKey, IMAPStore> storeBuilder) {
         this.mailboxKey = mailboxKey;
         this.storeBuilder = storeBuilder;
+        maxExecutorsNum = new AtomicInteger(MAX_EXECUTORS_NUM);
+        folderBulkExecutor = Executors.newFixedThreadPool(MAX_EXECUTORS_NUM, new ThreadFactory() {
+            private final AtomicInteger threadNumber = new AtomicInteger(1);
+
+            @Override
+            public Thread newThread(@Nonnull Runnable r) {
+                Thread thread = new Thread(
+                        r, String.format("[MailboxExec %s]FolderBulk-%d", mailboxKey, threadNumber.getAndIncrement())
+                );
+                thread.setDaemon(true);
+                return thread;
+            }
+        });
     }
 
     private final ConcurrentMap<String, ImapFolderExecutor> folderExecutors = new ConcurrentHashMap<>(MAX_EXECUTORS_NUM);
@@ -45,13 +62,11 @@ public class ImapMailboxExecutor implements TaskExecutor {
     private final Lock lock = new ReentrantLock();
     private final Condition availableExecutor = lock.newCondition();
 
-    private final ExecutorService folderBulkExecutor = Executors.newFixedThreadPool(MAX_EXECUTORS_NUM);
-
     void resetStore(Supplier<IMAPStore> newStore) {
         log.debug("[MailboxExec <{}>] resetting IMAP store", mailboxKey);
         lock.lock();
         try {
-            suspendAllFolders().get();
+            doWithFoldersExecutors(ImapFolderExecutor::suspend).get();
             log.debug("[MailboxExec <{}>] all ({}) executors have been suspended, do reset of IMAP store",
                         mailboxKey, folderExecutors.size());
             IMAPStore currentStore = this.store;
@@ -87,7 +102,7 @@ public class ImapMailboxExecutor implements TaskExecutor {
         log.debug("[MailboxExec <{}>] close IMAP store", mailboxKey);
         lock.lock();
         try {
-            suspendAllFolders().get();
+            doWithFoldersExecutors(ImapFolderExecutor::close).get();
             log.debug("[MailboxExec <{}>] all ({}) executors have been suspended, do close of IMAP store",
                     mailboxKey, folderExecutors.size());
             IMAPStore currentStore = this.store;
@@ -95,7 +110,7 @@ public class ImapMailboxExecutor implements TaskExecutor {
                 try {
                     currentStore.close();
                 } catch (MessagingException e) {
-                    log.warn(String.format("[MailboxExec <%s>] do close of IMAP store error", mailboxKey), e);
+                    log.warn(String.format("[MailboxExec %s] do close of IMAP store error", mailboxKey), e);
                 }
             }
             this.store = null;
@@ -111,18 +126,24 @@ public class ImapMailboxExecutor implements TaskExecutor {
         } finally {
             lock.unlock();
         }
+
+        try {
+            folderBulkExecutor.shutdownNow();
+        } catch (Exception e) {
+            log.warn("Exception while shutting down executor", e);
+        }
     }
 
-    private CompletableFuture<?> suspendAllFolders() {
+    private CompletableFuture<?> doWithFoldersExecutors(Consumer<ImapFolderExecutor> action) {
         if (folderExecutors.isEmpty()) {
             log.debug("[MailboxExec <{}>] no folder executors - do reset of IMAP store", mailboxKey);
             return CompletableFuture.completedFuture(true);
         }
-        List<CompletableFuture<?>> suspensions = new ArrayList<>(MAX_EXECUTORS_NUM);
+        List<CompletableFuture<?>> suspensions = new ArrayList<>(folderExecutors.size());
         for (ImapFolderExecutor folderExecutor : folderExecutors.values()) {
             log.trace("[MailboxExec <{}>] suspend folder executor for {} due to resetStore request",
                     mailboxKey, folderExecutor.folderKey.getFolderFullName());
-            suspensions.add( CompletableFuture.runAsync(folderExecutor::suspend, folderBulkExecutor) );
+            suspensions.add( CompletableFuture.runAsync(() -> action.accept(folderExecutor), folderBulkExecutor) );
         }
         return CompletableFuture.allOf(suspensions.toArray(new CompletableFuture[0]));
     }
@@ -273,16 +294,26 @@ public class ImapMailboxExecutor implements TaskExecutor {
                         mailboxKey, folderName);
                 return executor;
             }
-            if (folderExecutors.size() < MAX_EXECUTORS_NUM) {
+            log.debug("[MailboxExec <{}>] finding folder executor ready to work for {}: " +
+                            "try to create new, current pool size {}, max pool size {}",
+                    mailboxKey, folderName, folderExecutors.size(), maxExecutorsNum.get());
+            if (folderExecutors.size() < maxExecutorsNum.get()) {
                 log.debug("[MailboxExec <{}>] finding folder executor ready to work for {}: there is space to create new",
                         mailboxKey, folderName);
-                ImapFolderExecutor oldVal = folderExecutors.put(folderName, executor = buildExecutor(folderName));
-                Assert.isNull(oldVal, "already has executor for " + folderName);
-                return executor;
+                try {
+                    ImapFolderExecutor oldVal = folderExecutors.put(folderName, executor = buildExecutor(folderName));
+                    Assert.isNull(oldVal, "already has executor for " + folderName);
+                    return executor;
+                } catch (ImapException e) {
+                    log.warn(String.format("[MailboxExec %s] Can't build folder executor due to error, will decrease pool size", mailboxKey), e);
+                    maxExecutorsNum.decrementAndGet();
+                    return null;
+                }
             }
 
             log.debug("[MailboxExec <{}>] finding folder executor ready to work for {}: there is no available",
                     mailboxKey, folderName);
+            maxExecutorsNum.incrementAndGet();
             return null;
         } finally {
             lock.unlock();
@@ -317,17 +348,17 @@ public class ImapMailboxExecutor implements TaskExecutor {
 
             lock.lock();
             try {
-                if (folderExecutors.size() >= MAX_EXECUTORS_NUM) {
+                if (folderExecutors.size() >= maxExecutorsNum.get()) {
                     log.debug("[MailboxExec <{}>] finishing? exec of < {} >: pool is full, finish the executor ",
                             mailboxKey, folderName);
-                    return true;
+                    return;
                 }
 
                 Assert.isNull(folderExecutors.put(folderName, thisFolderExecutor),
                         "already has executor for " + folderName);
                 log.debug("[MailboxExec <{}>] finishing? exec of < {} >: pool is full, no other tasks to do, remain executor ",
                         mailboxKey, folderName);
-                return false;
+                thisFolderExecutor.resume();
             } finally {
                 lock.unlock();
             }
@@ -344,7 +375,7 @@ public class ImapMailboxExecutor implements TaskExecutor {
                 store = storeBuilder.apply(mailboxKey);
             }
             IMAPFolder folder = (IMAPFolder) store.getFolder(folderKey.getFolderFullName());
-            if (canHoldMessages(folder) && !folder.isOpen()) {
+            if (!folder.isOpen() && canHoldMessages(folder)) {
                 folder.open(Folder.READ_WRITE);
             }
             return folder;

@@ -2,10 +2,7 @@ package com.haulmont.addon.imap.sync.events;
 
 import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.addon.imap.dao.ImapMessageSyncDao;
-import com.haulmont.addon.imap.entity.ImapFolder;
-import com.haulmont.addon.imap.entity.ImapMessage;
-import com.haulmont.addon.imap.entity.ImapMessageSync;
-import com.haulmont.addon.imap.entity.ImapSyncStatus;
+import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.events.*;
 import com.haulmont.addon.imap.sync.ImapSynchronizer;
 import com.haulmont.cuba.core.EntityManager;
@@ -18,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.mail.Flags;
 import java.util.*;
@@ -83,6 +81,28 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
             if (!task.isDone() && !task.isCancelled()) {
                 task.cancel(false);
             }
+        }
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        for (Map.Entry<UUID, ScheduledFuture<?>> taskWithId : syncRefreshers.entrySet()) {
+            ScheduledFuture<?> task = taskWithId.getValue();
+            if (task != null) {
+                if (!task.isDone() && !task.isCancelled()) {
+                    try {
+                        task.cancel(false);
+                    } catch (Exception e) {
+                        log.warn("Exception while shutting down synchronizer for folder " + taskWithId.getKey(), e);
+                    }
+                }
+            }
+        }
+
+        try {
+            scheduledExecutorService.shutdownNow();
+        } catch (Exception e) {
+            log.warn("Exception while shutting down scheduled executor", e);
         }
     }
 
@@ -161,11 +181,14 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
             msg.setImapFlags(newFlags);
             msg.setUpdateTs(new Date());
 //            msg.setThreadId();
+            authentication.begin();
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
                 em.merge(msg);
 
                 tx.commit();
+            } finally {
+                authentication.end();
             }
 
         }

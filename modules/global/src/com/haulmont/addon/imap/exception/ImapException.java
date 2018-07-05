@@ -9,10 +9,12 @@ public class ImapException extends RuntimeException {
 
     public ImapException(MessagingException cause) {
         super(causeDescription(cause));
+        addSuppressed(cause);
     }
 
     public ImapException(String message, MessagingException cause) {
         super(String.format("%s caused by: %s", message, causeDescription(cause)));
+        addSuppressed(cause);
     }
 
     private static String causeDescription(MessagingException e) {
