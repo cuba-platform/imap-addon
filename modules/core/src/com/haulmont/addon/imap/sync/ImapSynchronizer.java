@@ -116,7 +116,11 @@ public class ImapSynchronizer {
         }
     }
 
-    private void handleExistingMessages(List<ImapMessage> checkAnswers, List<ImapMessage> missedMessages, ImapFolder cubaFolder, IMAPFolder imapFolder) throws MessagingException {
+    private void handleExistingMessages(List<ImapMessage> checkAnswers,
+                                        List<ImapMessage> missedMessages,
+                                        ImapFolder cubaFolder,
+                                        IMAPFolder imapFolder) throws MessagingException {
+
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.MINUTE, -10);
         Date tenMinutesAgo = calendar.getTime();

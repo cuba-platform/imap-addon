@@ -73,7 +73,7 @@ class ImapEventsSpec extends Specification {
     private ImapFolder INBOX
 
     void setup() {
-        ImapSyncManager.TRACK_MAILBOX_ACTIVATION = false
+        ImapSyncManager.trackMailboxActivation = false
         eventListener = AppBeans.get(ImapEventsTestListener)
         imapEvents = AppBeans.get(ImapEvents)
         imapDao = AppBeans.get(ImapDao)

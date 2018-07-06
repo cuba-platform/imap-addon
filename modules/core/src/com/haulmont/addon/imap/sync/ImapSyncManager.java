@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ImapSyncManager implements AppContext.Listener, Ordered {
 
     private final static Logger log = LoggerFactory.getLogger(ImapSyncManager.class);
-    private static boolean TRACK_MAILBOX_ACTIVATION = true;
+    private static boolean trackMailboxActivation = true;
 
     private final ImapDao dao;
     private final ImapEvents imapEvents;
@@ -117,7 +117,7 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
 
     @EventListener
     public void handleActivationEvent(ImapMailboxSyncActivationEvent event) {
-        if (!TRACK_MAILBOX_ACTIVATION) {
+        if (!trackMailboxActivation) {
             return;
         }
         UUID mailboxId = event.getMailBox().getId();

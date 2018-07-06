@@ -4,7 +4,6 @@ import com.haulmont.chile.core.annotations.MetaClass;
 import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.BaseUuidEntity;
-import com.sun.mail.imap.IMAPFolder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 import java.util.ArrayList;

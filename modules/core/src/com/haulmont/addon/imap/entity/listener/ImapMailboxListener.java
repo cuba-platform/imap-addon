@@ -1,6 +1,5 @@
 package com.haulmont.addon.imap.entity.listener;
 
-import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.crypto.Encryptor;
 import com.haulmont.addon.imap.sync.ImapMailboxSyncActivationEvent;
