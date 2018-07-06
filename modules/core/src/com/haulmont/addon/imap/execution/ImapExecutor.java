@@ -28,7 +28,8 @@ public class ImapExecutor implements TaskExecutor {
     private final Authentication authentication;
 
     @Inject
-    public ImapExecutor(ImapHelper imapHelper, Authentication authentication) {
+    public ImapExecutor(
+            ImapHelper imapHelper, @SuppressWarnings("CdiInjectionPointsInspection") Authentication authentication) {
         this.imapHelper = imapHelper;
         this.authentication = authentication;
     }
@@ -92,6 +93,7 @@ public class ImapExecutor implements TaskExecutor {
 
     @PreDestroy
     public void closeStores() {
+        log.info("close stores for executors: {}", mailboxExecutors.values());
         for (ImapMailboxExecutor executor : mailboxExecutors.values()) {
             try {
                 executor.closeStore();

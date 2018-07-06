@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component(ImapStandardEventsGenerator.NAME)
-public class ImapStandardEventsGenerator implements ImapEventsGenerator {
+public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
 
     private final static Logger log = LoggerFactory.getLogger(ImapStandardEventsGenerator.class);
 
@@ -56,7 +56,7 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
                                        Authentication authentication,
                                        Persistence persistence,
                                        ImapSynchronizer imapSynchronizer) {
-
+        super(20); //todo: to config
         this.messageSyncDao = messageSyncDao;
         this.authentication = authentication;
         this.persistence = persistence;
@@ -113,10 +113,11 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
     }
 
     @Override
-    public Collection<? extends BaseImapEvent> generateForNewMessages(ImapFolder cubaFolder) {
+    public Collection<? extends BaseImapEvent> generateForNewMessages(ImapFolder cubaFolder, int batchSize) {
         authentication.begin();
         try {
-            Collection<ImapMessage> newMessages = messageSyncDao.findMessagesWithSyncStatus(cubaFolder.getId(), ImapSyncStatus.ADDED);
+            Collection<ImapMessage> newMessages = messageSyncDao.findMessagesWithSyncStatus(
+                    cubaFolder.getId(), ImapSyncStatus.ADDED, batchSize);
 
             Collection<BaseImapEvent> newMessageEvents = newMessages.stream()
                     .map(NewEmailImapEvent::new)
@@ -134,10 +135,11 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
     }
 
     @Override
-    public Collection<? extends BaseImapEvent> generateForChangedMessages(ImapFolder cubaFolder) {
+    public Collection<? extends BaseImapEvent> generateForChangedMessages(ImapFolder cubaFolder, int batchSize) {
         authentication.begin();
         try {
-            Collection<ImapMessageSync> remainMessageSyncs = messageSyncDao.findMessagesSyncs(cubaFolder.getId(), ImapSyncStatus.REMAIN);
+            Collection<ImapMessageSync> remainMessageSyncs = messageSyncDao.findMessagesSyncs(
+                    cubaFolder.getId(), ImapSyncStatus.REMAIN, batchSize);
 
             Collection<BaseImapEvent> updateMessageEvents = remainMessageSyncs.stream()
                     .flatMap(messageSync -> generateUpdateEvents(messageSync).stream())
@@ -145,6 +147,7 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
 
             messageSyncDao.removeMessagesSyncs(remainMessageSyncs.stream()
                     .map(ms -> ms.getMessage().getId())
+                    .distinct()
                     .collect(Collectors.toList()));
 
             return updateMessageEvents;
@@ -228,11 +231,13 @@ public class ImapStandardEventsGenerator implements ImapEventsGenerator {
     }
 
     @Override
-    public Collection<? extends BaseImapEvent> generateForMissedMessages(ImapFolder cubaFolder) {
+    public Collection<? extends BaseImapEvent> generateForMissedMessages(ImapFolder cubaFolder, int batchSize) {
         authentication.begin();
         try {
-            Collection<ImapMessage> removed = messageSyncDao.findMessagesWithSyncStatus(cubaFolder.getId(), ImapSyncStatus.REMOVED);
-            Collection<ImapMessageSync> moved = messageSyncDao.findMessagesSyncs(cubaFolder.getId(), ImapSyncStatus.MOVED);
+            Collection<ImapMessage> removed = messageSyncDao.findMessagesWithSyncStatus(
+                    cubaFolder.getId(), ImapSyncStatus.REMOVED, batchSize);
+            Collection<ImapMessageSync> moved = messageSyncDao.findMessagesSyncs(
+                    cubaFolder.getId(), ImapSyncStatus.MOVED, batchSize);
 
             Collection<BaseImapEvent> missedMessageEvents = new ArrayList<>(removed.size() + moved.size());
             List<Integer> missedMessageNums = new ArrayList<>(removed.size() + moved.size());

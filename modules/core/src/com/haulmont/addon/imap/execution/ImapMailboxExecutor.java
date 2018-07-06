@@ -99,7 +99,7 @@ public class ImapMailboxExecutor implements TaskExecutor {
     }
 
     void closeStore() {
-        log.debug("[MailboxExec <{}>] close IMAP store", mailboxKey);
+        log.info("[MailboxExec <{}>] close IMAP store", mailboxKey);
         lock.lock();
         try {
             doWithFoldersExecutors(ImapFolderExecutor::close).get();

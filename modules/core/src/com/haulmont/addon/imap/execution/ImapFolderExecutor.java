@@ -126,7 +126,7 @@ public class ImapFolderExecutor implements TaskExecutor {
     void close() {
         log.info("[FolderExec <{}>] close", folderKey);
         suspend();
-
+        log.info("[FolderExec <{}>] close after suspension: shut down executors", folderKey);
         try {
             delayablesExecutor.shutdownNow();
         } catch (Exception e) {

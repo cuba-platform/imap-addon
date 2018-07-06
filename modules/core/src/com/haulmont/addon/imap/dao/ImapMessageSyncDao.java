@@ -37,7 +37,7 @@ public class ImapMessageSyncDao {
         this.metadata = metadata;
     }
 
-    public Collection<ImapMessage> findMessagesWithSyncStatus(UUID folderId, ImapSyncStatus status) {
+    public Collection<ImapMessage> findMessagesWithSyncStatus(UUID folderId, ImapSyncStatus status, Integer maxSize) {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             TypedQuery<ImapMessage> query = em.createQuery(
@@ -45,6 +45,9 @@ public class ImapMessageSyncDao {
                             "(select ms.message.id from imap$MessageSync ms where ms.folder.id = :folder and ms.status = :status)",
                     ImapMessage.class
             ).setParameter("folder", folderId).setParameter("status", status).setViewName("imap-msg-full");
+            if (maxSize != null) {
+                query.setMaxResults(maxSize);
+            }
             return query.getResultList();
         }
     }
@@ -67,13 +70,16 @@ public class ImapMessageSyncDao {
         }
     }
 
-    public Collection<ImapMessageSync> findMessagesSyncs(UUID folderId, ImapSyncStatus status) {
+    public Collection<ImapMessageSync> findMessagesSyncs(UUID folderId, ImapSyncStatus status, Integer maxSize) {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             TypedQuery<ImapMessageSync> query = em.createQuery(
                     "select ms from imap$MessageSync ms where ms.folder.id = :folder and ms.status = :status",
                     ImapMessageSync.class
             ).setParameter("folder", folderId).setParameter("status", status).setViewName("imap-msg-sync-with-message");
+            if (maxSize != null) {
+                query.setMaxResults(maxSize);
+            }
             return query.getResultList();
         }
     }
@@ -83,7 +89,7 @@ public class ImapMessageSyncDao {
             EntityManager em = persistence.getEntityManager();
             TypedQuery<ImapMessage> query = em.createQuery(
                     "select m from imap$Message m where m.folder.id = :folder and m.id not in " +
-                            "(select ms.message.id from imap$MessageSync ms)",
+                            "(select ms.message.id from imap$MessageSync ms) order by m.updateTs asc",
                     ImapMessage.class
             ).setParameter("folder", folderId).setViewName("imap-msg-full").setMaxResults(imapConfig.getUpdateBatchSize());
             return query.getResultList();
@@ -100,6 +106,8 @@ public class ImapMessageSyncDao {
                     messageSync.setStatus(syncStatus);
                     messageSync.setFolder(message.getFolder());
                     em.persist(messageSync);
+                    message.setUpdateTs(new Date());
+                    em.merge(message);
                 }
             }
 
