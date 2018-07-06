@@ -7,7 +7,6 @@ import com.haulmont.cuba.core.global.Metadata;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import com.sun.mail.imap.IMAPStore;
-import com.sun.mail.imap.protocol.BASE64MailboxDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +17,6 @@ import javax.mail.internet.MimeUtility;
 import javax.mail.search.SearchTerm;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component("imap_ImapOperations")
 public class ImapOperations {
@@ -40,65 +38,33 @@ public class ImapOperations {
 
     public List<ImapFolderDto> fetchFolders(IMAPStore store) throws MessagingException {
         List<ImapFolderDto> result = new ArrayList<>();
-
         Folder defaultFolder = store.getDefaultFolder();
 
-        Folder[] allFolders = defaultFolder.list("*");
-
-        List<String> sortedFolderNames = Arrays.stream(allFolders)
-                .map(this::fullName)
-                .sorted()
-                .collect(Collectors.toList());
-        Map<String, ImapFolderDto> foldersByFullName = new HashMap<>();
-        Folder[] folders = allFolders;
-        while (folders.length > 0) {
-            List<Folder> unprocessedFolders = new ArrayList<>();
-            for (Folder folder : folders) {
-                String fullName = fullName(folder);
-                int i = Collections.binarySearch(sortedFolderNames, fullName);
-                String parentName = null;
-                for (int j = i - 1; j >= 0; j--) {
-                    if (fullName.startsWith(sortedFolderNames.get(j))) {
-                        parentName = sortedFolderNames.get(j);
-                        break;
-                    }
-                }
-                if (parentName == null) {
-                    ImapFolderDto dto = map((IMAPFolder) folder);
-                    foldersByFullName.put(fullName, dto);
-                    result.add(dto);
-                } else {
-                    ImapFolderDto parentDto = foldersByFullName.get(parentName);
-                    if (parentDto != null) {
-                        ImapFolderDto dto = map((IMAPFolder) folder);
-                        foldersByFullName.put(fullName, dto);
-                        parentDto.getChildren().add(dto);
-                        dto.setParent(parentDto);
-                    } else {
-                        unprocessedFolders.add(folder);
-                    }
-                }
-            }
-            folders = unprocessedFolders.toArray(new Folder[0]);
+        IMAPFolder[] rootFolders = (IMAPFolder[]) defaultFolder.list();
+        for (IMAPFolder folder : rootFolders) {
+            result.add(map(folder));
         }
-        result.sort(Comparator.comparing(ImapFolderDto::getFullName));
 
         return result;
     }
 
     private ImapFolderDto map(IMAPFolder folder) throws MessagingException {
-        ImapFolderDto dto = metadata.create(ImapFolderDto.class);
-        dto.setName(folder.getName());
-        dto.setFullName(fullName(folder));
-        dto.setCanHoldMessages(ImapHelper.canHoldMessages(folder));
-        dto.setChildren(new ArrayList<>());
+        List<ImapFolderDto> subFolders = new ArrayList<>();
 
-        return dto;
-
-    }
-
-    private String fullName(Folder folder) {
-        return BASE64MailboxDecoder.decode(folder.getFullName());
+        if (ImapHelper.canHoldFolders(folder)) {
+            for (Folder childFolder : folder.list()) {
+                subFolders.add(map((IMAPFolder) childFolder));
+            }
+        }
+        ImapFolderDto result = metadata.create(ImapFolderDto.class);
+        result.setName(folder.getName());
+        result.setFullName(folder.getFullName());
+        result.setCanHoldMessages(ImapHelper.canHoldMessages(folder));
+        result.setChildren(subFolders);
+        for (ImapFolderDto f : result.getChildren()) {
+            f.setParent(result);
+        }
+        return result;
     }
 
     public List<IMAPMessage> search(IMAPFolder folder, SearchTerm searchTerm, ImapMailBox mailBox) throws MessagingException {

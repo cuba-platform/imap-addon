@@ -2,8 +2,11 @@ package com.haulmont.addon.imap.core.protocol;
 
 import com.haulmont.addon.imap.core.ext.ThreadExtension;
 import com.sun.mail.iap.ProtocolException;
+import com.sun.mail.iap.Response;
 import com.sun.mail.imap.protocol.FetchItem;
+import com.sun.mail.imap.protocol.FetchResponse;
 import com.sun.mail.imap.protocol.IMAPProtocol;
+import com.sun.mail.imap.protocol.IMAPResponse;
 import com.sun.mail.util.MailLogger;
 
 import java.io.IOException;
@@ -14,12 +17,44 @@ public class CubaIMAPProtocol extends IMAPProtocol {
     CubaIMAPProtocol(String name, String host, int port, Properties props,
                      boolean isSSL, MailLogger logger) throws IOException, ProtocolException {
         super(name, host, port, props, isSSL, logger);
-        if (hasCapability("ENABLE")) {
-            enable("UTF8=ACCEPT");
-        }
+//        if (hasCapability("ENABLE")) {
+//            enable("UTF8=ACCEPT");
+//        }
     }
+
     @Override
     public FetchItem[] getFetchItems() {
         return new FetchItem[] { ThreadExtension.FETCH_ITEM };
     }
+
+    @Override
+    public Response readResponse() throws IOException, ProtocolException {
+
+        IMAPResponse r = new IMAPResponse(this);
+        if (r.keyEquals("FETCH"))
+            r = new FetchResponse(r, getFetchItems()) {
+                @Override
+                public boolean isNextNonSpace(char c) {
+                    // we need to set UTF-8 since each response from server rely on it (see toString(byte[] buffer, int start, int end) of com.sun.mail.iap.Response
+                    // and there are some attachments with non-mime encoded filename disposition parameter containing UTF-8
+                    // basically this should be resolved via support of capability 'UTF8=ACCEPT' (it should be enabled during authentication)
+                    // however it leads to "BAD [CLIENTBUG] SELECT Folder encoding error" response while open folder for some IMAP servers, e.g. yandex
+                    // see writeMailboxName method of IMAPProtocol for encoding options
+                    utf8 = true;
+                    return super.isNextNonSpace(c);
+                }
+            };
+        return r;
+    }
+
+//    @Override
+//    public boolean supportsUtf8() {
+        // we need to set UTF-8 since each response from server rely on it (see toString(byte[] buffer, int start, int end) of com.sun.mail.iap.Response
+        // and there are some attachments with non-mime encoded filename disposition parameter
+        // basically this should be resolved via support of capability 'UTF8=ACCEPT' (it should be enabled during authentication)
+        // however it leads to "BAD [CLIENTBUG] SELECT Folder encoding error" response while open folder (see writeMailboxName method for encoding options)
+        // for some IMAP servers, e.g. yandex
+
+//        return true;
+//    }
 }

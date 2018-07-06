@@ -129,6 +129,10 @@ public class ImapHelper {
         return (folder.getType() & Folder.HOLDS_MESSAGES) != 0;
     }
 
+    static boolean canHoldFolders(Folder folder) throws MessagingException {
+        return (folder.getType() & Folder.HOLDS_FOLDERS) != 0;
+    }
+
     public static class Body {
         private final String text;
         private final boolean html;
