@@ -11,9 +11,7 @@ import com.haulmont.cuba.core.global.DeletePolicy;
 import javax.persistence.*;
 import java.util.Collections;
 import java.util.List;
-import com.haulmont.cuba.core.entity.annotation.Listeners;
 
-@Listeners("imap_FolderSelectionListener")
 @NamePattern("%s|name")
 @Table(name = "IMAP_FOLDER")
 @Entity(name = "imap$Folder")

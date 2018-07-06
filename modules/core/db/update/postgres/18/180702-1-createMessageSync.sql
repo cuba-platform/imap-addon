@@ -12,8 +12,6 @@ create table IMAP_MESSAGE_SYNC (
     MESSAGE_ID uuid not null,
     FOLDER_ID uuid not null,
     STATUS varchar(50) not null,
-    FOLDERS_TO_CHECK_NUM integer,
-    CHECKED_FOLDERS_NUM integer,
     NEW_FOLDER_NAME varchar(255),
     --
     primary key (ID)

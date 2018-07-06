@@ -29,12 +29,6 @@ public class ImapMessageSync extends ImapFlagsHolder {
     @Column(name = "STATUS", nullable = false)
     private String status;
 
-    @Column(name = "FOLDERS_TO_CHECK_NUM")
-    private Integer foldersToCheck;
-
-    @Column(name = "CHECKED_FOLDERS_NUM")
-    private Integer checkedFolders = 0;
-
     @Column(name = "NEW_FOLDER_NAME")
     private String newFolderName;
 
@@ -60,22 +54,6 @@ public class ImapMessageSync extends ImapFlagsHolder {
 
     public void setFolder(ImapFolder folder) {
         this.folder = folder;
-    }
-
-    public Integer getFoldersToCheck() {
-        return foldersToCheck;
-    }
-
-    public void setFoldersToCheck(Integer foldersToCheck) {
-        this.foldersToCheck = foldersToCheck;
-    }
-
-    public Integer getCheckedFolders() {
-        return checkedFolders;
-    }
-
-    public void setCheckedFolders(Integer checkedFolders) {
-        this.checkedFolders = checkedFolders;
     }
 
     public String getNewFolderName() {

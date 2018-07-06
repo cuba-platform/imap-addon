@@ -84,6 +84,22 @@ public class ImapMessageSyncDao {
         }
     }
 
+    public ImapMessageSync findSync(ImapMessage message) {
+        try (Transaction ignored = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            return msgSyncQuery(message, em).getFirstResult();
+        }
+    }
+
+    public void saveSync(ImapMessageSync messageSync) {
+        try (Transaction tx = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            em.merge(messageSync);
+
+            tx.commit();
+        }
+    }
+
     public Collection<ImapMessage> findMessagesForSync(UUID folderId) {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
@@ -119,7 +135,6 @@ public class ImapMessageSyncDao {
                                  ImapSyncStatus syncStatus,
                                  ImapSyncStatus oldStatus,
                                  Flags flags,
-                                 Integer foldersToCheck,
                                  String newFolderName) {
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
@@ -133,9 +148,6 @@ public class ImapMessageSyncDao {
                 if (flags != null) {
                     messageSync.setImapFlags(flags);
                 }
-                if (foldersToCheck != null) {
-                    messageSync.setFoldersToCheck(foldersToCheck);
-                }
                 if (newFolderName != null) {
                     messageSync.setNewFolderName(newFolderName);
                 }
@@ -143,19 +155,6 @@ public class ImapMessageSyncDao {
 
                 tx.commit();
             }
-        }
-    }
-
-    public ImapMessageSync trackCheckedFolder(ImapMessage message) {
-        try (Transaction tx = persistence.createTransaction()) {
-            EntityManager em = persistence.getEntityManager();
-            em.createQuery("update imap$MessageSync ms where ms.message.id = :msgId set ms.checkedFolders = ms.checkedFolders + 1)")
-                    .setParameter("msgId", message)
-                    .executeUpdate();
-
-            tx.commit();
-
-            return msgSyncQuery(message, em).getSingleResult();
         }
     }
 

@@ -28,7 +28,7 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
 
     private final static Logger log = LoggerFactory.getLogger(ImapStandardEventsGenerator.class);
 
-    public static final String NAME = "imap_StandardEventsGenerator";
+    static final String NAME = "imap_StandardEventsGenerator";
 
     private final ImapMessageSyncDao messageSyncDao;
     private final Authentication authentication;
@@ -64,16 +64,17 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
     }
 
     @Override
-    public void init(ImapFolder cubaFolder) {
-        imapSynchronizer.synchronize(cubaFolder);
+    public void init(ImapMailBox imapMailBox) {
+        UUID mailBoxId = imapMailBox.getId();
+        imapSynchronizer.synchronize(mailBoxId);
         syncRefreshers.put(
-                cubaFolder.getId(),
+                mailBoxId,
                 scheduledExecutorService.scheduleWithFixedDelay(
                         () -> {
                             try {
-                                imapSynchronizer.synchronize(cubaFolder);
+                                imapSynchronizer.synchronize(mailBoxId);
                             } catch (Exception e) {
-                                log.error("Syncronization of folder " + cubaFolder.getName() + " failed with error", e);
+                                log.error("Syncronization of mailBox " + mailBoxId + " failed with error", e);
                             }
                         },
                         30, 30, TimeUnit.SECONDS)
@@ -81,8 +82,8 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
     }
 
     @Override
-    public void shutdown(ImapFolder cubaFolder) {
-        ScheduledFuture<?> task = syncRefreshers.remove(cubaFolder.getId());
+    public void shutdown(ImapMailBox imapMailBox) {
+        ScheduledFuture<?> task = syncRefreshers.remove(imapMailBox.getId());
         if (task != null) {
             if (!task.isDone() && !task.isCancelled()) {
                 task.cancel(false);
@@ -97,7 +98,7 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
             if (task != null) {
                 if (!task.isDone() && !task.isCancelled()) {
                     try {
-                        task.cancel(false);
+                        task.cancel(true);
                     } catch (Exception e) {
                         log.warn("Exception while shutting down synchronizer for folder " + taskWithId.getKey(), e);
                     }
@@ -137,18 +138,30 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
     @Override
     public Collection<? extends BaseImapEvent> generateForChangedMessages(ImapFolder cubaFolder, int batchSize) {
         authentication.begin();
+        int i = 0;
         try {
-            Collection<ImapMessageSync> remainMessageSyncs = messageSyncDao.findMessagesSyncs(
-                    cubaFolder.getId(), ImapSyncStatus.REMAIN, batchSize);
+            Collection<BaseImapEvent> updateMessageEvents = new ArrayList<>(batchSize);
+            while (i < batchSize) {
+                Collection<ImapMessageSync> remainMessageSyncs = messageSyncDao.findMessagesSyncs(
+                        cubaFolder.getId(), ImapSyncStatus.REMAIN, batchSize);
 
-            Collection<BaseImapEvent> updateMessageEvents = remainMessageSyncs.stream()
-                    .flatMap(messageSync -> generateUpdateEvents(messageSync).stream())
-                    .collect(Collectors.toList());
+                if (remainMessageSyncs.isEmpty()) {
+                    break;
+                }
 
-            messageSyncDao.removeMessagesSyncs(remainMessageSyncs.stream()
-                    .map(ms -> ms.getMessage().getId())
-                    .distinct()
-                    .collect(Collectors.toList()));
+                for (ImapMessageSync messageSync : remainMessageSyncs) {
+                    List<BaseImapEvent> events = generateUpdateEvents(messageSync);
+                    if (!events.isEmpty()) {
+                        updateMessageEvents.addAll(events);
+                        i++;
+                    }
+                }
+
+                messageSyncDao.removeMessagesSyncs(remainMessageSyncs.stream()
+                        .map(ms -> ms.getMessage().getId())
+                        .distinct()
+                        .collect(Collectors.toList()));
+            }
 
             return updateMessageEvents;
         } catch (Exception e) {
@@ -259,11 +272,6 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
             }
 
             recalculateMessageNumbers(cubaFolder, missedMessageNums);
-
-
-        /*messageSyncDao.removeMessagesSyncs(missedMessageEvents.stream()
-                .map(event -> event.getMessage().getId())
-                .collect(Collectors.toList()));*/
 
             return missedMessageEvents;
         } catch (Exception e) {

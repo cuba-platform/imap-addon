@@ -213,8 +213,6 @@ Component provides following API to interact with IMAP server:
     * `Collection<ImapFolderDto> fetchFolders(ImapMailBox, String...)` - allows to retrieve folders with specified names. 
     Result does not preserve tree structure
     * `List<ImapFolderDto> fetchMessage(ImapMessage)` - allows to fetch single message using reference
-    * `List<ImapMessageDto> fetchMessages(List<ImapMessage>)` - allows to fetch multiple messages using references.
-    Supports fetching from multiple folders and mail boxes
     * `void moveMessage(ImapMessage, String)` - allows to move message to different folder on IMAP server
     * `void deleteMessage(ImapMessage)` - allows to completely delete message from the folder
     * `void setFlag(ImapMessage, ImapFlag, boolean)` - allows to change specified flag of the message, flag can be set or unset

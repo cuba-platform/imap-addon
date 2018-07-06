@@ -60,23 +60,11 @@ public class ImapEvents {
     }
 
     public void init(ImapMailBox mailBox) {
-        for (ImapFolder cubaFolder : mailBox.getProcessableFolders()) {
-            init(cubaFolder);
-        }
-    }
-
-    public void init(ImapFolder cubaFolder) {
-        getEventsGeneratorImplementation(cubaFolder.getMailBox()).init(cubaFolder);
+        getEventsGeneratorImplementation(mailBox).init(mailBox);
     }
 
     public void shutdown(ImapMailBox mailBox) {
-        for (ImapFolder cubaFolder : mailBox.getProcessableFolders()) {
-            shutdown(cubaFolder);
-        }
-    }
-
-    public void shutdown(ImapFolder cubaFolder) {
-        getEventsGeneratorImplementation(cubaFolder.getMailBox()).shutdown(cubaFolder);
+        getEventsGeneratorImplementation(mailBox).shutdown(mailBox);
     }
 
     public void handleNewMessages(ImapFolder cubaFolder) {

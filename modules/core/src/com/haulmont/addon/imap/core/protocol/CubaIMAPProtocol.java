@@ -11,8 +11,8 @@ import java.util.Properties;
 
 public class CubaIMAPProtocol extends IMAPProtocol {
 
-    public CubaIMAPProtocol(String name, String host, int port, Properties props,
-                            boolean isSSL, MailLogger logger) throws IOException, ProtocolException {
+    CubaIMAPProtocol(String name, String host, int port, Properties props,
+                     boolean isSSL, MailLogger logger) throws IOException, ProtocolException {
         super(name, host, port, props, isSSL, logger);
         if (hasCapability("ENABLE")) {
             enable("UTF8=ACCEPT");

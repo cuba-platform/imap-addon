@@ -92,7 +92,6 @@ public class ImapOperations {
         dto.setFullName(fullName(folder));
         dto.setCanHoldMessages(ImapHelper.canHoldMessages(folder));
         dto.setChildren(new ArrayList<>());
-        dto.setImapFolder(folder);
 
         return dto;
 
@@ -116,15 +115,6 @@ public class ImapOperations {
         FetchProfile fetchProfile = new FetchProfile();
         fetchProfile.add(MESSAGE_ID_HEADER);
         return fetch(folder, fetchProfile, messages);
-    }
-
-    public List<IMAPMessage> getAllByUIDs(IMAPFolder folder, long[] messageUIDs, ImapMailBox mailBox) throws MessagingException {
-        if (log.isDebugEnabled()) {
-            log.debug("get messages by messageUIDs {} in {}", Arrays.toString(messageUIDs), folder.getFullName());
-        }
-
-        Message[] messages = folder.getMessagesByUID(messageUIDs);
-        return fetch(folder, mailBox, messages);
     }
 
     public String getRefId(IMAPMessage message) throws MessagingException {

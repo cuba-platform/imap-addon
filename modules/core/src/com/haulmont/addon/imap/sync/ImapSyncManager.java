@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ImapSyncManager implements AppContext.Listener, Ordered {
 
     private final static Logger log = LoggerFactory.getLogger(ImapSyncManager.class);
-    private static boolean TRACK_FOLDER_ACTIVATION = true;
+    private static boolean TRACK_MAILBOX_ACTIVATION = true;
 
     private final ImapDao dao;
     private final ImapEvents imapEvents;
@@ -74,8 +74,8 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
             for (ImapMailBox mailBox : dao.findMailBoxes()) {
                 log.debug("{}: synchronizing", mailBox);
                 UUID mailBoxId = mailBox.getId();
-                CompletableFuture.runAsync(() -> imapEvents.init(mailBox), executor)
-                        .thenCompose(ignore -> mailboxSyncTask(mailBoxId));
+                CompletableFuture.runAsync(() -> imapEvents.init(mailBox), executor);
+                runEventsEmitter(mailBoxId);
             }
         } finally {
             authentication.end();
@@ -116,30 +116,37 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
     }
 
     @EventListener
-    public void handleFolderEvent(ImapFolderSyncActivationEvent event) {
-        if (!TRACK_FOLDER_ACTIVATION) {
+    public void handleActivationEvent(ImapMailboxSyncActivationEvent event) {
+        if (!TRACK_MAILBOX_ACTIVATION) {
             return;
         }
-        ImapFolder cubaFolder = event.getFolder();
+        UUID mailboxId = event.getMailBox().getId();
 
-        if (event.getType() == ImapFolderSyncActivationEvent.Type.ACTIVATE) {
-            CompletableFuture.runAsync(() -> imapEvents.init(cubaFolder), executor);
+        if (event.getType() == ImapMailboxSyncActivationEvent.Type.ACTIVATE) {
+            CompletableFuture.runAsync(() -> imapEvents.init(event.getMailBox()), executor);
+            runEventsEmitter(mailboxId);
         } else {
-            CompletableFuture.runAsync(() -> imapEvents.shutdown(cubaFolder), executor);
+            CompletableFuture.runAsync(() -> imapEvents.shutdown(event.getMailBox()), executor);
+            cancel(syncRefreshers.remove(mailboxId));
+            cancel(syncTasks.remove(mailboxId));
         }
 
     }
 
-    private CompletableFuture<?> mailboxSyncTask(UUID mailboxId) {
+    private void runEventsEmitter(UUID mailboxId) {
         CompletableFuture<?> task = syncTasks.get(mailboxId);
         if (task != null && !task.isDone() && !task.isCancelled()) {
-            return task;
+            return;
         }
 
         CompletableFuture<Void> cf = CompletableFuture.runAsync(() -> {
             authentication.begin();
             try {
-                for (ImapFolder cubaFolder : dao.findMailBox(mailboxId).getProcessableFolders()) {
+                ImapMailBox mailBox = dao.findMailBox(mailboxId);
+                if (mailBox == null) {
+                    return;
+                }
+                for (ImapFolder cubaFolder : mailBox.getProcessableFolders()) {
                     imapEvents.handleNewMessages(cubaFolder);
                     imapEvents.handleMissedMessages(cubaFolder);
                     imapEvents.handleChangedMessages(cubaFolder);
@@ -148,7 +155,7 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
                 authentication.end();
             }
             ScheduledFuture<?> newTask = scheduledExecutorService.schedule(() -> {
-                mailboxSyncTask(mailboxId);
+                runEventsEmitter(mailboxId);
                 syncRefreshers.remove(mailboxId);
             }, 5, TimeUnit.SECONDS);
 
@@ -157,7 +164,6 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
         }, executor);
         syncTasks.put(mailboxId, cf);
         cf.thenRunAsync(() -> syncTasks.remove(mailboxId, cf), executor);
-        return cf;
     }
 
     private void cancel(Future<?> task) {

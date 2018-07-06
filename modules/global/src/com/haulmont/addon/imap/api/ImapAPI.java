@@ -63,13 +63,7 @@ public interface ImapAPI {
      * @throws com.haulmont.addon.imap.exception.ImapException if wrong folder or mailbox connection details are specified in parameter
      */
     ImapMessageDto fetchMessage(ImapMessage message);
-    /**
-     * Retrieve multiple messages, supports retrieval from several mailboxes and folders
-     *
-     * @param messages  reference objects for IMAP messages
-     * @return          fully fetched messages
-     */
-    List<ImapMessageDto> fetchMessages(List<ImapMessage> messages);
+
 
     /**
      * Move message in different folder, if folder is the same - nothing changed,

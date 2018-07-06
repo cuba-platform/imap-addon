@@ -34,29 +34,6 @@ public class ImapAPIServiceBean implements ImapAPIService {
     @Override
     public void testConnection(ImapMailBox box) throws ImapException {
         log.info("Check connection for {}", box);
-        /*try {
-            IMAPStore store = imapHelper.getStore(box);
-            IMAPFolder defaultFolder = (IMAPFolder) store.getDefaultFolder();
-            IMAPFolder folderToExamine;
-            if (ImapHelper.canHoldMessages(defaultFolder)) {
-                folderToExamine = defaultFolder;
-            } else {
-                folderToExamine = null;
-                for (Folder folder : defaultFolder.list("*")) {
-                    if (ImapHelper.canHoldMessages(folder)) {
-                        folderToExamine = (IMAPFolder) folder;
-                        break;
-                    }
-                }
-            }
-            if (folderToExamine != null) {
-                folderToExamine.open(Folder.READ_ONLY);
-                folderToExamine.getMessageCount();
-            }
-        } catch (MessagingException e) {
-            throw new ImapException(e);
-        }*/
-
         fetchFolders(box);
 
     }
@@ -69,11 +46,6 @@ public class ImapAPIServiceBean implements ImapAPIService {
     @Override
     public ImapMessageDto fetchMessage(ImapMessage message) {
         return imapAPI.fetchMessage(message);
-    }
-
-    @Override
-    public List<ImapMessageDto> fetchMessages(List<ImapMessage> messages) {
-        return imapAPI.fetchMessages(messages);
     }
 
     @Override

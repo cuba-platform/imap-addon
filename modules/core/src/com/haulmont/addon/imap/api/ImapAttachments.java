@@ -1,18 +1,16 @@
 package com.haulmont.addon.imap.api;
 
-import com.haulmont.addon.imap.core.FolderKey;
 import com.haulmont.addon.imap.core.ImapHelper;
-import com.haulmont.addon.imap.core.MailboxKey;
-import com.haulmont.addon.imap.core.Task;
 import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
-import com.haulmont.addon.imap.execution.ImapExecutor;
-import com.haulmont.addon.imap.execution.ImmediateTask;
+import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.cuba.core.global.Metadata;
 import com.haulmont.cuba.core.global.TimeSource;
+import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
+import com.sun.mail.imap.IMAPStore;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -20,10 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
-import javax.mail.BodyPart;
-import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.Part;
+import javax.mail.*;
 import javax.mail.internet.MimeUtility;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -39,7 +34,6 @@ public class ImapAttachments implements ImapAttachmentsAPI {
     private final static Logger log = LoggerFactory.getLogger(ImapAttachments.class);
 
     private final ImapHelper imapHelper;
-    private final ImapExecutor imapExecutor;
     private final ImapDao dao;
     private final TimeSource timeSource;
     private final Metadata metadata;
@@ -47,12 +41,10 @@ public class ImapAttachments implements ImapAttachmentsAPI {
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public ImapAttachments(ImapHelper imapHelper,
-                           ImapExecutor imapExecutor,
                            ImapDao dao,
                            TimeSource timeSource,
                            Metadata metadata) {
         this.imapHelper = imapHelper;
-        this.imapExecutor = imapExecutor;
         this.dao = dao;
         this.timeSource = timeSource;
         this.metadata = metadata;
@@ -75,17 +67,24 @@ public class ImapAttachments implements ImapAttachmentsAPI {
         ImapMailBox mailBox = msg.getFolder().getMailBox();
         String folderName = msg.getFolder().getName();
 
-        Collection<ImapMessageAttachment> attachments = imapExecutor.invokeImmediate(new ImmediateTask<>(
-                new FolderKey(new MailboxKey(mailBox), folderName),
-                imapFolder -> {
-                    IMAPMessage imapMsg = (IMAPMessage) imapFolder.getMessageByUID(msg.getMsgUid());
-                    return makeAttachments(imapMsg);
-                },
-                "fetching attachments of message with uid " + msg.getMsgUid()
-        ));
+        try {
+            IMAPStore store = imapHelper.getStore(mailBox);
+            try {
+                IMAPFolder imapFolder = (IMAPFolder) store.getFolder(folderName);
+                imapFolder.open(Folder.READ_ONLY);
+                IMAPMessage imapMsg = (IMAPMessage) imapFolder.getMessageByUID(msg.getMsgUid());
+                Collection<ImapMessageAttachment> attachments = makeAttachments(imapMsg);
 
-        dao.saveAttachments(msg, attachments);
-        return attachments;
+                dao.saveAttachments(msg, attachments);
+                return attachments;
+
+            } finally {
+                store.close();
+            }
+        } catch (MessagingException e) {
+            throw new ImapException(e);
+        }
+
     }
 
     private Collection<ImapMessageAttachment> makeAttachments(IMAPMessage msg) throws MessagingException {
@@ -145,23 +144,28 @@ public class ImapAttachments implements ImapAttachmentsAPI {
         ImapMailBox mailBox = msg.getFolder().getMailBox();
         String folderName = msg.getFolder().getName();
 
-        return imapExecutor.invokeImmediate(new ImmediateTask<>(
-                new FolderKey(new MailboxKey(mailBox), folderName),
-                imapFolder -> {
-                    IMAPMessage imapMessage = (IMAPMessage) imapFolder.getMessageByUID(msg.getMsgUid());
-                    imapMessage.setPeek(true);
-                    try {
-                        Multipart multipart = (Multipart) imapMessage.getContent();
+        try {
+            IMAPStore store = imapHelper.getStore(mailBox);
+            try {
+                IMAPFolder imapFolder = (IMAPFolder) store.getFolder(folderName);
+                imapFolder.open(Folder.READ_ONLY);
+                IMAPMessage imapMessage = (IMAPMessage) imapFolder.getMessageByUID(msg.getMsgUid());
+                imapMessage.setPeek(true);
+                try {
+                    Multipart multipart = (Multipart) imapMessage.getContent();
 
-                        BodyPart imapAttachment = multipart.getBodyPart(attachment.getOrderNumber());
+                    BodyPart imapAttachment = multipart.getBodyPart(attachment.getOrderNumber());
 
-                        return IOUtils.toByteArray(imapAttachment.getInputStream());
-                    } catch (IOException e) {
-                        throw new RuntimeException("Can't read content of attachment/message", e);
-                    }
-                },
-                "fetch content for attachment#" + attachment.getOrderNumber()
-                        + " of message with uid " + msg.getMsgUid()
-        ));
+                    return IOUtils.toByteArray(imapAttachment.getInputStream());
+                } catch (IOException e) {
+                    throw new RuntimeException("Can't read content of attachment/message", e);
+                }
+
+            } finally {
+                store.close();
+            }
+        } catch (MessagingException e) {
+            throw new ImapException(e);
+        }
     }
 }

@@ -23,11 +23,6 @@ public interface ImapConfig extends Config {
     boolean getClearCustomFlags();
     void setClearCustomFlags(boolean value);
 
-    @Property("imap.fetchMessagesMaxParallelism")
-    @DefaultInt(10)
-    int getFetchMessagesMaxParallelism();
-    void setFetchMessagesMaxParallelism(int value);
-
     @Property("imap.debug")
     @DefaultBoolean(false)
     boolean getDebug();

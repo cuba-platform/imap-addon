@@ -73,7 +73,7 @@ class ImapEventsSpec extends Specification {
     private ImapFolder INBOX
 
     void setup() {
-        ImapSyncManager.TRACK_FOLDER_ACTIVATION = false
+        ImapSyncManager.TRACK_MAILBOX_ACTIVATION = false
         eventListener = AppBeans.get(ImapEventsTestListener)
         imapEvents = AppBeans.get(ImapEvents)
         imapDao = AppBeans.get(ImapDao)
@@ -97,8 +97,6 @@ class ImapEventsSpec extends Specification {
         and: "INBOX is configured to handle new message events"
         INBOX = inbox(mailBoxConfig, [ImapEventType.NEW_EMAIL])
         imapEvents.init(mailBoxConfig)
-
-        Thread.sleep(100)
 
         when: "check for new messages"
         eventListener.events.clear()
@@ -142,8 +140,6 @@ class ImapEventsSpec extends Specification {
         and: "sync was initialized"
         imapEvents.init(mailBoxConfig)
 
-        Thread.sleep(100)
-
         when: "check for modified messages"
         eventListener.events.clear()
         imapEvents.handleChangedMessages(INBOX)
@@ -181,8 +177,6 @@ class ImapEventsSpec extends Specification {
         }
         and: "sync was initialized"
         imapEvents.init(mailBoxConfig)
-
-        Thread.sleep(100)
 
         when: "check for modified messages"
         eventListener.events.clear()
@@ -223,8 +217,6 @@ class ImapEventsSpec extends Specification {
         }
         and: "sync was initialized"
         imapEvents.init(mailBoxConfig)
-
-        Thread.sleep(100)
 
         when: "check for missed messages"
         eventListener.events.clear()
@@ -294,8 +286,6 @@ class ImapEventsSpec extends Specification {
         and: "sync was initialized"
         imapEvents.init(mailBoxConfig)
 
-        Thread.sleep(100)
-
         when: "check for modified messages"
         eventListener.events.clear()
         imapEvents.handleChangedMessages(INBOX)
@@ -356,7 +346,7 @@ class ImapEventsSpec extends Specification {
     }
 
     //todo: fix this test
-    /*@SuppressWarnings("GroovyAccessibility")
+    @SuppressWarnings("GroovyAccessibility")
     def "message has been moved"() {
         given: "other folder and trash folder exist for mailbox"
         ImapHostManager imapManager = mailServer.managers.imapHostManager
@@ -406,8 +396,6 @@ class ImapEventsSpec extends Specification {
         and: "sync was initialized"
         imapEvents.init(mailBoxConfig)
 
-        Thread.sleep(1000)
-
         when: "check for missed messages"
         eventListener.events.clear()
         imapEvents.handleMissedMessages(INBOX)
@@ -432,7 +420,7 @@ class ImapEventsSpec extends Specification {
                     it.newFolderName == "other-folder" &&
                     it.oldFolderName == "INBOX"
         } == 1
-    }*/
+    }
 
     @SuppressWarnings("GroovyAssignabilityCheck")
     void deliverDefaultMessage(subject, uid, flags = null, messageId = null) {

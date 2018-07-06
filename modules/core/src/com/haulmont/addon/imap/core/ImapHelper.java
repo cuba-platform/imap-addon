@@ -29,7 +29,7 @@ public class ImapHelper {
     private final ImapDao dao;
 
     static {
-        System.setProperty("mail.imap.parse.debug", "true");
+//        System.setProperty("mail.imap.parse.debug", "true");
 //        System.setProperty("mail.mime.decodefilename", "true");
     }
 
@@ -38,16 +38,6 @@ public class ImapHelper {
                       ImapDao dao) {
         this.imapStoreBuilder = imapStoreBuilder;
         this.dao = dao;
-    }
-
-    public IMAPStore store(MailboxKey mailboxKey) throws MessagingException {
-        ImapMailBox mailBox = dao.findMailBox(mailboxKey.id);
-        return buildStore(mailBox);
-    }
-
-    public IMAPStore store(MailboxKey mailboxKey, String password) throws MessagingException {
-        ImapMailBox mailBox = dao.findMailBox(mailboxKey.id);
-        return buildStore(mailBox, password);
     }
 
     public IMAPStore getStore(ImapMailBox box) throws MessagingException {
@@ -135,7 +125,7 @@ public class ImapHelper {
         return store;
     }
 
-    public static boolean canHoldMessages(Folder folder) throws MessagingException {
+    static boolean canHoldMessages(Folder folder) throws MessagingException {
         return (folder.getType() & Folder.HOLDS_MESSAGES) != 0;
     }
 

@@ -10,10 +10,8 @@ import com.haulmont.addon.imap.entity.ImapFolder
 import com.haulmont.addon.imap.entity.ImapMailBox
 import com.haulmont.addon.imap.entity.ImapMessage
 import com.haulmont.addon.imap.entity.ImapSimpleAuthentication
-import com.haulmont.addon.imap.entity.events.ImapPasswordChangedEvent
 import com.haulmont.addon.imap.exception.ImapException
 import com.haulmont.cuba.core.global.AppBeans
-import com.haulmont.cuba.core.global.Events
 import com.icegreen.greenmail.imap.ImapConstants
 import com.icegreen.greenmail.imap.ImapHostManager
 import com.icegreen.greenmail.store.StoredMessage
@@ -198,7 +196,6 @@ class ImapAPISpec extends Specification {
                     .executeUpdate()
             em.flush()
         }
-        AppBeans.get(Events).publish(new ImapPasswordChangedEvent(mailBoxConfig, mailBoxConfig.authentication.password))
         imapAPI.fetchMessage(imapMessage)
 
         then: "exception is raised"
@@ -325,72 +322,6 @@ class ImapAPISpec extends Specification {
         messages.size() == 1
         messages[0].getSubject() == EMAIL_SUBJECT + "_moved"
         folder.getUID(messages[0]) == STARTING_EMAIL_UID
-    }
-
-
-    def "fetch multiple messages from one folder"() {
-        given: "2 messages in INBOX, 3 messages in other 2 folders and 2 messages in other mailbox INBOX"
-        GreenMail mailServer2 = new GreenMail(new ServerSetup(mailServer.getImap().port + 99, null, ServerSetup.PROTOCOL_IMAP))
-        mailServer2.start()
-        GreenMailUser user2 = mailServer2.setUser(EMAIL_USER_ADDRESS, USER_NAME, USER_PASSWORD)
-        ImapMailBox mailBoxConfig2 = mailbox(mailServer2, user2)
-
-        deliverDefaultMessage(EMAIL_SUBJECT + 1, STARTING_EMAIL_UID)
-        deliverDefaultMessage(EMAIL_SUBJECT + 2, STARTING_EMAIL_UID + 1)
-        deliverDefaultMessage(EMAIL_SUBJECT + 3, STARTING_EMAIL_UID + 2)
-        deliverDefaultMessage(EMAIL_SUBJECT + 4, STARTING_EMAIL_UID + 3)
-        deliverDefaultMessage(EMAIL_SUBJECT + 5, STARTING_EMAIL_UID + 4)
-        deliverDefaultMessage(EMAIL_SUBJECT + 6, STARTING_EMAIL_UID, user2)
-        deliverDefaultMessage(EMAIL_SUBJECT + 7, STARTING_EMAIL_UID + 1, user2)
-
-        ImapMessage imapMessage1 = defaultMessage(STARTING_EMAIL_UID)
-        ImapMessage imapMessage2 = defaultMessage(STARTING_EMAIL_UID + 1)
-        ImapMessage imapMessage3 = defaultMessage(STARTING_EMAIL_UID + 2)
-        ImapMessage imapMessage4 = defaultMessage(STARTING_EMAIL_UID + 3)
-        ImapMessage imapMessage5 = defaultMessage(STARTING_EMAIL_UID + 4)
-        ImapMessage imapMessage6 = defaultMessage(STARTING_EMAIL_UID, mailBoxConfig2)
-        ImapMessage imapMessage7 = defaultMessage(STARTING_EMAIL_UID + 1, mailBoxConfig2)
-        ImapMessage imapMessage_missed1 = defaultMessage(STARTING_EMAIL_UID + 5)
-        ImapMessage imapMessage_missed2 = defaultMessage(STARTING_EMAIL_UID + 6)
-
-        imapAPI.moveMessage(imapMessage1, "root2")
-        imapMessage1.msgUid = STARTING_EMAIL_UID
-        imapMessage1.folder.name = "root2"
-        imapAPI.moveMessage(imapMessage3, "root2")
-        imapMessage3.msgUid = STARTING_EMAIL_UID + 1
-        imapMessage3.folder.name = "root2"
-        imapAPI.moveMessage(imapMessage4, "root0")
-        imapMessage4.msgUid = STARTING_EMAIL_UID
-        imapMessage4.folder.name = "root0"
-        imapAPI.applicationStarted()
-
-        when: "fetch messages from INBOX"
-        def inboxMessages = imapAPI.fetchMessages([imapMessage5, imapMessage_missed1, imapMessage2, imapMessage_missed2])
-
-        then: "only messages with matched UIDs are returned"
-        inboxMessages.size() == 2
-        inboxMessages.collect{it.subject} == [EMAIL_SUBJECT + 5, EMAIL_SUBJECT + 2]
-        inboxMessages.every {it.folderName == "INBOX"}
-
-        when: "fetch messages across multiple folders"
-        inboxMessages = imapAPI.fetchMessages([imapMessage1, imapMessage4, imapMessage2, imapMessage5, imapMessage_missed2, imapMessage3])
-
-        then: "all matched messages are returned"
-        inboxMessages.size() == 5
-        inboxMessages.collect{it.subject} == [EMAIL_SUBJECT + 1, EMAIL_SUBJECT + 4, EMAIL_SUBJECT + 2, EMAIL_SUBJECT + 5, EMAIL_SUBJECT + 3]
-        inboxMessages.collect{it.folderName} == ["root2", "root0", "INBOX", "INBOX", "root2"]
-
-        when: "fetch messages across multiple folders and mailboxes"
-        inboxMessages = imapAPI.fetchMessages([imapMessage_missed1, imapMessage3, imapMessage6, imapMessage5, imapMessage7, imapMessage1])
-
-        then: "all matched messages are returned"
-        inboxMessages.size() == 5
-        inboxMessages.collect{it.subject} == [EMAIL_SUBJECT + 3, EMAIL_SUBJECT + 6, EMAIL_SUBJECT + 5, EMAIL_SUBJECT + 7, EMAIL_SUBJECT + 1]
-        inboxMessages.collect{it.folderName} == ["root2", "INBOX", "INBOX", "INBOX", "root2"]
-        inboxMessages.collect{it.mailBox.port} == [mailBoxConfig.port, mailBoxConfig2.port, mailBoxConfig.port, mailBoxConfig2.port, mailBoxConfig.port]
-
-        cleanup:
-        mailServer2.stop()
     }
 
     @SuppressWarnings("GroovyAssignabilityCheck")

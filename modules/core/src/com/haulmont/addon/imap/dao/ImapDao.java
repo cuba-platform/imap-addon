@@ -111,6 +111,14 @@ public class ImapDao {
         }
     }
 
+    public void saveMessage(ImapMessage message) {
+        try (Transaction tx = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            em.merge(message);
+            tx.commit();
+        }
+    }
+
     public void saveAttachments(ImapMessage msg, Collection<ImapMessageAttachment> attachments) {
         try (Transaction tx = persistence.createTransaction()) {
             log.trace("storing {} for message {} and mark loaded", attachments, msg);

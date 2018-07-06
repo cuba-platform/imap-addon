@@ -15,7 +15,7 @@ import com.haulmont.cuba.core.entity.FileDescriptor;
 import com.haulmont.cuba.core.entity.annotation.Listeners;
 import javax.validation.constraints.NotNull;
 
-@Listeners({"imap_MailboxPasswordListener", "imap_MailboxFlagListener"})
+@Listeners({"imap_MailboxListener"})
 @NamePattern("%s:%s (%s)|host,port,name")
 @Table(name = "IMAP_MAIL_BOX")
 @Entity(name = "imap$MailBox")

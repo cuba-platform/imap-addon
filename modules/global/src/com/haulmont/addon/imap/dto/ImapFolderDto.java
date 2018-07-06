@@ -47,8 +47,6 @@ public class ImapFolderDto extends BaseUuidEntity {
     @MetaProperty
     private ImapFolderDto parent;
 
-    private transient IMAPFolder imapFolder;
-
     public List<ImapFolderDto> getChildren() {
         return children;
     }
@@ -87,14 +85,6 @@ public class ImapFolderDto extends BaseUuidEntity {
 
     public void setCanHoldMessages(Boolean canHoldMessages) {
         this.canHoldMessages = canHoldMessages;
-    }
-
-    public IMAPFolder getImapFolder() {
-        return imapFolder;
-    }
-
-    public void setImapFolder(IMAPFolder imapFolder) {
-        this.imapFolder = imapFolder;
     }
 
     @Override
