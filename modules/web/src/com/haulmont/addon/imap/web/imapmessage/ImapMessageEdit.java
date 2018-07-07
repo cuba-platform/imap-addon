@@ -60,10 +60,6 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
             resource.setMIMEType(FileTypesHelper.getMIMEType(attachment.getName()));
             fileDownloader.downloadFile(resource);
 
-            /*exportDisplay.show(
-                    new ByteArrayDataProvider(imapAPI.loadFile(attachment)),
-                    attachment.getName()
-            );*/
         });
     }
 
