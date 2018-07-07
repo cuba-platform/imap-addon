@@ -8,6 +8,7 @@ import com.haulmont.cuba.core.global.FileTypesHelper;
 import com.haulmont.cuba.gui.components.AbstractEditor;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.cuba.gui.components.Label;
+import com.haulmont.cuba.gui.components.ProgressBar;
 import com.haulmont.cuba.gui.components.Table;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
@@ -23,6 +24,7 @@ import javax.inject.Inject;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings("CdiInjectionPointsInspection")
 public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
@@ -38,6 +40,8 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
     @Inject
     private Label bodyContent;
     @Inject
+    private ProgressBar progressBar;
+    @Inject
     private BackgroundWorker backgroundWorker;
 
     @Override
@@ -46,8 +50,9 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
 
         ImapMessage imapMessage = (ImapMessage) item;
 
-        initBody(imapMessage);
-        initAttachments(imapMessage);
+        AtomicInteger loadProgress = new AtomicInteger(0);
+        initBody(imapMessage, loadProgress);
+        initAttachments(imapMessage, loadProgress);
     }
 
     public void downloadAttachment() {
@@ -63,24 +68,34 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
         });
     }
 
-    private void initBody(ImapMessage msg) {
-        BackgroundTaskHandler taskHandler = backgroundWorker.handle(new InitBodyTask(msg));
+    private void initBody(ImapMessage msg, AtomicInteger loadProgress) {
+        BackgroundTaskHandler taskHandler = backgroundWorker.handle(new InitBodyTask(msg, loadProgress));
         taskHandler.execute();
     }
 
-    private void initAttachments(ImapMessage msg) {
+    private void initAttachments(ImapMessage msg, AtomicInteger loadProgress) {
         if (!Boolean.TRUE.equals(msg.getAttachmentsLoaded())) {
-            BackgroundTaskHandler taskHandler = backgroundWorker.handle(new InitAttachmentTask(msg));
+            BackgroundTaskHandler taskHandler = backgroundWorker.handle(new InitAttachmentTask(msg, loadProgress));
             taskHandler.execute();
+        } else {
+            hideProgressBar(loadProgress);
+        }
+    }
+
+    private void hideProgressBar(AtomicInteger loadProgress) {
+        if (loadProgress.incrementAndGet() == 2) {
+            progressBar.setVisible(false);
         }
     }
 
     private class InitBodyTask extends BackgroundTask<Integer, ImapMessageDto> {
         private final ImapMessage message;
+        private final AtomicInteger loadProgress;
 
-        InitBodyTask(ImapMessage message) {
+        InitBodyTask(ImapMessage message, AtomicInteger loadProgress) {
             super(0, ImapMessageEdit.this);
             this.message = message;
+            this.loadProgress = loadProgress;
         }
 
         @Override
@@ -98,6 +113,7 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
             imapMessageDtoDs.setItem(dto);
             bodyContent.setHtmlEnabled(dto.getHtml());
             bodyContent.setValue(dto.getBody());
+            hideProgressBar(loadProgress);
         }
 
         @Override
@@ -108,10 +124,12 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
 
     private class InitAttachmentTask extends BackgroundTask<Integer, Void> {
         private final ImapMessage msg;
+        private final AtomicInteger loadProgress;
 
-        InitAttachmentTask(ImapMessage msg) {
+        InitAttachmentTask(ImapMessage msg, AtomicInteger loadProgress) {
             super(0, ImapMessageEdit.this);
             this.msg = msg;
+            this.loadProgress = loadProgress;
         }
 
         @Override
@@ -128,6 +146,7 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
         @Override
         public void done(Void ignore) {
             imapDemoAttachmentsDs.refresh();
+            hideProgressBar(loadProgress);
         }
 
         @Override

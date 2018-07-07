@@ -26,6 +26,7 @@
                 width="800"/>
     <layout expand="scrollBox"
             spacing="true">
+        <progressBar id="progressBar" width="100%" indeterminate="true"/>
         <scrollBox id="scrollBox"
                    spacing="true">
             <hbox id="fields"
