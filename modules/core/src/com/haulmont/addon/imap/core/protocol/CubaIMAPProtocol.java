@@ -35,10 +35,13 @@ public class CubaIMAPProtocol extends IMAPProtocol {
             r = new FetchResponse(r, getFetchItems()) {
                 @Override
                 public boolean isNextNonSpace(char c) {
-                    // we need to set UTF-8 since each response from server rely on it (see toString(byte[] buffer, int start, int end) of com.sun.mail.iap.Response
-                    // and there are some attachments with non-mime encoded filename disposition parameter containing UTF-8
-                    // basically this should be resolved via support of capability 'UTF8=ACCEPT' (it should be enabled during authentication)
-                    // however it leads to "BAD [CLIENTBUG] SELECT Folder encoding error" response while open folder for some IMAP servers, e.g. yandex
+                    // we need to set UTF-8 since each response from server rely on it
+                    // (see toString(byte[] buffer, int start, int end) of com.sun.mail.iap.Response
+                    // and there are some attachments with non-mime encoded filename parameter containing UTF-8
+                    // basically this should be resolved via support of capability 'UTF8=ACCEPT',
+                    // which should be enabled during authentication
+                    // however it leads to "BAD [CLIENTBUG] SELECT Folder encoding error" response while open folder
+                    // for some IMAP servers, e.g. yandex
                     // see writeMailboxName method of IMAPProtocol for encoding options
                     utf8 = true;
                     return super.isNextNonSpace(c);
@@ -47,14 +50,4 @@ public class CubaIMAPProtocol extends IMAPProtocol {
         return r;
     }
 
-//    @Override
-//    public boolean supportsUtf8() {
-        // we need to set UTF-8 since each response from server rely on it (see toString(byte[] buffer, int start, int end) of com.sun.mail.iap.Response
-        // and there are some attachments with non-mime encoded filename disposition parameter
-        // basically this should be resolved via support of capability 'UTF8=ACCEPT' (it should be enabled during authentication)
-        // however it leads to "BAD [CLIENTBUG] SELECT Folder encoding error" response while open folder (see writeMailboxName method for encoding options)
-        // for some IMAP servers, e.g. yandex
-
-//        return true;
-//    }
 }
