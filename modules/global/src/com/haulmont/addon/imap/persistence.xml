@@ -10,7 +10,6 @@
         <class>com.haulmont.addon.imap.entity.ImapFolderEvent</class>
         <class>com.haulmont.addon.imap.entity.ImapEventHandler</class>
         <class>com.haulmont.addon.imap.entity.ImapProxy</class>
-        <class>com.haulmont.addon.imap.entity.ImapFlagsHolder</class>
         <class>com.haulmont.addon.imap.entity.ImapMessage</class>
         <class>com.haulmont.addon.imap.entity.ImapMessageSync</class>
         <class>com.haulmont.addon.imap.entity.ImapMessageAttachment</class>

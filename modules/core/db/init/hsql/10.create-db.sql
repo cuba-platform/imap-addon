@@ -164,13 +164,12 @@ create table IMAP_PROXY (
 -- begin IMAP_MESSAGE_SYNC
 create table IMAP_MESSAGE_SYNC (
     ID varchar(36) not null,
-    VERSION integer not null,
-    CREATE_TS timestamp,
-    CREATED_BY varchar(50),
     UPDATE_TS timestamp,
     UPDATED_BY varchar(50),
-    DELETE_TS timestamp,
-    DELETED_BY varchar(50),
+    CREATE_TS timestamp,
+    CREATED_BY varchar(50),
+    VERSION integer not null,
+    --
     FLAGS longvarchar,
     --
     MESSAGE_ID varchar(36) not null,
