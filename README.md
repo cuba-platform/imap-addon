@@ -183,40 +183,41 @@ There you can specify required beans and methods for them.
 
 #### Event types
 
-All events contain `ImapMessage` object that can be used to determine where an event occurs (mailbox, folder, message)
+All events contain the `ImapMessage` object that can be used to determine where an event occurs (mailbox, folder, message).
 
-The application component allows the following kind of IMAP events:
+The application component supports the following kinds of IMAP events:
 
-* `NewEmailImapEvent` is triggered for folder having event with type `ImapEventType.NEW_EMAIL` enabled 
-when new message arrives to the folder on IMAP server
-* `EmailSeenImapEvent` is triggered for folder having event with type `ImapEventType.EMAIL_SEEN` enabled 
-when message is marked with IMAP flag `javax.mail.Flags.Flag.SEEN` 
-* `EmailAnsweredImapEvent` is triggered for folder having event with type `ImapEventType.NEW_ANSWER` enabled 
-when message is replied (usually it happens through marking message with IMAP flag `javax.mail.Flags.Flag.ANSWERED`)
-* `EmailFlagChangedImapEvent` is triggered for folder having event with type `ImapEventType.FLAGS_UPDATED` enabled 
-when message gets any IMAP flag changed, including both standard and custom flags. 
-Event contains `Map` holding changed flags accompanied with actual state (set or unset)
-* `EmailDeletedImapEvent` is triggered for folder having event with type `ImapEventType.EMAIL_DELETED` enabled 
-when message is completely deleted from folder on IMAP server, it is **not** related to IMAP flag `javax.mail.Flags.Flag.DELETED`. 
-Such events are also triggered when message is moved to trash folder on server in case `ImapMailBox` was configured with trash folder in place 
-* `EmailMovedImapEvent` is triggered for folder having event with type `ImapEventType.EMAIL_MOVED` enabled 
-when message is moved to other folder on IMAP server. 
-**NOTICE**: standard implementation tracks only folders which are selected in `ImapMailBox` configuration not counting trash folder if such was configured
-* `NewThreadImapEvent` is not implemented yet
+* `NewEmailImapEvent` is triggered for a folder having an event of the `ImapEventType.NEW_EMAIL` type enabled,
+when a new message appears in the folder on the IMAP server.
+* `EmailSeenImapEvent` is triggered for a folder having an event of the `ImapEventType.EMAIL_SEEN` type enabled,
+when a message is marked with the `javax.mail.Flags.Flag.SEEN` IMAP flag.
+* `EmailAnsweredImapEvent` is triggered for a folder having an event of the `ImapEventType.NEW_ANSWER` type enabled,
+when a message is replied (usually it happens when a message is marked with the `javax.mail.Flags.Flag.ANSWERED` IMAP flag).
+* `EmailFlagChangedImapEvent` is triggered for a folder having an event of the `ImapEventType.FLAGS_UPDATED` type enabled,
+when a standard or custom IMAP flag is changed for a message.
+The event contains a `Map` of all changed flags and their actual state (set or unset).
+* `EmailDeletedImapEvent` is triggered for a folder having an event of the `ImapEventType.EMAIL_DELETED` type enabled,
+when a message is completely deleted from a folder on the IMAP server side, it is **not** related to the IMAP flag `javax.mail.Flags.Flag.DELETED`. 
+Such events are also triggered when a message is moved to a trash folder (if it is configured for a mailbox) on the server.
+* `EmailMovedImapEvent` is triggered for a folder having an event of the `ImapEventType.EMAIL_MOVED` type enabled,
+when a message is moved to another folder on the IMAP server. 
+**Note**: the standard implementation tracks only folders which are selected in the `ImapMailBox` configuration,
+but does not count a trash folder, if one is configured.
+* `NewThreadImapEvent` is not implemented yet.
 
 ### Using API
 
-Component provides following API to interact with IMAP server:
+The component provides the following API to interact with the IMAP server:
 
-* `ImapAPI` having methods:
-    * `Collection<ImapFolderDto> fetchFolders(ImapMailBox)` - allows to retrieve all folders preserving tree structure. 
-    * `Collection<ImapFolderDto> fetchFolders(ImapMailBox, String...)` - allows to retrieve folders with specified names. 
-    Result does not preserve tree structure
-    * `List<ImapFolderDto> fetchMessage(ImapMessage)` - allows to fetch single message using reference
-    * `void moveMessage(ImapMessage, String)` - allows to move message to different folder on IMAP server
-    * `void deleteMessage(ImapMessage)` - allows to completely delete message from the folder
-    * `void setFlag(ImapMessage, ImapFlag, boolean)` - allows to change specified flag of the message, flag can be set or unset
-* `ImapAttachmentsAPI` having methods:
-    * `Collection<ImapMessageAttachment> fetchAttachments(ImapMessage)` - allows to retrieve attachments of the message. 
-    Result contains only meta data, no content
-    * `InputStream openStream(ImapMessageAttachment)` and `byte[] loadFile(ImapMessageAttachment` - allow to retrieve content of the message attachment
+* `ImapAPI` methods:
+    * `Collection<ImapFolderDto> fetchFolders(ImapMailBox)` — retrieves all folders preserving the tree structure. 
+    * `Collection<ImapFolderDto> fetchFolders(ImapMailBox, String...)` — retrieves folders with the specified names. 
+    The result is not structured as a tree.
+    * `List<ImapFolderDto> fetchMessage(ImapMessage)` — fetches a single message using a reference.
+    * `void moveMessage(ImapMessage, String)` — moves a message to a different folder on the IMAP server side.
+    * `void deleteMessage(ImapMessage)` — deletes a message from a folder.
+    * `void setFlag(ImapMessage, ImapFlag, boolean)` — sets or unsets a specified flag for a message.
+* `ImapAttachmentsAPI` methods:
+    * `Collection<ImapMessageAttachment> fetchAttachments(ImapMessage)` — retrieves attachments included in a message. 
+    The result contains only meta data, no content.
+    * `InputStream openStream(ImapMessageAttachment)` and `byte[] loadFile(ImapMessageAttachment` — retrieve the content of a message attachment.
