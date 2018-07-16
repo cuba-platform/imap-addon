@@ -4,6 +4,12 @@
 
 # Table of Contents
 
+- [Overview](#overview)
+- [Getting Started](#getting-started)
+    - [Installation](#installation)
+- [Component Functionalities](#component-functionalities)
+- [Configuration](#configuration)
+
 # Overview
 
 The IMAP-addon provides a readily available instrument for integrating email messaging into any CUBA-based application 
@@ -116,7 +122,7 @@ The table shows a list of folders from the email server you are connected to. In
 use the checkboxes in the second column. If some folder is disabled, then messages from it are not retrieved.
 
 For each folder you can select a set of IMAP events by using the *Events* table and register custom logic for them 
-(for more details, please refer to []()).
+(for more details, please refer to [Configuration](#configuration)).
 
 ## IMAP Message Browser
 
@@ -181,7 +187,7 @@ each representing a certain event type (e.g. New, Seen, Replied, etc.). Clicking
 
 There you can specify required beans and methods for them.
 
-#### Event types
+### Event types
 
 All events contain the `ImapMessage` object that can be used to determine where an event occurs (mailbox, folder, message).
 
@@ -205,7 +211,7 @@ when a message is moved to another folder on the IMAP server.
 but does not count a trash folder, if one is configured.
 * `NewThreadImapEvent` is not implemented yet.
 
-### Using API
+## Using API
 
 The component provides the following API to interact with the IMAP server:
 
