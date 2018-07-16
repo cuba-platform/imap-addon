@@ -111,7 +111,7 @@ public class Imap implements ImapAPI {
         dto.setMailBox(mailBox);
         try {
             nativeMessage.setPeek(true);
-            ImapHelper.Body body = imapHelper.getText(nativeMessage);
+            ImapHelper.Body body = imapHelper.getBody(nativeMessage);
             dto.setBody(body.getText());
             dto.setHtml(body.isHtml());
         } catch (IOException e) {

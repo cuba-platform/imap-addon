@@ -59,56 +59,54 @@ public class ImapHelper {
         return Boolean.TRUE.equals(supportThreading.get(mailBox.getId()));
     }
 
-    public Body getText(Part p) throws
-            MessagingException, IOException {
-        if (p.isMimeType("text/*")) {
-            Object content = p.getContent();
-            String body = content instanceof InputStream
-                    ? IOUtils.toString((InputStream) p.getContent(), StandardCharsets.UTF_8)
-                    : content.toString();
-            return new Body(body, p.isMimeType("text/html"));
+    public Body getBody(Message message) throws MessagingException, IOException {
+        if (message.isMimeType("text/*")) {
+            return getSinglePartBody(message);
+        } else if (message.isMimeType("multipart/*")) {
+            return getMultipartBody(message);
         }
 
-        if (p.isMimeType("multipart/alternative")) {
-            Object content = p.getContent();
-            if (content instanceof InputStream) {
-                return new Body(IOUtils.toString((InputStream) p.getContent(), StandardCharsets.UTF_8), false);
-            } else if (content instanceof Multipart) {
-                Multipart mp = (Multipart) content;
-                Body body = null;
-                for (int i = 0; i < mp.getCount(); i++) {
-                    Part bp = mp.getBodyPart(i);
-                    if (bp.isMimeType("text/plain")) {
-                        if (body == null) {
-                            body = getText(bp);
-                        }
-                    } else if (bp.isMimeType("text/html")) {
-                        Body b = getText(bp);
-                        if (b != null) {
-                            return b;
-                        }
-                    } else {
-                        return getText(bp);
+        return EMPTY;
+    }
+
+    private Body getMultipartBody(Part p) throws MessagingException, IOException {
+        Object content = p.getContent();
+        if (content instanceof InputStream) {
+            return new Body(IOUtils.toString((InputStream) p.getContent(), StandardCharsets.UTF_8), false);
+        } else if (content instanceof Multipart) {
+            Multipart mp = (Multipart) content;
+            Body body = null;
+            for (int i = 0; i < mp.getCount(); i++) {
+                Part bp = mp.getBodyPart(i);
+                if (bp.isMimeType("text/html")) {
+                    Body b = getSinglePartBody(bp);
+                    if (b != EMPTY) {
+                        return b;
                     }
-                }
-                return body;
-            }
-        } else if (p.isMimeType("multipart/*")) {
-            Object content = p.getContent();
-            if (content instanceof InputStream) {
-                return new Body(IOUtils.toString((InputStream) p.getContent(), StandardCharsets.UTF_8), false);
-            } else if (content instanceof Multipart) {
-                Multipart mp = (Multipart) content;
-                for (int i = 0; i < mp.getCount(); i++) {
-                    Body s = getText(mp.getBodyPart(i));
-                    if (s != null) {
-                        return s;
+                } else if (bp.isMimeType("multipart/*")) {
+                    if (body == null || body == EMPTY) {
+                        body = getMultipartBody(bp);
+                    }
+                } else {
+                    if (body == null || body == EMPTY) {
+                        body = getSinglePartBody(bp);
                     }
                 }
             }
+            return body;
         }
+        return EMPTY;
+    }
 
-        return null;
+    private Body getSinglePartBody(Part p) throws MessagingException, IOException {
+        if (!p.isMimeType("text/*") || Part.ATTACHMENT.equalsIgnoreCase(p.getDisposition())) {
+            return EMPTY;
+        }
+        Object content = p.getContent();
+        String body = content instanceof InputStream
+                ? IOUtils.toString((InputStream) p.getContent(), StandardCharsets.UTF_8)
+                : content.toString();
+        return new Body(body, p.isMimeType("text/html"));
     }
 
     private IMAPStore buildStore(ImapMailBox box) throws MessagingException {
@@ -150,5 +148,7 @@ public class ImapHelper {
             return html;
         }
     }
+
+    private static final Body EMPTY = new Body("", false);
 
 }
