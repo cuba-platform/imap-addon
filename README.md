@@ -102,15 +102,19 @@ a list of folders from the email server to work with.
 The *Advanced* section provides a set of additional options for connecting to an email server.
 
 * *Custom Flag*: specify a custom flag 
-* *Use trash folder to remove emails*: 
-* *Use custom event generator class*: // to do 
+* *Use trash folder to remove emails*: if checked, then it is possible to specify a trash folder of a current mailbox
+(the *Trash Folder* field becomes available). The setting works as follows: if an email is moved to the specified folder on
+the email server, `EmailDeletedImapEvent` occurs (for more details, see [Event Types](#event-types)).
+* *Use custom event generator class*: if checked, it is possible to specify a custom class that defines additional logic
+for connecting to an IMAP server, handling events, etc. If the current setting is enabled, the *Event Generator Class*
+lookup field becomes available.
 * *Use proxy*: if checked, proxy settings become available (see the description below).
 
 ##### *Proxy Configuration*
 
 * *Proxy Host*: provide a host name or IP address of a proxy server.
 * *Proxy Port*: provide a port to connect to a proxy server.
-* *Use web proxy*: // to do
+* *Use web proxy*: if checked, web proxy is used.
 
 #### Table of Folders
 
