@@ -1,7 +1,7 @@
 package com.haulmont.addon.imap.service;
 
 import com.haulmont.addon.imap.events.BaseImapEvent;
-import com.haulmont.addon.imap.sync.events.ImapEventsGenerator;
+import com.haulmont.addon.imap.api.ImapEventsGenerator;
 import com.haulmont.addon.imap.sync.events.ImapStandardEventsGenerator;
 import com.haulmont.cuba.core.app.AbstractBeansMetadata;
 import com.haulmont.cuba.core.app.scheduled.MethodInfo;

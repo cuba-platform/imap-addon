@@ -292,14 +292,6 @@ public class ImapSynchronizer {
     private ImapMessage insertNewMessage(IMAPMessage msg,
                                          ImapFolder cubaFolder) throws MessagingException {
 
-        Flags flags = new Flags(msg.getFlags());
-        /*if (Boolean.TRUE.equals(imapConfig.getClearCustomFlags())) {
-            log.trace("[{}]clear custom flags", cubaFolder);
-            for (String userFlag : flags.getUserFlags()) {
-                flags.remove(userFlag);
-            }
-        }
-        flags.add(cubaFolder.getMailBox().getCubaFlag());*/
         long uid = ((IMAPFolder) msg.getFolder()).getUID(msg);
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
@@ -313,16 +305,7 @@ public class ImapSynchronizer {
                     .size();
             if (sameUIDs == 0) {
                 log.trace("Save new message {}", msg);
-                ImapMessage entity = metadata.create(ImapMessage.class);
-                entity.setMsgUid(uid);
-                entity.setFolder(cubaFolder);
-                entity.setUpdateTs(new Date());
-                entity.setImapFlags(flags);
-                entity.setCaption(imapOperations.getSubject(msg));
-                entity.setMessageId(msg.getHeader(ImapOperations.MESSAGE_ID_HEADER, null));
-                entity.setReferenceId(imapOperations.getRefId(msg));
-                entity.setThreadId(imapOperations.getThreadId(msg, cubaFolder.getMailBox()));
-                entity.setMsgNum(msg.getMessageNumber());
+                ImapMessage entity = imapOperations.map(msg, cubaFolder);
                 em.persist(entity);
 
                 ImapMessageSync messageSync = metadata.create(ImapMessageSync.class);

@@ -2,7 +2,9 @@ package com.haulmont.addon.imap.core;
 
 import com.haulmont.addon.imap.core.ext.ThreadExtension;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
+import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
+import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.cuba.core.global.Metadata;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
@@ -83,7 +85,25 @@ public class ImapOperations {
         return fetch(folder, fetchProfile, messages);
     }
 
-    public String getRefId(IMAPMessage message) throws MessagingException {
+    public ImapMessage map(IMAPMessage msg, ImapFolder cubaFolder) throws MessagingException {
+        long uid = ((IMAPFolder) msg.getFolder()).getUID(msg);
+        Flags flags = new Flags(msg.getFlags());
+
+        ImapMessage entity = metadata.create(ImapMessage.class);
+        entity.setMsgUid(uid);
+        entity.setFolder(cubaFolder);
+        entity.setUpdateTs(new Date());
+        entity.setImapFlags(flags);
+        entity.setCaption(getSubject(msg));
+        entity.setMessageId(msg.getHeader(ImapOperations.MESSAGE_ID_HEADER, null));
+        entity.setReferenceId(getRefId(msg));
+        entity.setThreadId(getThreadId(msg, cubaFolder.getMailBox()));
+        entity.setMsgNum(msg.getMessageNumber());
+
+        return entity;
+    }
+
+    private String getRefId(IMAPMessage message) throws MessagingException {
         String refHeader = message.getHeader(REFERENCES_HEADER, null);
         if (refHeader == null) {
             refHeader = message.getHeader(IN_REPLY_TO_HEADER, null);
@@ -97,7 +117,7 @@ public class ImapOperations {
         return null;
     }
 
-    public Long getThreadId(IMAPMessage message, ImapMailBox mailBox) throws MessagingException {
+    private Long getThreadId(IMAPMessage message, ImapMailBox mailBox) throws MessagingException {
         if (!imapHelper.supportsThreading(mailBox)) {
             return null;
         }
@@ -105,7 +125,7 @@ public class ImapOperations {
         return threadItem instanceof ThreadExtension.X_GM_THRID ? ((ThreadExtension.X_GM_THRID) threadItem).x_gm_thrid : null;
     }
 
-    public String getSubject(IMAPMessage message) throws MessagingException {
+    private String getSubject(IMAPMessage message) throws MessagingException {
         String subject = message.getHeader(SUBJECT_HEADER, null);
         if (subject != null && subject.length() > 0) {
             return decode(subject);

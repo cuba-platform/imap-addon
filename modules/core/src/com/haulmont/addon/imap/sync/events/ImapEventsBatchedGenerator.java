@@ -1,5 +1,6 @@
 package com.haulmont.addon.imap.sync.events;
 
+import com.haulmont.addon.imap.api.ImapEventsGenerator;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.events.BaseImapEvent;
 import org.springframework.util.Assert;

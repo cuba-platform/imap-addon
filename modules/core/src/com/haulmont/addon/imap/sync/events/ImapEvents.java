@@ -1,5 +1,6 @@
 package com.haulmont.addon.imap.sync.events;
 
+import com.haulmont.addon.imap.api.ImapEventsGenerator;
 import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.events.BaseImapEvent;
