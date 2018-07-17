@@ -28,4 +28,9 @@ public interface ImapConfig extends Config {
     boolean getDebug();
     void setDebug(boolean value);
 
+    @Property("imap.timeoutSeconds")
+    @DefaultInt(5)
+    int getTimeoutSeconds();
+    void setTimeoutSeconds(int value);
+
 }

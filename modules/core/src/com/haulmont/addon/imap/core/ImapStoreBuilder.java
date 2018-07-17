@@ -56,8 +56,9 @@ public class ImapStoreBuilder {
 
         Properties props = new Properties(System.getProperties());
         props.setProperty("mail.store.protocol", protocol);
-        props.setProperty("mail." + protocol + ".connectiontimeout", "5000");
-        props.setProperty("mail." + protocol + ".timeout", "5000");
+        String timeout = "" + config.getTimeoutSeconds() * 1000;
+        props.setProperty("mail." + protocol + ".connectiontimeout", timeout);
+        props.setProperty("mail." + protocol + ".timeout", timeout);
         if (mailBox.getSecureMode() == ImapSecureMode.STARTTLS) {
             props.setProperty("mail.imap.starttls.enable", "true");
         }
