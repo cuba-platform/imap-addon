@@ -28,6 +28,7 @@
             spacing="true">
         <progressBar id="progressBar" width="100%" indeterminate="true"/>
         <scrollBox id="scrollBox"
+                   scrollBars="both"
                    spacing="true">
             <hbox id="fields"
                   spacing="true"
