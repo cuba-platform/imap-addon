@@ -107,7 +107,8 @@ The *Advanced* section provides a set of additional options for connecting to an
 the email server, `EmailDeletedImapEvent` occurs (for more details, see [Event Types](#event-types)).
 * *Use custom event generator class*: if checked, it is possible to specify a custom class that defines additional logic
 for connecting to an IMAP server, handling events, etc. If the current setting is enabled, the *Event Generator Class*
-lookup field becomes available.
+lookup field becomes available. To learn how to register a custom event generator class, please refer to 
+[Registering Custom IMAP Implementation Class](#registering-custom-imap-implementation-class).
 * *Use proxy*: if checked, proxy settings become available (see the description below).
 
 ##### *Proxy Configuration*
@@ -230,4 +231,23 @@ The component provides the following API to interact with the IMAP server:
 * `ImapAttachmentsAPI` methods:
     * `Collection<ImapMessageAttachment> fetchAttachments(ImapMessage)` — retrieves attachments included in a message. 
     The result contains only meta data, no content.
-    * `InputStream openStream(ImapMessageAttachment)` and `byte[] loadFile(ImapMessageAttachment` — retrieve the content of a message attachment.
+    * `InputStream openStream(ImapMessageAttachment)` and `byte[] loadFile(ImapMessageAttachment` — retrieve the content
+    of a message attachment.
+    
+## Registering Custom IMAP Implementation Class
+
+In order to configure custom logic for a specific mailbox (e.g for applying IMAP extensions and custom communication 
+mechanisms), it is required to register a custom IMAP implementation class in the source code of your application.
+The example of how to register such class is given below.
+
+```java
+@Component("demo_SimpleSingleFolderNewMessagesEventsGenerator")
+public class SimpleSingleFolderNewMessagesEventsGenerator implements ImapEventsGenerator {
+...
+}
+```
+
+After registering a class implementing `ImapEventsGenerator`, it appears in the dropdown list of the *Event Generator Class*
+field in *IMAP Configuration Editor* (for more details, see [IMAP Configuration Editor](#imap-configuration-editor)).
+
+![Event Generator Class Field](img/event-generator-class.png)
