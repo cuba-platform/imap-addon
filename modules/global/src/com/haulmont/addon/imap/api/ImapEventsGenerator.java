@@ -3,7 +3,6 @@ package com.haulmont.addon.imap.api;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.events.BaseImapEvent;
-import com.haulmont.addon.imap.events.NewEmailImapEvent;
 
 import java.util.Collection;
 
@@ -31,7 +30,7 @@ public interface ImapEventsGenerator {
      *
      * @param folder IMAP mailbox folder
      * @return       events related to new messages in the folder,
-     * can emit not only instances of {@link NewEmailImapEvent}
+     * can emit not only instances of {@link com.haulmont.addon.imap.events.NewEmailImapEvent}
      *
      */
     Collection<? extends BaseImapEvent> generateForNewMessages(ImapFolder folder);
