@@ -28,7 +28,6 @@
             spacing="true">
         <progressBar id="progressBar" width="100%" indeterminate="true"/>
         <scrollBox id="scrollBox"
-                   scrollBars="both"
                    spacing="true">
             <hbox id="fields"
                   spacing="true"
@@ -61,9 +60,12 @@
             <tabSheet>
                 <tab id="bodyTab"
                      caption="msg://bodyTabCaption">
-                    <label id="bodyContent"
-                           height="100%"
-                           htmlEnabled="true"/>
+                    <scrollBox scrollBars="both">
+                        <label id="bodyContent"
+                               height="100%"
+                               htmlEnabled="true"/>
+                    </scrollBox>
+
                 </tab>
                 <tab id="attachmentsTab"
                      caption="msg://attachmentsTabCaption"
