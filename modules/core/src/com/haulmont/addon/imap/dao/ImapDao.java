@@ -41,7 +41,7 @@ public class ImapDao {
             return em.createQuery(
                     "select distinct b from imap$MailBox b where b.id = :id",
                     ImapMailBox.class
-            ).setParameter("id", id).setViewName("imap-mailbox-edit").getSingleResult();
+            ).setParameter("id", id).setViewName("imap-mailbox-edit").getFirstResult();
         }
     }
 

@@ -12,7 +12,6 @@ import com.haulmont.cuba.core.global.DeletePolicy;
 
 import javax.validation.constraints.NotNull;
 import com.haulmont.chile.core.annotations.NamePattern;
-import com.haulmont.cuba.core.entity.annotation.EmbeddedParameters;
 
 import java.io.IOException;
 import java.util.ArrayList;

@@ -49,6 +49,7 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
     });
 
     private final ConcurrentMap<UUID, ScheduledFuture<?>> syncRefreshers = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, ExecutorService> syncTasks = new ConcurrentHashMap<>();
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
@@ -66,27 +67,51 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
     @Override
     public void init(ImapMailBox imapMailBox) {
         UUID mailBoxId = imapMailBox.getId();
-        imapSynchronizer.synchronize(mailBoxId);
-        syncRefreshers.put(
-                mailBoxId,
-                scheduledExecutorService.scheduleWithFixedDelay(
-                        () -> {
-                            try {
-                                imapSynchronizer.synchronize(mailBoxId);
-                            } catch (Exception e) {
-                                log.error("Syncronization of mailBox " + mailBoxId + " failed with error", e);
-                            }
-                        },
-                        30, 30, TimeUnit.SECONDS)
-        );
+        ExecutorService syncTask = Executors.newSingleThreadExecutor();
+        Future<?> task = syncTask.submit(() -> {
+            imapSynchronizer.synchronize(mailBoxId);
+            syncRefreshers.put(
+                    mailBoxId,
+                    scheduledExecutorService.scheduleWithFixedDelay(
+                            () -> {
+                                try {
+                                    imapSynchronizer.synchronize(mailBoxId);
+                                } catch (Exception e) {
+                                    log.error("Syncronization of mailBox " + mailBoxId + " failed with error", e);
+                                }
+                            },
+                            30, 30, TimeUnit.SECONDS)
+            );
+            syncTasks.remove(mailBoxId);
+        });
+        syncTasks.put(mailBoxId, syncTask);
+        try {
+            task.get();
+        } catch (InterruptedException e) {
+            log.warn("synchronization for mailbox#" + mailBoxId + " was interrupted", e);
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            log.error("error during synchronization for mailbox#" + mailBoxId, e);
+        }
+
     }
 
     @Override
     public void shutdown(ImapMailBox imapMailBox) {
-        ScheduledFuture<?> task = syncRefreshers.remove(imapMailBox.getId());
+        UUID mailBoxId = imapMailBox.getId();
+        ExecutorService syncTask = syncTasks.remove(mailBoxId);
+        if (syncTask != null) {
+            try {
+                syncTask.shutdownNow();
+            } catch (Exception e) {
+                log.warn("Exception while shutting down sync task for mailbox#" + mailBoxId, e);
+            }
+        }
+
+        ScheduledFuture<?> task = syncRefreshers.remove(mailBoxId);
         if (task != null) {
             if (!task.isDone() && !task.isCancelled()) {
-                task.cancel(false);
+                task.cancel(true);
             }
         }
     }
@@ -124,6 +149,10 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
                     .map(NewEmailImapEvent::new)
                     .collect(Collectors.toList());
 
+            if (Thread.currentThread().isInterrupted()) {
+                logInterruption(cubaFolder.getMailBox().getId());
+                return Collections.emptyList();
+            }
             messageSyncDao.removeMessagesSyncs(newMessages.stream().map(ImapMessage::getId).collect(Collectors.toList()));
 
             return newMessageEvents;
@@ -150,11 +179,19 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
                 }
 
                 for (ImapMessageSync messageSync : remainMessageSyncs) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        logInterruption(cubaFolder.getMailBox().getId());
+                        return Collections.emptyList();
+                    }
                     List<BaseImapEvent> events = generateUpdateEvents(messageSync);
                     if (!events.isEmpty()) {
                         updateMessageEvents.addAll(events);
                         i++;
                     }
+                }
+                if (Thread.currentThread().isInterrupted()) {
+                    logInterruption(cubaFolder.getMailBox().getId());
+                    return Collections.emptyList();
                 }
 
                 messageSyncDao.removeMessagesSyncs(remainMessageSyncs.stream()
@@ -266,11 +303,19 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
                 for (BaseImapEvent missedMessageEvent : missedMessageEvents) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        logInterruption(cubaFolder.getMailBox().getId());
+                        return Collections.emptyList();
+                    }
                     em.remove(missedMessageEvent.getMessage());
                 }
                 tx.commit();
             }
 
+            if (Thread.currentThread().isInterrupted()) {
+                logInterruption(cubaFolder.getMailBox().getId());
+                return missedMessageEvents;
+            }
             recalculateMessageNumbers(cubaFolder, missedMessageNums);
 
             return missedMessageEvents;
@@ -305,5 +350,9 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
         } finally {
             authentication.end();
         }
+    }
+
+    private void logInterruption(UUID mailBoxId) {
+        log.info("synchronization for mailbox#" + mailBoxId + " was interrupted");
     }
 }

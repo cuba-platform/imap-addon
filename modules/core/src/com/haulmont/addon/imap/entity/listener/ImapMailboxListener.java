@@ -6,10 +6,7 @@ import com.haulmont.addon.imap.sync.ImapMailboxSyncActivationEvent;
 import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.PersistenceTools;
 import com.haulmont.cuba.core.global.Events;
-import com.haulmont.cuba.core.listener.AfterDeleteEntityListener;
-import com.haulmont.cuba.core.listener.AfterInsertEntityListener;
-import com.haulmont.cuba.core.listener.BeforeInsertEntityListener;
-import com.haulmont.cuba.core.listener.BeforeUpdateEntityListener;
+import com.haulmont.cuba.core.listener.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -23,7 +20,7 @@ import java.sql.Connection;
 public class ImapMailboxListener implements BeforeInsertEntityListener<ImapMailBox>,
                                             BeforeUpdateEntityListener<ImapMailBox>,
                                             AfterInsertEntityListener<ImapMailBox>,
-                                            AfterDeleteEntityListener<ImapMailBox> {
+                                            BeforeDeleteEntityListener<ImapMailBox> {
 
     private final static Logger log = LoggerFactory.getLogger(ImapMailboxListener.class);
 
@@ -58,12 +55,8 @@ public class ImapMailboxListener implements BeforeInsertEntityListener<ImapMailB
     }
 
     @Override
-    public void onAfterDelete(ImapMailBox entity, Connection connection) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter(){
-            public void afterCommit() {
-                events.publish(new ImapMailboxSyncActivationEvent(entity, ImapMailboxSyncActivationEvent.Type.DEACTIVATE));
-            }
-        });
+    public void onBeforeDelete(ImapMailBox entity, EntityManager entityManager) {
+        events.publish(new ImapMailboxSyncActivationEvent(entity, ImapMailboxSyncActivationEvent.Type.DEACTIVATE));
     }
 
     @Override

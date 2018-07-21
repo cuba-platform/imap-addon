@@ -126,7 +126,7 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
             CompletableFuture.runAsync(() -> imapEvents.init(event.getMailBox()), executor);
             runEventsEmitter(mailboxId);
         } else {
-            CompletableFuture.runAsync(() -> imapEvents.shutdown(event.getMailBox()), executor);
+            imapEvents.shutdown(event.getMailBox());
             cancel(syncRefreshers.remove(mailboxId));
             cancel(syncTasks.remove(mailboxId));
         }
@@ -169,7 +169,7 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
     private void cancel(Future<?> task) {
         if (task != null) {
             if (!task.isDone() && !task.isCancelled()) {
-                task.cancel(false);
+                task.cancel(true);
             }
         }
     }
