@@ -19,6 +19,7 @@ import com.vaadin.server.StreamResource;
 
 import javax.inject.Inject;
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,9 +38,15 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
     @Inject
     private Label bodyContent;
     @Inject
+    private ScrollBoxLayout bodyContentScroll;
+    @Inject
+    private BrowserFrame bodyContentHtml;
+    @Inject
     private ProgressBar progressBar;
     @Inject
     private Button downloadBtn;
+    @Inject
+    private TabSheet tabSheet;
     @Inject
     private BackgroundWorker backgroundWorker;
 
@@ -52,6 +59,11 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
         AtomicInteger loadProgress = new AtomicInteger(0);
         initBody(imapMessage, loadProgress);
         initAttachments(imapMessage, loadProgress);
+    }
+
+    @Override
+    protected void postInit() {
+        tabSheet.addSelectedTabChangeListener(event -> downloadBtn.setEnabled(imapDemoAttachmentsDs.size() > 0));
     }
 
     public void downloadAttachment() {
@@ -111,7 +123,15 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
         public void done(ImapMessageDto dto) {
             imapMessageDtoDs.setItem(dto);
             bodyContent.setHtmlEnabled(dto.getHtml());
-            bodyContent.setValue(dto.getBody());
+            if (Boolean.TRUE.equals(dto.getHtml()) ) {
+                byte[] bytes = dto.getBody().getBytes(StandardCharsets.UTF_8);
+                bodyContentHtml.setSource(com.haulmont.cuba.gui.components.StreamResource.class)
+                        .setStreamSupplier(() -> new ByteArrayInputStream(bytes))
+                        .setMimeType("text/html");
+            } else {
+                bodyContent.setValue(dto.getBody());
+                bodyContentScroll.setVisible(true);
+            }
             hideProgressBar(loadProgress);
         }
 
@@ -144,7 +164,6 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
         @Override
         public void done(Integer attachmentCount) {
             imapDemoAttachmentsDs.refresh();
-            downloadBtn.setEnabled(attachmentCount > 0);
             hideProgressBar(loadProgress);
         }
 

@@ -57,15 +57,13 @@
                     </column>
                 </fieldGroup>
             </hbox>
-            <tabSheet>
+            <tabSheet id="tabSheet">
                 <tab id="bodyTab"
                      caption="msg://bodyTabCaption">
-                    <scrollBox scrollBars="both">
-                        <label id="bodyContent"
-                               height="100%"
-                               htmlEnabled="true"/>
+                    <scrollBox scrollBars="both" width="100%" visible="false" id="bodyContentScroll">
+                        <label id="bodyContent" height="100%" />
                     </scrollBox>
-
+                    <browserFrame id="bodyContentHtml" width="100%" height="100%" />
                 </tab>
                 <tab id="attachmentsTab"
                      caption="msg://attachmentsTabCaption"
