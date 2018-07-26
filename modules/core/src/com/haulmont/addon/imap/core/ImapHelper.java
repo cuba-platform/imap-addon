@@ -29,7 +29,7 @@ public class ImapHelper {
     private final ImapDao dao;
 
     static {
-        System.setProperty("mail.imap.parse.debug", "true");
+//        System.setProperty("mail.imap.parse.debug", "true");
 //        System.setProperty("mail.mime.decodefilename", "true");
     }
 
