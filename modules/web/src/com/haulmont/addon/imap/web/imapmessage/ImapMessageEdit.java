@@ -5,11 +5,8 @@ import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.service.ImapAPIService;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.global.FileTypesHelper;
-import com.haulmont.cuba.gui.components.AbstractEditor;
+import com.haulmont.cuba.gui.components.*;
 import com.haulmont.addon.imap.entity.ImapMessage;
-import com.haulmont.cuba.gui.components.Label;
-import com.haulmont.cuba.gui.components.ProgressBar;
-import com.haulmont.cuba.gui.components.Table;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
 import com.haulmont.cuba.gui.executors.BackgroundTask;
@@ -41,6 +38,8 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
     private Label bodyContent;
     @Inject
     private ProgressBar progressBar;
+    @Inject
+    private Button downloadBtn;
     @Inject
     private BackgroundWorker backgroundWorker;
 
@@ -122,7 +121,7 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
         }
     }
 
-    private class InitAttachmentTask extends BackgroundTask<Integer, Void> {
+    private class InitAttachmentTask extends BackgroundTask<Integer, Integer> {
         private final ImapMessage msg;
         private final AtomicInteger loadProgress;
 
@@ -133,9 +132,8 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
         }
 
         @Override
-        public Void run(TaskLifeCycle<Integer> taskLifeCycle) {
-            imapAPI.fetchAttachments(msg);
-            return null;
+        public Integer run(TaskLifeCycle<Integer> taskLifeCycle) {
+            return imapAPI.fetchAttachments(msg).size();
         }
 
         @Override
@@ -144,8 +142,9 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
         }
 
         @Override
-        public void done(Void ignore) {
+        public void done(Integer attachmentCount) {
             imapDemoAttachmentsDs.refresh();
+            downloadBtn.setEnabled(attachmentCount > 0);
             hideProgressBar(loadProgress);
         }
 

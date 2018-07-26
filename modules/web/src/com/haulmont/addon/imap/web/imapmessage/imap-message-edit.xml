@@ -85,7 +85,7 @@
                         </columns>
                         <rows datasource="imapDemoAttachmentsDs"/>
                         <buttonsPanel>
-                            <button action="attachmentsTable.downloadAttachmentAction"/>
+                            <button action="attachmentsTable.downloadAttachmentAction" enable="false" id="downloadBtn"/>
                         </buttonsPanel>
                     </table>
                 </tab>
