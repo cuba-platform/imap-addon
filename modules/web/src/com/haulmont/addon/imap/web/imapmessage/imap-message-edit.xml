@@ -24,11 +24,12 @@
     </dsContext>
     <dialogMode height="600"
                 width="800"/>
-    <layout expand="scrollBox"
+    <layout expand="contentBox"
             spacing="true">
         <progressBar id="progressBar" width="100%" indeterminate="true"/>
-        <scrollBox id="scrollBox"
-                   spacing="true">
+        <vbox id="contentBox"
+              expand="tabSheet"
+              spacing="true">
             <hbox id="fields"
                   spacing="true"
                   width="100%">
@@ -63,7 +64,7 @@
                     <scrollBox scrollBars="both" width="100%" visible="false" id="bodyContentScroll">
                         <label id="bodyContent" height="100%" />
                     </scrollBox>
-                    <browserFrame id="bodyContentHtml" width="100%" height="100%" />
+                    <browserFrame id="bodyContentHtml" width="100%" height="500" visible="false" />
                 </tab>
                 <tab id="attachmentsTab"
                      caption="msg://attachmentsTabCaption"
@@ -88,7 +89,7 @@
                     </table>
                 </tab>
             </tabSheet>
-        </scrollBox>
+        </vbox>
         <frame id="windowActions"
                screen="editWindowActions"/>
     </layout>

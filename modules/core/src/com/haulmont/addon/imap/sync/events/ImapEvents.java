@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Nonnull;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -23,6 +24,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -58,6 +60,16 @@ public class ImapEvents {
         this.authentication = authentication;
         this.standardEventsGenerator = standardEventsGenerator;
         this.imapDao = imapDao;
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        try {
+            executor.shutdownNow();
+            executor.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.warn("Exception while shutting down executor", e);
+        }
     }
 
     public void init(ImapMailBox mailBox) {

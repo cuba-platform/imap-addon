@@ -67,7 +67,13 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
     @Override
     public void init(ImapMailBox imapMailBox) {
         UUID mailBoxId = imapMailBox.getId();
-        ExecutorService syncTask = Executors.newSingleThreadExecutor();
+        ExecutorService syncTask = Executors.newSingleThreadExecutor(r -> {
+            Thread thread = new Thread(
+                    r, "Initial-sync-mailbox#" + mailBoxId
+            );
+            thread.setDaemon(true);
+            return thread;
+        });
         Future<?> task = syncTask.submit(() -> {
             imapSynchronizer.synchronize(mailBoxId);
             syncRefreshers.put(
@@ -83,6 +89,12 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
                             30, 30, TimeUnit.SECONDS)
             );
             syncTasks.remove(mailBoxId);
+            try {
+                syncTask.shutdownNow();
+                syncTask.awaitTermination(1, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.warn("Exception while shutting down sync task for mailbox#" + mailBoxId, e);
+            }
         });
         syncTasks.put(mailBoxId, syncTask);
         try {
@@ -103,6 +115,7 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
         if (syncTask != null) {
             try {
                 syncTask.shutdownNow();
+                syncTask.awaitTermination(1, TimeUnit.SECONDS);
             } catch (Exception e) {
                 log.warn("Exception while shutting down sync task for mailbox#" + mailBoxId, e);
             }
@@ -133,6 +146,7 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
 
         try {
             scheduledExecutorService.shutdownNow();
+            scheduledExecutorService.awaitTermination(1, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.warn("Exception while shutting down scheduled executor", e);
         }

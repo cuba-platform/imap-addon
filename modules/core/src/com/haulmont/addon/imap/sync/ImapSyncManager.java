@@ -86,12 +86,14 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
     public void applicationStopped() {
         try {
             executor.shutdownNow();
+            executor.awaitTermination(1, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.warn("Exception while shutting down executor", e);
         }
 
         try {
             scheduledExecutorService.shutdownNow();
+            scheduledExecutorService.awaitTermination(1, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.warn("Exception while shutting down scheduled executor", e);
         }
@@ -163,7 +165,7 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
             cancel(oldTask);
         }, executor);
         syncTasks.put(mailboxId, cf);
-        cf.thenRunAsync(() -> syncTasks.remove(mailboxId, cf), executor);
+        cf.thenRunAsync(() -> syncTasks.remove(mailboxId), executor);
     }
 
     private void cancel(Future<?> task) {

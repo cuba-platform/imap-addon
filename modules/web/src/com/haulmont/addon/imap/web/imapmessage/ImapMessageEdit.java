@@ -128,6 +128,9 @@ public class ImapMessageEdit extends AbstractEditor<ImapMessage> {
                 bodyContentHtml.setSource(com.haulmont.cuba.gui.components.StreamResource.class)
                         .setStreamSupplier(() -> new ByteArrayInputStream(bytes))
                         .setMimeType("text/html");
+                bodyContent.setHtmlEnabled(true);
+                bodyContent.setValue(dto.getBody());
+                bodyContentHtml.setVisible(true);
             } else {
                 bodyContent.setValue(dto.getBody());
                 bodyContentScroll.setVisible(true);
