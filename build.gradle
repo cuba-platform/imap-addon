@@ -1,5 +1,5 @@
 buildscript {
-    ext.cubaVersion = '6.8.6'
+    ext.cubaVersion = '6.9.3'
     repositories {
         
         maven {
@@ -21,7 +21,7 @@ def coreModule = project(':imap-core')
 def guiModule = project(':imap-gui')
 def webModule = project(':imap-web')
 
-def servletApi = 'org.apache.tomcat:tomcat-servlet-api:8.0.26'
+def servletApi = 'javax.servlet:javax.servlet-api:3.1.0'
 
 
 apply(plugin: 'idea')
