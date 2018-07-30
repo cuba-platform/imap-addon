@@ -76,14 +76,6 @@ configure([globalModule, coreModule, guiModule, webModule]) {
                 srcDirs = ['test']
             }
         }
-        testUnit {
-            java {
-                srcDirs = ['test-unit']
-            }
-            groovy {
-                srcDirs = ['test-unit']
-            }
-        }
     }
 
     dependencies {
@@ -92,10 +84,6 @@ configure([globalModule, coreModule, guiModule, webModule]) {
                 'org.spockframework:spock-core:1.1-groovy-2.4',
                 'com.icegreen:greenmail:1.5.7'
         )
-
-        testUnitCompile sourceSets.main.output
-        testUnitCompile configurations.testCompile
-        testUnitRuntime configurations.testRuntime
 
         compile("com.sun.mail:javax.mail:1.6.1")
     }
@@ -120,7 +108,7 @@ configure([globalModule, coreModule, guiModule, webModule]) {
         ignoreFailures = false
     }
 
-    checkstyleMain << {
+    checkstyleMain.doLast {
         def checkstyleDir = "${project.buildDir}/checkstyle".toString()
         ant.xslt('in': "$checkstyleDir/main.xml",
                 out: "$checkstyleDir/$project.name-checkstyle.html",
@@ -131,11 +119,6 @@ configure([globalModule, coreModule, guiModule, webModule]) {
         module {
             testSourceDirs += file('test-unit')
         }
-    }
-
-    task testUnit(type: Test) {
-        testClassesDir = sourceSets.testUnit.output.classesDir
-        classpath = sourceSets.testUnit.runtimeClasspath
     }
 
     tasks.withType(Test) {
