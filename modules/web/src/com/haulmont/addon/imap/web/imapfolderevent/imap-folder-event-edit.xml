@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://editorCaption"
+        class="com.haulmont.addon.imap.web.imapfolderevent.ImapFolderEventEdit"
+        datasource="imapFolderEventDs"
+        messagesPack="com.haulmont.addon.imap.web.imapfolderevent">
+    <dsContext>
+        <datasource id="imapFolderEventDs"
+                    allowCommit="false"
+                    class="com.haulmont.addon.imap.entity.ImapFolderEvent"
+                    view="imap-folder-event-edit">
+            <collectionDatasource id="handlersDs"
+                                  allowCommit="false"
+                                  property="eventHandlers"/>
+        </datasource>
+    </dsContext>
+    <dialogMode height="600"
+                width="800"/>
+    <layout expand="groupBox"
+            spacing="true">
+        <fieldGroup id="fieldGroup"
+                    datasource="imapFolderEventDs">
+            <column width="300px">
+                <field editable="false"
+                       property="folder"/>
+                <field editable="false"
+                       property="event"/>
+            </column>
+        </fieldGroup>
+        <groupBox id="groupBox"
+                  caption="msg://eventHandlersCaption">
+            <table id="handlersTable"
+                   editable="true"
+                   height="100%"
+                   sortable="false"
+                   width="100%">
+                <actions>
+                    <action id="add"
+                            caption="mainMsg://actions.Add"
+                            icon="icons/create.png"
+                            invoke="addHandler"/>
+                    <action id="remove"
+                            caption="mainMsg://actions.Remove"
+                            icon="icons/remove.png"
+                            invoke="removeHandler"
+                            trackSelection="true"/>
+                    <action id="up"
+                            icon="icons/up.png"
+                            invoke="moveUpHandler"
+                            trackSelection="true"/>
+                    <action id="down"
+                            icon="icons/down.png"
+                            invoke="moveDownHandler"
+                            trackSelection="true"/>
+                </actions>
+                <columns>
+                    <column id="beanName"
+                            caption="msg://beanNameCaption"/>
+                    <column id="methodName"
+                            caption="msg://methodNameCaption"/>
+                </columns>
+                <rows datasource="handlersDs"/>
+                <buttonsPanel>
+                    <button id="addHandlerBtn"
+                            action="handlersTable.add"/>
+                    <button action="handlersTable.remove"/>
+                    <button id="upHandlerBtn"
+                            action="handlersTable.up"/>
+                    <button id="downHandlerBtn"
+                            action="handlersTable.down"/>
+                </buttonsPanel>
+            </table>
+        </groupBox>
+        <frame id="windowActions"
+               screen="editWindowActions"/>
+    </layout>
+</window>

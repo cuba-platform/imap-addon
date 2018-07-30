@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://editorCaption"
+        class="com.haulmont.addon.imap.web.imapmessage.ImapMessageEdit"
+        datasource="imapMessageDs"
+        focusComponent="fields"
+        messagesPack="com.haulmont.addon.imap.web.imapmessage">
+    <dsContext>
+        <datasource id="imapMessageDs"
+                    allowCommit="false"
+                    class="com.haulmont.addon.imap.entity.ImapMessage"
+                    view="imap-msg-full"/>
+        <datasource id="imapMessageDtoDs"
+                    allowCommit="false"
+                    class="com.haulmont.addon.imap.dto.ImapMessageDto"/>
+        <collectionDatasource id="imapDemoAttachmentsDs"
+                              allowCommit="false"
+                              class="com.haulmont.addon.imap.entity.ImapMessageAttachment"
+                              view="imap-msg-attachment-full">
+            <query>
+                <![CDATA[select a from imap$MessageAttachment a where a.imapMessage.id = :ds$imapMessageDs order by a.orderNumber asc]]>
+            </query>
+        </collectionDatasource>
+    </dsContext>
+    <dialogMode height="600"
+                width="800"/>
+    <layout expand="contentBox"
+            spacing="true">
+        <progressBar id="progressBar" width="100%" indeterminate="true"/>
+        <vbox id="contentBox"
+              expand="tabSheet"
+              spacing="true">
+            <hbox id="fields"
+                  spacing="true"
+                  width="100%">
+                <fieldGroup datasource="imapMessageDtoDs"
+                            editable="false"
+                            width="100%">
+                    <column width="100%">
+                        <field property="date"/>
+                        <field property="from"/>
+                        <field property="folderName"/>
+                        <field property="mailBox"/>
+                        <field property="subject"/>
+                        <field property="flags"/>
+                    </column>
+                </fieldGroup>
+                <fieldGroup datasource="imapMessageDtoDs"
+                            editable="false"
+                            width="100%">
+                    <column width="100%">
+                        <field property="to"
+                               rows="3"/>
+                        <field property="cc"
+                               rows="3"/>
+                        <field property="bcc"
+                               rows="3"/>
+                    </column>
+                </fieldGroup>
+            </hbox>
+            <tabSheet id="tabSheet">
+                <tab id="bodyTab"
+                     caption="msg://bodyTabCaption">
+                    <scrollBox scrollBars="both" width="100%" visible="false" id="bodyContentScroll">
+                        <label id="bodyContent" height="100%" />
+                    </scrollBox>
+                    <browserFrame id="bodyContentHtml" width="100%" height="500" visible="false" />
+                </tab>
+                <tab id="attachmentsTab"
+                     caption="msg://attachmentsTabCaption"
+                     margin="true,false,true,false"
+                     spacing="true">
+                    <table id="attachmentsTable"
+                           height="100%"
+                           width="100%">
+                        <actions>
+                            <action id="downloadAttachmentAction"
+                                    caption="msg://downloadAttachmentActionCaption"
+                                    invoke="downloadAttachment"/>
+                        </actions>
+                        <columns>
+                            <column id="name"/>
+                            <column id="fileSize"/>
+                        </columns>
+                        <rows datasource="imapDemoAttachmentsDs"/>
+                        <buttonsPanel>
+                            <button action="attachmentsTable.downloadAttachmentAction" enable="false" id="downloadBtn"/>
+                        </buttonsPanel>
+                    </table>
+                </tab>
+            </tabSheet>
+        </vbox>
+        <frame id="windowActions"
+               screen="editWindowActions"/>
+    </layout>
+</window>

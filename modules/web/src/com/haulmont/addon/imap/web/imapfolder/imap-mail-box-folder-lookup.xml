@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://folderLookupCaption"
+        class="com.haulmont.addon.imap.web.imapfolder.ImapFolderLookup"
+        datasource="mailBoxDs"
+        lookupComponent="imapFoldersTable"
+        messagesPack="com.haulmont.addon.imap.web.imapfolder">
+    <dsContext>
+        <datasource id="mailBoxDs"
+                    class="com.haulmont.addon.imap.entity.ImapMailBox"
+                    allowCommit="false"
+                    view="imap-mailbox-edit">
+            <hierarchicalDatasource id="imapFolderDs"
+                                    property="folders"
+                                    allowCommit="false"
+                                    hierarchyProperty="parent" />
+        </datasource>
+    </dsContext>
+    <layout>
+        <treeTable id="imapFoldersTable"
+                   editable="true"
+                   height="100%"
+                   width="100%"
+                   sortable="false">
+            <columns>
+                <column id="name"/>
+            </columns>
+            <rows datasource="imapFolderDs"/>
+        </treeTable>
+    </layout>
+</window>

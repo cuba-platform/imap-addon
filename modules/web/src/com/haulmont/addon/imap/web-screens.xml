@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<screen-config xmlns="http://schemas.haulmont.com/cuba/screens.xsd">
+    <screen id="imap$Folder.lookup"
+            template="/com/haulmont/addon/imap/web/imapfolder/imap-mail-box-folder-lookup.xml"/>
+    <screen id="imap$MailBox.edit"
+            template="com/haulmont/addon/imap/web/imapmailbox/imap-mail-box-edit.xml"/>
+    <screen id="imap$MailBox.browse"
+            template="com/haulmont/addon/imap/web/imapmailbox/imap-mail-box-browse.xml"/>
+    <screen id="imap$Message.browse"
+            template="com/haulmont/addon/imap/web/imapmessage/imap-message-browse.xml"/>
+    <screen id="imap$Message.edit"
+            template="com/haulmont/addon/imap/web/imapmessage/imap-message-edit.xml"/>
+    <screen id="imap$FolderEvent.edit"
+            template="com/haulmont/addon/imap/web/imapfolderevent/imap-folder-event-edit.xml"/>
+</screen-config>

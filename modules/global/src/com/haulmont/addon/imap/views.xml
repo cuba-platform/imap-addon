@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<views xmlns="http://schemas.haulmont.com/cuba/view.xsd">
+    <view class="com.haulmont.addon.imap.entity.ImapFolder"
+          extends="_local"
+          name="imap-folder-connect">
+        <property name="mailBox"
+                  view="imap-mailBox-connect"/>
+    </view>
+    <view class="com.haulmont.addon.imap.entity.ImapFolder"
+          extends="_local"
+          name="imap-folder-edit">
+        <property name="events"
+                  view="imap-folder-event-edit"/>
+        <property name="mailBox"
+                  view="_minimal"/>
+        <property name="parent"
+                  view="_minimal"/>
+    </view>
+    <view class="com.haulmont.addon.imap.entity.ImapFolder"
+          extends="imap-folder-edit"
+          name="imap-folder-full">
+        <property name="mailBox"
+                  view="imap-mailBox-connect"/>
+    </view>
+    <view class="com.haulmont.addon.imap.entity.ImapMailBox"
+          extends="_local"
+          name="imap-mailbox-edit">
+        <property name="authentication"
+                  view="_local"/>
+        <property name="folders"
+                  view="imap-folder-edit"/>
+        <property name="rootCertificate"
+                  view="_minimal"/>
+        <property name="proxy"
+                  view="_minimal">
+            <property name="webProxy"/>
+        </property>
+    </view>
+    <view class="com.haulmont.addon.imap.entity.ImapMailBox"
+          extends="_local"
+          name="imap-mailBox-connect">
+        <property name="rootCertificate"
+                  view="_minimal"/>
+        <property name="clientCertificate"
+                  view="_minimal"/>
+        <property name="authentication"
+                  view="_minimal">
+            <property name="username"/>
+            <property name="password"/>
+        </property>
+        <property name="proxy"
+                  view="_minimal">
+            <property name="webProxy"/>
+        </property>
+    </view>
+    <view class="com.haulmont.addon.imap.entity.ImapMessage"
+          extends="_local"
+          name="imap-msg-full">
+        <property name="folder"
+                  view="imap-folder-full"/>
+    </view>
+    <view class="com.haulmont.addon.imap.entity.ImapMessageAttachment"
+          extends="_local"
+          name="imap-msg-attachment-full">
+        <property name="imapMessage"
+                  view="imap-msg-full"/>
+    </view>
+    <view class="com.haulmont.addon.imap.entity.ImapFolderEvent"
+          extends="_local"
+          name="imap-folder-event-edit">
+        <property name="folder"
+                  view="_minimal"/>
+        <property name="eventHandlers"
+                  view="_local"/>
+    </view>
+    <view class="com.haulmont.addon.imap.entity.ImapMessageSync"
+          extends="_local"
+          name="imap-msg-sync-with-message">
+        <property name="message"
+                  view="imap-msg-full"/>
+    </view>
+</views>

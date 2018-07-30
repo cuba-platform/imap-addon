@@ -19,6 +19,9 @@ hs_err_pid*
 
 # User-specific stuff:
 .idea/
+.ideaDataSources/
+dataSources/
+test-home/
 
 # Mongo Explorer plugin:
 .idea/mongoSettings.xml
@@ -26,6 +29,7 @@ hs_err_pid*
 ## File-based project format:
 *.iws
 *.iml
+*.ipr
 
 ## Plugin-specific files:
 
@@ -177,3 +181,6 @@ buildNumber.properties
 
 Vagrantfile
 .vagrant
+
+deploy
+deploy/*

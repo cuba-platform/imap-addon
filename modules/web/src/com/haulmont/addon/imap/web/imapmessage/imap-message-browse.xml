@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://browseCaption"
+        class="com.haulmont.addon.imap.web.imapmessage.ImapMessageBrowse"
+        focusComponent="imapMessagesTable"
+        lookupComponent="imapMessagesTable"
+        messagesPack="com.haulmont.addon.imap.web.imapmessage">
+    <dsContext>
+        <groupDatasource id="imapMessagesDs"
+                         class="com.haulmont.addon.imap.entity.ImapMessage"
+                         view="imap-msg-full">
+            <query>
+                <![CDATA[select e from imap$Message e]]>
+            </query>
+        </groupDatasource>
+    </dsContext>
+    <dialogMode height="600"
+                width="800"/>
+    <layout expand="imapMessagesTable"
+            spacing="true">
+        <filter id="filter"
+                applyTo="imapMessagesTable"
+                datasource="imapMessagesDs">
+            <properties include=".*"/>
+        </filter>
+        <groupTable id="imapMessagesTable"
+                    width="100%">
+            <actions>
+                <action id="edit"/>
+            </actions>
+            <columns>
+                <column id="folder.mailBox" />
+                <column id="folder"/>
+                <column id="caption"/>
+                <column id="flags"/>
+                <column id="messageId"/>
+            </columns>
+            <rows datasource="imapMessagesDs"/>
+            <rowsCount/>
+            <buttonsPanel id="buttonsPanel"
+                          alwaysVisible="true">
+                <button id="editBtn"
+                        action="imapMessagesTable.edit"
+                        caption="msg://editBtnCaption"/>
+            </buttonsPanel>
+        </groupTable>
+    </layout>
+</window>

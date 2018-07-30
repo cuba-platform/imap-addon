@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://editorCaption"
+        class="com.haulmont.addon.imap.web.imapmailbox.ImapMailBoxEdit"
+        datasource="mailBoxDs"
+        focusComponent="mainParams"
+        messagesPack="com.haulmont.addon.imap.web.imapmailbox">
+    <dsContext>
+        <datasource id="mailBoxDs"
+                    class="com.haulmont.addon.imap.entity.ImapMailBox"
+                    view="imap-mailbox-edit">
+            <datasource id="authenticationDs"
+                        property="authentication"/>
+            <datasource id="proxyDs"
+                        property="proxy"/>
+            <hierarchicalDatasource id="foldersDs"
+                                    hierarchyProperty="parent"
+                                    property="folders">
+                <collectionDatasource id="eventsDs"
+                                      property="events">
+                    <collectionDatasource id="handlersDs"
+                                          property="eventHandlers"/>
+                </collectionDatasource>
+            </hierarchicalDatasource>
+        </datasource>
+    </dsContext>
+    <layout spacing="true">
+        <scrollBox id="scrollBox"
+                   height="100%"
+                   spacing="true">
+            <hbox spacing="true">
+                <groupBox caption="msg://basicConfigurationCaption"
+                          spacing="true"
+                          width="AUTO">
+                    <fieldGroup id="mainParams"
+                                datasource="mailBoxDs">
+                        <column width="250px">
+                            <field property="name"/>
+                            <field property="host"/>
+                            <field property="port">
+                                <formatter class="com.haulmont.cuba.gui.components.formatters.NumberFormatter"
+                                           format="#####" />
+                            </field>
+                            <field property="secureMode"/>
+                            <field id="mailBoxRootCertificateField"
+                                   property="rootCertificate"/>
+                            <field datasource="authenticationDs"
+                                   property="username"/>
+                            <field id="authenticationPasswordId">
+                                <passwordField caption="msg://passwordFieldCaption"
+                                               datasource="authenticationDs"
+                                               maxLength="128"
+                                               property="password"
+                                               required="true"/>
+                            </field>
+                        </column>
+                    </fieldGroup>
+                    <button id="checkConnectionBtn"
+                            caption="msg://checkConnectionCaption"
+                            invoke="checkTheConnection"/>
+                </groupBox>
+                <vbox spacing="true"
+                      width="500px">
+                    <groupBox caption="msg://advancedConfigurationCaption"
+                              spacing="true"
+                              width="AUTO">
+                        <fieldGroup id="advancedParams"
+                                    datasource="mailBoxDs">
+                            <column fieldCaptionWidth="222"
+                                    width="250px">
+                                <field description="msg://cubaFlagDescription"
+                                       property="cubaFlag"/>
+                                <field id="useTrashFolderChkBoxField">
+                                    <checkBox id="useTrashFolderChkBox"
+                                              caption="msg://useTrashFolderForRemovalCaption"/>
+                                </field>
+                                <field id="trashFolderNameField"
+                                       property="trashFolder">
+                                    <pickerField id="trashFolderPickerField"
+                                                 datasource="mailBoxDs"
+                                                 property="trashFolder"/>
+                                </field>
+                                <field id="useCustomEventsGeneratorChkBoxField">
+                                    <checkBox id="useCustomEventsGeneratorChkBox"
+                                              caption="msg://useCustomEventsGeneratorCaption"/>
+                                </field>
+                                <field id="customEventsGeneratorClassField"
+                                       property="eventsGeneratorClass">
+                                    <lookupField id="customEventsGeneratorClassLookup"
+                                                 datasource="mailBoxDs"
+                                                 property="eventsGeneratorClass"/>
+                                </field>
+                                <field id="useProxyChkBoxField">
+                                    <checkBox id="useProxyChkBox"
+                                              caption="msg://useProxyCaption"/>
+                                </field>
+                            </column>
+                        </fieldGroup>
+                    </groupBox>
+                    <groupBox caption="msg://proxyConfigurationCaption"
+                              spacing="true">
+                        <fieldGroup id="proxyParams"
+                                    datasource="proxyDs">
+                            <column fieldCaptionWidth="222"
+                                    width="250px">
+                                <field id="proxyHostField"
+                                       caption="msg://proxyHostCaption"
+                                       datasource="proxyDs"
+                                       property="host"/>
+                                <field id="proxyPortField"
+                                       caption="msg://proxyPortCaption"
+                                       datasource="proxyDs"
+                                       property="port">
+                                    <formatter class="com.haulmont.cuba.gui.components.formatters.NumberFormatter"
+                                               format="#####" />
+                                </field>
+                                <field id="webProxyChkBox"
+                                       caption="msg://proxyUseWebCaption"
+                                       datasource="proxyDs"
+                                       property="webProxy"/>
+                            </column>
+                        </fieldGroup>
+                    </groupBox>
+                </vbox>
+            </hbox>
+            <split id="foldersPane"
+                   height="100%"
+                   orientation="horizontal"
+                   pos="60"
+                   width="100%">
+                <vbox id="tablePane"
+                      height="300px"
+                      margin="false,true,false,false">
+                    <treeTable id="foldersTable"
+                               editable="true"
+                               height="100%"
+                               sortable="false"
+                               width="100%">
+                        <actions>
+                            <action id="refresh"
+                                    icon="icons/refresh.png"
+                                    invoke="refreshFolders"/>
+                            <action id="enableSingle"
+                                    caption="msg://enableSingleCaption"
+                                    invoke="enableFolder"/>
+                            <action id="enableWithChildren"
+                                    caption="msg://enableWithChildrenCaption"
+                                    invoke="enableFolderWithChildren"/>
+                            <action id="disableSingle"
+                                    caption="msg://disableSingleCaption"
+                                    invoke="disableFolder"/>
+                            <action id="disableWithChildren"
+                                    caption="msg://disableWithChildrenCaption"
+                                    invoke="disableFolderWithChildren"/>
+                        </actions>
+                        <columns>
+                            <column id="name"/>
+                            <column id="selected"
+                                    caption=""
+                                    editable="true"/>
+                        </columns>
+                        <rows datasource="foldersDs"/>
+                        <buttonsPanel>
+                            <button action="foldersTable.refresh"/>
+                        </buttonsPanel>
+                    </treeTable>
+                </vbox>
+                <vbox height="100%"
+                      margin="false,false,false,true">
+                    <groupBox caption="msg://eventsCaption"
+                              height="100%">
+                        <vbox id="selectedFolderPanel"
+                              height="100%"
+                              visible="false">
+                            <scrollBox id="editEventsContainer"
+                                       height="100%">
+                                <grid id="editEventsGrid"
+                                      margin="true"
+                                      width="100%">
+                                    <columns count="2"/>
+                                    <rows>
+                                        <row>
+                                            <label value="msg://allEvents"/>
+                                            <checkBox id="allEventsChkBox"
+                                                      align="MIDDLE_CENTER"/>
+                                        </row>
+                                    </rows>
+                                </grid>
+                            </scrollBox>
+                        </vbox>
+                    </groupBox>
+                </vbox>
+            </split>
+            <frame id="windowActions"
+                   screen="editWindowActions"/>
+        </scrollBox>
+    </layout>
+</window>
