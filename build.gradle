@@ -30,7 +30,7 @@ apply(plugin: 'cuba')
 cuba {
     artifact {
         group = 'com.haulmont.addon.imap'
-        version = '0.1'
+        version = '1.1'
         isSnapshot = true
     }
     tomcat {
