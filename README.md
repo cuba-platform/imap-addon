@@ -52,7 +52,8 @@ to confirm the operation.
 
     | Platform Version | Addon Version  |
     | ---------------- | -------------- |
-    | 6.8.x            | 0.1-SNAPSHOT   |
+    | 6.8.x            | 1.0.1          |
+    | 6.9.x            | 1.1.0          |
 
 5. Before using the component as a part of your application, it is vital to configure the following application 
 properties in the `app.properties` file of your project.
