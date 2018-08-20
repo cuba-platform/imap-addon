@@ -42,6 +42,7 @@ create table IMAP_MAIL_BOX (
     CUBA_FLAG varchar(255),
     TRASH_FOLDER_NAME varchar(255),
     EVENTS_GENERATOR_CLASS varchar(255),
+    FLAGS_SUPPORTED boolean not null,
     --
     primary key (ID)
 )^

@@ -42,7 +42,7 @@ import javax.mail.URLName
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeMessage
 import java.util.concurrent.atomic.AtomicInteger
-
+// todo: add tests for flagless configuration
 class ImapEventsSpec extends Specification {
 
     @SuppressWarnings("SpellCheckingInspection")
@@ -462,6 +462,7 @@ class ImapEventsSpec extends Specification {
         mailBox.authentication.username = user.login
         mailBox.cubaFlag = CUBA_FLAG
         mailBox.name = "$LOCALHOST:${mailBox.port}"
+        mailBox.flagsSupported = true
 
         cont.persistence().runInTransaction() { em ->
             em.persist(mailBox.authentication)

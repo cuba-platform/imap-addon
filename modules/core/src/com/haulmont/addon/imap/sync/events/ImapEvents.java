@@ -36,6 +36,7 @@ public class ImapEvents {
     private final Events events;
     private final Authentication authentication;
     private final ImapStandardEventsGenerator standardEventsGenerator;
+    private final ImapFlaglessEventsGenerator flaglessEventsGenerator;
     private final ImapDao imapDao;
 
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
@@ -55,10 +56,12 @@ public class ImapEvents {
     public ImapEvents(Events events,
                       Authentication authentication,
                       @Qualifier(ImapStandardEventsGenerator.NAME) ImapStandardEventsGenerator standardEventsGenerator,
+                      @Qualifier(ImapFlaglessEventsGenerator.NAME) ImapFlaglessEventsGenerator flaglessEventsGenerator,
                       ImapDao imapDao) {
         this.events = events;
         this.authentication = authentication;
         this.standardEventsGenerator = standardEventsGenerator;
+        this.flaglessEventsGenerator = flaglessEventsGenerator;
         this.imapDao = imapDao;
     }
 
@@ -99,16 +102,20 @@ public class ImapEvents {
             Map<String, ?> beans = AppContext.getApplicationContext()
                     .getBeansOfType(eventsGeneratorClass);
             if (beans.isEmpty()) {
-                return standardEventsGenerator;
+                return standardEventsGenerator(mailBox);
             }
             Map.Entry<String, ?> bean = beans.entrySet().iterator().next();
             if (!(bean.getValue() instanceof ImapEventsGenerator)) {
                 log.warn("Bean {} is not implementation of ImapEventsGenerator interface", bean.getKey());
-                return standardEventsGenerator;
+                return standardEventsGenerator(mailBox);
             }
             return (ImapEventsGenerator) bean.getValue();
         }
-        return standardEventsGenerator;
+        return standardEventsGenerator(mailBox);
+    }
+
+    private ImapEventsGenerator standardEventsGenerator(ImapMailBox mailBox) {
+        return Boolean.TRUE.equals(mailBox.getFlagsSupported()) ? standardEventsGenerator : flaglessEventsGenerator;
     }
 
     private void fireEvents(ImapFolder cubaFolder, Collection<? extends BaseImapEvent> imapEvents) {

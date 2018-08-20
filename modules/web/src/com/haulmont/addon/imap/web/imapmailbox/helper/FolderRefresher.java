@@ -1,10 +1,12 @@
 package com.haulmont.addon.imap.web.imapmailbox.helper;
 
+import com.haulmont.addon.imap.dto.ImapConnectResultDto;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.ImapEventType;
 import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapFolderEvent;
 import com.haulmont.addon.imap.entity.ImapMailBox;
+import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.addon.imap.service.ImapAPIService;
 import com.haulmont.cuba.core.global.Metadata;
 import org.slf4j.Logger;
@@ -30,7 +32,7 @@ public class FolderRefresher {
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public FolderRefresher(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapAPIService imapService,
-                           Metadata metadata) {
+                           @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") Metadata metadata) {
         this.imapService = imapService;
         this.metadata = metadata;
     }
@@ -42,7 +44,12 @@ public class FolderRefresher {
     public LinkedHashMap<ImapFolder, State> refreshFolders(ImapMailBox mailBox) {
         log.info("refresh folders for {}", mailBox);
 //        imapService.testConnection(mailBox);
-        Collection<ImapFolderDto> folderDtos = imapService.fetchFolders(mailBox);
+        ImapConnectResultDto connectResultDto = imapService.testConnection(mailBox);
+        if (!connectResultDto.isSuccess()) {
+            throw connectResultDto.getFailure() != null ? connectResultDto.getFailure() : new ImapException("Cannot connect to the server");
+        }
+        Collection<ImapFolderDto> folderDtos = connectResultDto.getAllFolders();
+        mailBox.setFlagsSupported(connectResultDto.isCustomFlagSupported());
         List<ImapFolder> folders = mailBox.getFolders();
         LinkedHashMap<ImapFolder, State> result;
         if (CollectionUtils.isEmpty(folders)) {

@@ -62,6 +62,9 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private CheckBox allEventsChkBox;
 
     @Inject
+    private TextField cubaFlagTextField;
+
+    @Inject
     private PickerField trashFolderPickerField;
 
     @Inject
@@ -493,7 +496,8 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private void refreshFolders(LinkedHashMap<ImapFolder, FolderRefresher.State> foldersWithState) {
         log.debug("refreshed folders from IMAP: {}", foldersWithState);
 
-        List<ImapFolder> folders = getItem().getFolders();
+        ImapMailBox mailBox = getItem();
+        List<ImapFolder> folders = mailBox.getFolders();
         foldersWithState.forEach((folder, state) -> {
             switch (state) {
                 case NEW:
@@ -512,7 +516,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         });
         if (folders == null) {
             folders = new ArrayList<>(foldersWithState.keySet());
-            getItem().setFolders(folders);
+            mailBox.setFolders(folders);
             for (ImapFolder folder : folders) {
                 foldersDs.addItem(folder);
                 foldersDs.setItem(folder);
@@ -539,6 +543,13 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private void setEnableForButtons(boolean enable) {
         connectionEstablished = enable;
         trashFolderPickerField.setEnabled(enable);
+        ImapMailBox mailBox = getItem();
+        boolean supportsFlag = mailBox.getFlagsSupported().equals(Boolean.TRUE);
+        cubaFlagTextField.setVisible(supportsFlag);
+        cubaFlagTextField.setRequired(supportsFlag);
+        if (!supportsFlag) {
+            mailBox.setCubaFlag(null);
+        }
     }
 
 }

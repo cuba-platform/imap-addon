@@ -77,6 +77,10 @@ public class ImapMailBox extends StandardEntity {
     @Column(name = "EVENTS_GENERATOR_CLASS")
     private String eventsGeneratorClass;
 
+    @NotNull
+    @Column(name = "FLAGS_SUPPORTED", nullable = false)
+    private Boolean flagsSupported = false;
+
     public void setName(String name) {
         this.name = name;
     }
@@ -94,6 +98,13 @@ public class ImapMailBox extends StandardEntity {
         return eventsGeneratorClass;
     }
 
+    public Boolean getFlagsSupported() {
+        return flagsSupported;
+    }
+
+    public void setFlagsSupported(Boolean flagsSupported) {
+        this.flagsSupported = flagsSupported;
+    }
 
     public void setProxy(ImapProxy proxy) {
         this.proxy = proxy;

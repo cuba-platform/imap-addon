@@ -1,6 +1,7 @@
 package com.haulmont.addon.imap.service;
 
 import com.haulmont.addon.imap.api.ImapFlag;
+import com.haulmont.addon.imap.dto.ImapConnectResultDto;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
@@ -13,7 +14,7 @@ import java.util.Collection;
 public interface ImapAPIService {
     String NAME = "imap_ImapAPIService";
 
-    void testConnection(ImapMailBox box);
+    ImapConnectResultDto testConnection(ImapMailBox box);
     Collection<ImapFolderDto> fetchFolders(ImapMailBox box);
 
     ImapMessageDto fetchMessage(ImapMessage message);
