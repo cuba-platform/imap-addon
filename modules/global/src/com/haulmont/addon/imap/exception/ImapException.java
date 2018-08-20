@@ -7,6 +7,10 @@ import javax.mail.MessagingException;
 @SupportedByClient
 public class ImapException extends RuntimeException {
 
+    public ImapException(String message) {
+        super(message);
+    }
+
     public ImapException(MessagingException cause) {
         super(causeDescription(cause));
         addSuppressed(cause);

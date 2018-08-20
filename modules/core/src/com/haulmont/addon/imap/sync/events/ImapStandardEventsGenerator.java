@@ -12,6 +12,7 @@ import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.security.app.Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
@@ -56,7 +57,7 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
     public ImapStandardEventsGenerator(ImapMessageSyncDao messageSyncDao,
                                        Authentication authentication,
                                        Persistence persistence,
-                                       ImapSynchronizer imapSynchronizer) {
+                                       @Qualifier(ImapSynchronizer.NAME) ImapSynchronizer imapSynchronizer) {
         super(20); //todo: to config
         this.messageSyncDao = messageSyncDao;
         this.authentication = authentication;

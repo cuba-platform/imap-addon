@@ -16,6 +16,8 @@ import org.springframework.stereotype.Component;
 
 import javax.mail.*;
 import javax.mail.internet.MimeUtility;
+import javax.mail.search.ComparisonTerm;
+import javax.mail.search.IntegerComparisonTerm;
 import javax.mail.search.SearchTerm;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
@@ -50,6 +52,22 @@ public class ImapOperations {
         return result;
     }
 
+    public boolean supportsCustomFlag(IMAPStore store) throws MessagingException {
+        Folder defaultFolder = store.getDefaultFolder();
+
+        IMAPFolder[] rootFolders = (IMAPFolder[]) defaultFolder.list();
+        if (rootFolders != null && rootFolders.length > 0) {
+            IMAPFolder rootFolder = rootFolders[0];
+            if (!rootFolder.isOpen()) {
+                rootFolder.open(Folder.READ_WRITE);
+            }
+
+            return rootFolder.getPermanentFlags().contains(Flags.Flag.USER);
+        }
+
+        return false;
+    }
+
     private ImapFolderDto map(IMAPFolder folder) throws MessagingException {
         List<ImapFolderDto> subFolders = new ArrayList<>();
 
@@ -74,6 +92,33 @@ public class ImapOperations {
 
         Message[] messages = folder.search(searchTerm);
         return fetch(folder, mailBox, messages);
+    }
+
+    public List<IMAPMessage> search(IMAPFolder folder, Integer lastMessageNumber, ImapMailBox mailBox) throws MessagingException {
+        log.debug("search messages in {} with number greater {}", folder.getFullName(), lastMessageNumber) ;
+
+        Message[] messages = lastMessageNumber != null
+                ? folder.search(newer(lastMessageNumber))
+                : folder.getMessages();
+
+        return fetch(folder, mailBox, messages);
+    }
+
+    private SearchTerm newer(int lastMessageNumber) {
+        return new IntegerComparisonTerm(ComparisonTerm.GT, lastMessageNumber) {
+            @Override
+            public boolean match(Message msg) {
+                int msgno;
+
+                try {
+                    msgno = msg.getMessageNumber();
+                } catch (Exception e) {
+                    return false;
+                }
+
+                return super.match(msgno);
+            }
+        };
     }
 
     public List<IMAPMessage> searchMessageIds(IMAPFolder folder, SearchTerm searchTerm) throws MessagingException {

@@ -29,17 +29,19 @@ import javax.mail.search.FlagTerm;
 import javax.mail.search.MessageIDTerm;
 import java.util.*;
 
-@Component("imap_Synchronizer")
+@Component(ImapSynchronizer.NAME)
 public class ImapSynchronizer {
 
     private final static Logger log = LoggerFactory.getLogger(ImapSynchronizer.class);
 
+    public static final String NAME = "imap_Synchronizer";
+
     private final ImapHelper imapHelper;
-    private final ImapOperations imapOperations;
+    final ImapOperations imapOperations;
     private final ImapConfig imapConfig;
     private final Authentication authentication;
     private final Persistence persistence;
-    private final ImapDao dao;
+    protected final ImapDao dao;
     private final ImapMessageSyncDao messageSyncDao;
     private final Metadata metadata;
 
@@ -90,11 +92,11 @@ public class ImapSynchronizer {
                         imapFolder = (IMAPFolder) store.getFolder(cubaFolder.getName());
                         imapFolder.open(Folder.READ_WRITE);
 
-                        //new
-                        handleNewMessages(checkAnswers, cubaFolder, imapFolder);
-
                         //existing
                         handleExistingMessages(checkAnswers, missedMessages, cubaFolder, imapFolder);
+
+                        //new
+                        handleNewMessages(checkAnswers, missedMessages, cubaFolder, imapFolder);
 
                     } catch (MessagingException e) {
                         log.warn("synchronization of folder " + cubaFolder.getName() + " of mailbox " + mailBox + " failed", e);
@@ -120,7 +122,7 @@ public class ImapSynchronizer {
         }
     }
 
-    private void logInterruption(UUID mailBoxId) {
+    void logInterruption(UUID mailBoxId) {
         log.info("synchronization for mailbox#" + mailBoxId + " was interrupted");
     }
 
@@ -186,7 +188,10 @@ public class ImapSynchronizer {
         missedMessages.addAll(missed);
     }
 
-    private void handleNewMessages(List<ImapMessage> checkAnswers, ImapFolder cubaFolder, IMAPFolder imapFolder) throws MessagingException {
+    protected void handleNewMessages(List<ImapMessage> checkAnswers,
+                                     List<ImapMessage> missedMessages,
+                                     ImapFolder cubaFolder,
+                                     IMAPFolder imapFolder) throws MessagingException {
         ImapMailBox mailBox = cubaFolder.getMailBox();
         List<IMAPMessage> imapMessages = imapOperations.search(
                 imapFolder,
@@ -328,8 +333,8 @@ public class ImapSynchronizer {
         }
     }
 
-    private ImapMessage insertNewMessage(IMAPMessage msg,
-                                         ImapFolder cubaFolder) throws MessagingException {
+    ImapMessage insertNewMessage(IMAPMessage msg,
+                                 ImapFolder cubaFolder) throws MessagingException {
 
         long uid = ((IMAPFolder) msg.getFolder()).getUID(msg);
         try (Transaction tx = persistence.createTransaction()) {

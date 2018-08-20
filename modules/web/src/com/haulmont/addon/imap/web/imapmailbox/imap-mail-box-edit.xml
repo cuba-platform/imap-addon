@@ -39,7 +39,7 @@
                             <field property="host"/>
                             <field property="port">
                                 <formatter class="com.haulmont.cuba.gui.components.formatters.NumberFormatter"
-                                           format="#####" />
+                                           format="#####"/>
                             </field>
                             <field property="secureMode"/>
                             <field id="mailBoxRootCertificateField"
@@ -68,8 +68,13 @@
                                     datasource="mailBoxDs">
                             <column fieldCaptionWidth="222"
                                     width="250px">
-                                <field description="msg://cubaFlagDescription"
-                                       property="cubaFlag"/>
+                                <field id="cubaFlagField"
+                                       property="cubaFlag">
+                                    <textField id="cubaFlagTextField"
+                                               description="msg://cubaFlagDescription"
+                                               datasource="mailBoxDs"
+                                               property="cubaFlag"/>
+                                </field>
                                 <field id="useTrashFolderChkBoxField">
                                     <checkBox id="useTrashFolderChkBox"
                                               caption="msg://useTrashFolderForRemovalCaption"/>
@@ -112,7 +117,7 @@
                                        datasource="proxyDs"
                                        property="port">
                                     <formatter class="com.haulmont.cuba.gui.components.formatters.NumberFormatter"
-                                               format="#####" />
+                                               format="#####"/>
                                 </field>
                                 <field id="webProxyChkBox"
                                        caption="msg://proxyUseWebCaption"

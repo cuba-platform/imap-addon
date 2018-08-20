@@ -71,6 +71,21 @@ public class ImapDao {
         }
     }
 
+    public Integer findLastMessageNumber(UUID folderId) {
+        try (Transaction ignored = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            Object[] lastMessageNumber = (Object[]) em.createQuery(
+                    "select max(m.msgNum) from imap$Message m where m.folder.id = :folderId")
+                    .setParameter("folderId", folderId)
+                    .getFirstResult();
+            if (lastMessageNumber == null) {
+                return null;
+            }
+
+            return ((Number) lastMessageNumber[0]).intValue();
+        }
+    }
+
     @SuppressWarnings("UnusedReturnValue")
     public ImapMessage findMessageByUid(UUID mailFolderId, long messageUid) {
         try (Transaction ignored = persistence.createTransaction()) {
