@@ -74,15 +74,15 @@ public class ImapDao {
     public Integer findLastMessageNumber(UUID folderId) {
         try (Transaction ignored = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
-            Object[] lastMessageNumber = (Object[]) em.createQuery(
+            Object lastMessageNumber = em.createQuery(
                     "select max(m.msgNum) from imap$Message m where m.folder.id = :folderId")
                     .setParameter("folderId", folderId)
                     .getFirstResult();
-            if (lastMessageNumber == null) {
-                return null;
+            if (lastMessageNumber instanceof Number) {
+                return ((Number) lastMessageNumber).intValue();
             }
 
-            return ((Number) lastMessageNumber[0]).intValue();
+            return null;
         }
     }
 
