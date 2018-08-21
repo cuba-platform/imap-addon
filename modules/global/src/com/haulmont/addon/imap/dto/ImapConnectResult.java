@@ -2,11 +2,8 @@ package com.haulmont.addon.imap.dto;
 
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.exception.ImapException;
-import com.haulmont.chile.core.annotations.MetaClass;
-import com.haulmont.chile.core.annotations.MetaProperty;
-import com.haulmont.chile.core.annotations.NamePattern;
-import com.haulmont.cuba.core.entity.BaseUuidEntity;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -26,22 +23,16 @@ import java.util.List;
  *     </li>
  * </ul>
  */
-@NamePattern("%s | mailBox")
-@MetaClass(name = "imap$ConnectResultDto")
-public class ImapConnectResultDto extends BaseUuidEntity {
+public class ImapConnectResult implements Serializable {
+    private static final long serialVersionUID = -2217624132287086972L;
 
-    @MetaProperty(mandatory = true)
     private ImapMailBox mailBox;
 
-    @MetaProperty(mandatory = true)
     private boolean success;
-    @MetaProperty
     private ImapException failure;
 
-    @MetaProperty(mandatory = true)
     private boolean customFlagSupported;
 
-    @MetaProperty
     private List<ImapFolderDto> allFolders;
 
     public ImapMailBox getMailBox() {

@@ -1,6 +1,6 @@
 package com.haulmont.addon.imap.web.imapmailbox.helper;
 
-import com.haulmont.addon.imap.dto.ImapConnectResultDto;
+import com.haulmont.addon.imap.dto.ImapConnectResult;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.entity.ImapEventType;
 import com.haulmont.addon.imap.entity.ImapFolder;
@@ -44,7 +44,7 @@ public class FolderRefresher {
     public LinkedHashMap<ImapFolder, State> refreshFolders(ImapMailBox mailBox) {
         log.info("refresh folders for {}", mailBox);
 //        imapService.testConnection(mailBox);
-        ImapConnectResultDto connectResultDto = imapService.testConnection(mailBox);
+        ImapConnectResult connectResultDto = imapService.testConnection(mailBox);
         if (!connectResultDto.isSuccess()) {
             throw connectResultDto.getFailure() != null ? connectResultDto.getFailure() : new ImapException("Cannot connect to the server");
         }
