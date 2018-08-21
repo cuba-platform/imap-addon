@@ -5,14 +5,13 @@ import com.haulmont.addon.imap.api.ImapAttachmentsAPI;
 import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.addon.imap.core.ImapHelper;
 import com.haulmont.addon.imap.core.ImapOperations;
-import com.haulmont.addon.imap.dto.ImapConnectResultDto;
+import com.haulmont.addon.imap.dto.ImapConnectResult;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.exception.ImapException;
-import com.haulmont.cuba.core.global.Metadata;
 import com.sun.mail.imap.IMAPStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,27 +29,24 @@ public class ImapAPIServiceBean implements ImapAPIService {
     private final ImapAPI imapAPI;
     private final ImapAttachmentsAPI imapAttachmentsAPI;
     private final ImapHelper imapHelper;
-    private final Metadata metadata;
     private final ImapOperations imapOperations;
 
     @Inject
     public ImapAPIServiceBean(ImapAPI imapAPI,
                               ImapAttachmentsAPI imapAttachmentsAPI,
                               ImapHelper imapHelper,
-                              @SuppressWarnings("CdiInjectionPointsInspection") Metadata metadata,
                               @SuppressWarnings("CdiInjectionPointsInspection") ImapOperations imapOperations) {
         this.imapAPI = imapAPI;
         this.imapAttachmentsAPI = imapAttachmentsAPI;
         this.imapHelper = imapHelper;
-        this.metadata = metadata;
         this.imapOperations = imapOperations;
     }
 
     @Override
-    public ImapConnectResultDto testConnection(ImapMailBox box) {
+    public ImapConnectResult testConnection(ImapMailBox box) {
         log.info("Check connection for {}", box);
 
-        ImapConnectResultDto result = metadata.create(ImapConnectResultDto.class);
+        ImapConnectResult result = new ImapConnectResult();
         result.setMailBox(box);
         try {
             IMAPStore store = imapHelper.getStore(box);
