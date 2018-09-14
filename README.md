@@ -25,6 +25,8 @@ The component includes the following set of functionalities:
 * Predefined events for implementing custom business logic and processing various updates.
 * User interface for configuring IMAP connection settings and events.
 
+Sample application, using this component can be found here: https://github.com/cuba-platform/imap-addon-demo
+
 # Getting Started
 
 ## Installation
