@@ -41,6 +41,12 @@ public class DefaultEncryptor implements Encryptor {
 
     @PostConstruct
     void initKey() {
+        if (StringUtils.isBlank(imapConfig.getEncryptionKey())) {
+            throw new IllegalStateException(String.format(
+                    "Cannot configure encryptor %s, property \"imap.encryption.key\" is not set",
+                    getClass().getName()
+            ));
+        }
         byte[] encryptionKey = Base64.getDecoder().decode(imapConfig.getEncryptionKey());
         secretKey = new SecretKeySpec(encryptionKey, "AES");
 
