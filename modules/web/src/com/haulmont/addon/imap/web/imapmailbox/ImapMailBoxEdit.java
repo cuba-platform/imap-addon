@@ -12,6 +12,7 @@ import com.haulmont.cuba.gui.components.actions.BaseAction;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
 import com.haulmont.cuba.gui.data.HierarchicalDatasource;
+import com.haulmont.cuba.gui.data.impl.AbstractDatasource;
 import com.haulmont.cuba.gui.data.impl.DatasourceImplementation;
 import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 import org.slf4j.Logger;
@@ -78,6 +79,9 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     @Inject
     private Datasource<ImapMailBox> mailBoxDs;
+
+    @Inject
+    private Datasource<ImapSimpleAuthentication> authenticationDs;
 
     @Inject
     private HierarchicalDatasource<ImapFolder, UUID> foldersDs;
@@ -382,6 +386,8 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             checkConnectionBtn.setVisible(false);
             setEnableForButtons(true);
         }
+        ((AbstractDatasource) mailBoxDs).setModified(false);
+        ((AbstractDatasource) authenticationDs).setModified(false);
     }
 
     @Override
