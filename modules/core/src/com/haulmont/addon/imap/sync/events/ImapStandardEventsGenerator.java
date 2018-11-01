@@ -164,10 +164,6 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
                     .map(NewEmailImapEvent::new)
                     .collect(Collectors.toList());
 
-            if (Thread.currentThread().isInterrupted()) {
-                logInterruption(cubaFolder.getMailBox().getId());
-                return Collections.emptyList();
-            }
             messageSyncDao.removeMessagesSyncs(newMessages.stream().map(ImapMessage::getId).collect(Collectors.toList()));
 
             return newMessageEvents;
@@ -194,19 +190,11 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
                 }
 
                 for (ImapMessageSync messageSync : remainMessageSyncs) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        logInterruption(cubaFolder.getMailBox().getId());
-                        return Collections.emptyList();
-                    }
                     List<BaseImapEvent> events = generateUpdateEvents(messageSync);
                     if (!events.isEmpty()) {
                         updateMessageEvents.addAll(events);
                         i++;
                     }
-                }
-                if (Thread.currentThread().isInterrupted()) {
-                    logInterruption(cubaFolder.getMailBox().getId());
-                    return Collections.emptyList();
                 }
 
                 messageSyncDao.removeMessagesSyncs(remainMessageSyncs.stream()
@@ -318,19 +306,11 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
                 for (BaseImapEvent missedMessageEvent : missedMessageEvents) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        logInterruption(cubaFolder.getMailBox().getId());
-                        return Collections.emptyList();
-                    }
                     em.remove(missedMessageEvent.getMessage());
                 }
                 tx.commit();
             }
 
-            if (Thread.currentThread().isInterrupted()) {
-                logInterruption(cubaFolder.getMailBox().getId());
-                return missedMessageEvents;
-            }
             recalculateMessageNumbers(cubaFolder, missedMessageNums);
 
             return missedMessageEvents;
@@ -365,9 +345,5 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
         } finally {
             authentication.end();
         }
-    }
-
-    private void logInterruption(UUID mailBoxId) {
-        log.info("synchronization for mailbox#" + mailBoxId + " was interrupted");
     }
 }

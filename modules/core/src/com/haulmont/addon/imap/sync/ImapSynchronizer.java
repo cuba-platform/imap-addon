@@ -78,10 +78,6 @@ public class ImapSynchronizer {
                 List<ImapMessage> checkAnswers = new ArrayList<>();
                 List<ImapMessage> missedMessages = new ArrayList<>();
                 for (ImapFolder cubaFolder : mailBox.getProcessableFolders()) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        logInterruption(mailBoxId);
-                        return;
-                    }
                     IMAPFolder imapFolder = null;
                     try {
                         Calendar calendar = Calendar.getInstance();
@@ -122,10 +118,6 @@ public class ImapSynchronizer {
         }
     }
 
-    void logInterruption(UUID mailBoxId) {
-        log.info("synchronization for mailbox#" + mailBoxId + " was interrupted");
-    }
-
     private void handleExistingMessages(List<ImapMessage> checkAnswers,
                                         List<ImapMessage> missedMessages,
                                         ImapFolder cubaFolder,
@@ -141,10 +133,6 @@ public class ImapSynchronizer {
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
             for (ImapMessage message : messagesForSync) {
-                if (Thread.currentThread().isInterrupted()) {
-                    logInterruption(cubaFolder.getMailBox().getId());
-                    return;
-                }
                 if (messageSyncDao.findSync(message) == null) {
                     ImapMessageSync messageSync = metadata.create(ImapMessageSync.class);
                     messageSync.setMessage(message);
@@ -162,10 +150,6 @@ public class ImapSynchronizer {
                 cubaFolder.getId(), ImapSyncStatus.IN_SYNC, tenMinutesAgo, threeMinutesAgo);
         messagesForSync.addAll(oldInSync);
         for (ImapMessage cubaMessage : messagesForSync) {
-            if (Thread.currentThread().isInterrupted()) {
-                logInterruption(cubaFolder.getMailBox().getId());
-                return;
-            }
             Message imapMessage = imapFolder.getMessageByUID(cubaMessage.getMsgUid());
             if (imapMessage != null) {
                 messageSyncDao.updateSyncStatus(cubaMessage,
@@ -200,10 +184,6 @@ public class ImapSynchronizer {
         );
         if (!imapMessages.isEmpty()) {
             for (IMAPMessage imapMessage : imapMessages) {
-                if (Thread.currentThread().isInterrupted()) {
-                    logInterruption(mailBox.getId());
-                    return;
-                }
                 if (Boolean.TRUE.equals(imapConfig.getClearCustomFlags())) {
                     log.trace("[{}]clear custom flags for message with uid {}",
                             cubaFolder, imapFolder.getUID(imapMessage));
@@ -229,10 +209,6 @@ public class ImapSynchronizer {
                 imapFolder.open(Folder.READ_ONLY);
 
                 for (ImapMessage cubaMessage : missedMessages) {
-                    if (Thread.currentThread().isInterrupted()) {
-                        logInterruption(mailBox.getId());
-                        return;
-                    }
                     if (foundMessages.contains(cubaMessage)) {
                         continue;
                     }
@@ -358,10 +334,6 @@ public class ImapSynchronizer {
                 messageSync.setFolder(cubaFolder);
                 em.persist(messageSync);
 
-                if (Thread.currentThread().isInterrupted()) {
-                    logInterruption(cubaFolder.getMailBox().getId());
-                    return null;
-                }
                 tx.commit();
 
                 return entity;

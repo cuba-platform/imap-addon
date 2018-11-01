@@ -40,16 +40,7 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
         }
     });
 
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread thread = new Thread(
-                r, "ImapMailBoxSyncRefresher"
-        );
-        thread.setDaemon(true);
-        return thread;
-    });
-
-    private final ConcurrentMap<UUID, ScheduledFuture<?>> syncRefreshers = new ConcurrentHashMap<>();
-    private final ConcurrentMap<UUID, CompletableFuture<?>> syncTasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, ScheduledExecutorService> syncRefreshers = new ConcurrentHashMap<>();
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
@@ -91,11 +82,14 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
             log.warn("Exception while shutting down executor", e);
         }
 
-        try {
-            scheduledExecutorService.shutdownNow();
-            scheduledExecutorService.awaitTermination(1, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            log.warn("Exception while shutting down scheduled executor", e);
+        for (Map.Entry<UUID, ScheduledExecutorService> scheduledExecutorServiceEntry : syncRefreshers.entrySet()) {
+            ScheduledExecutorService scheduledExecutorService = scheduledExecutorServiceEntry.getValue();
+            try {
+                scheduledExecutorService.shutdownNow();
+                scheduledExecutorService.awaitTermination(1, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.warn("Exception while shutting down scheduled executor for mailBox#" + scheduledExecutorServiceEntry.getKey(), e);
+            }
         }
 
         authentication.begin();
@@ -129,19 +123,23 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
             runEventsEmitter(mailboxId);
         } else {
             imapEvents.shutdown(event.getMailBox());
-            cancel(syncRefreshers.remove(mailboxId));
-            cancel(syncTasks.remove(mailboxId));
+            ScheduledExecutorService refresher = syncRefreshers.remove(mailboxId);
+            if (refresher != null) {
+                refresher.shutdownNow();
+            }
         }
 
     }
 
     private void runEventsEmitter(UUID mailboxId) {
-        CompletableFuture<?> task = syncTasks.get(mailboxId);
-        if (task != null && !task.isDone() && !task.isCancelled()) {
-            return;
-        }
-
-        CompletableFuture<Void> cf = CompletableFuture.runAsync(() -> {
+        syncRefreshers.computeIfAbsent(mailboxId, id -> Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread thread = new Thread(
+                    r, "ImapMailBoxSyncRefresher#" + id
+            );
+            thread.setDaemon(true);
+            return thread;
+        }));
+        syncRefreshers.get(mailboxId).schedule(() -> {
             authentication.begin();
             try {
                 ImapMailBox mailBox = dao.findMailBox(mailboxId);
@@ -156,24 +154,7 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
             } finally {
                 authentication.end();
             }
-            ScheduledFuture<?> newTask = scheduledExecutorService.schedule(() -> {
-                runEventsEmitter(mailboxId);
-                syncRefreshers.remove(mailboxId);
-            }, 5, TimeUnit.SECONDS);
-
-            ScheduledFuture<?> oldTask = syncRefreshers.put(mailboxId, newTask);
-            cancel(oldTask);
-        }, executor);
-        syncTasks.put(mailboxId, cf);
-        cf.thenRunAsync(() -> syncTasks.remove(mailboxId), executor);
-    }
-
-    private void cancel(Future<?> task) {
-        if (task != null) {
-            if (!task.isDone() && !task.isCancelled()) {
-                task.cancel(true);
-            }
-        }
+        }, 5, TimeUnit.SECONDS);
     }
 
 }

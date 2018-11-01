@@ -20,6 +20,7 @@ import java.sql.Connection;
 public class ImapMailboxListener implements BeforeInsertEntityListener<ImapMailBox>,
                                             BeforeUpdateEntityListener<ImapMailBox>,
                                             AfterInsertEntityListener<ImapMailBox>,
+                                            AfterUpdateEntityListener<ImapMailBox>,
                                             BeforeDeleteEntityListener<ImapMailBox> {
 
     private final static Logger log = LoggerFactory.getLogger(ImapMailboxListener.class);
@@ -46,6 +47,7 @@ public class ImapMailboxListener implements BeforeInsertEntityListener<ImapMailB
         if (persistenceTools.isDirty(entity.getAuthentication(), "password")) {
             setEncryptedPassword(entity);
         }
+        events.publish(new ImapMailboxSyncActivationEvent(entity, ImapMailboxSyncActivationEvent.Type.DEACTIVATE));
     }
 
     private void setEncryptedPassword(ImapMailBox entity) {
@@ -61,6 +63,15 @@ public class ImapMailboxListener implements BeforeInsertEntityListener<ImapMailB
 
     @Override
     public void onAfterInsert(ImapMailBox entity, Connection connection) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter(){
+            public void afterCommit() {
+                events.publish(new ImapMailboxSyncActivationEvent(entity, ImapMailboxSyncActivationEvent.Type.ACTIVATE));
+            }
+        });
+    }
+
+    @Override
+    public void onAfterUpdate(ImapMailBox entity, Connection connection) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter(){
             public void afterCommit() {
                 events.publish(new ImapMailboxSyncActivationEvent(entity, ImapMailboxSyncActivationEvent.Type.ACTIVATE));

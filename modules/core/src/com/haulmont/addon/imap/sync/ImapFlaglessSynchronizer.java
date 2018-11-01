@@ -55,10 +55,6 @@ public class ImapFlaglessSynchronizer extends ImapSynchronizer {
         List<IMAPMessage> imapMessages = imapOperations.search(imapFolder, lastMessageNumber, mailBox);
         if (!imapMessages.isEmpty()) {
             for (IMAPMessage imapMessage : imapMessages) {
-                if (Thread.currentThread().isInterrupted()) {
-                    logInterruption(mailBox.getId());
-                    return;
-                }
                 log.debug("[{}]insert message with uid {} to db after changing flags on server",
                         cubaFolder, imapFolder.getUID(imapMessage));
                 ImapMessage cubaMessage = insertNewMessage(imapMessage, cubaFolder);

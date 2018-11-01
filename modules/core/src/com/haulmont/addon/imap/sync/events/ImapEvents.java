@@ -15,17 +15,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import javax.annotation.Nonnull;
-import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Component("imap_Events")
@@ -39,18 +32,6 @@ public class ImapEvents {
     private final ImapFlaglessEventsGenerator flaglessEventsGenerator;
     private final ImapDao imapDao;
 
-    private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
-        private final AtomicInteger threadNumber = new AtomicInteger(1);
-        @Override
-        public Thread newThread(@Nonnull Runnable r) {
-            Thread thread = new Thread(
-                    r, "ImapEvents-" + threadNumber.getAndIncrement()
-            );
-            thread.setDaemon(true);
-            return thread;
-        }
-    });
-
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public ImapEvents(Events events,
@@ -63,16 +44,6 @@ public class ImapEvents {
         this.standardEventsGenerator = standardEventsGenerator;
         this.flaglessEventsGenerator = flaglessEventsGenerator;
         this.imapDao = imapDao;
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        try {
-            executor.shutdownNow();
-            executor.awaitTermination(1, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            log.warn("Exception while shutting down executor", e);
-        }
     }
 
     public void init(ImapMailBox mailBox) {
@@ -129,30 +100,28 @@ public class ImapEvents {
 
         UUID folderId = cubaFolder.getId();
         log.debug("Filtered events for {}: {}", cubaFolder, imapEvents);
-        executor.submit(() -> {
-            authentication.begin();
-            try {
-                ImapFolder freshFolder = imapDao.findFolder(folderId);
-                for (BaseImapEvent event : imapEvents) {
-                    log.trace("firing event {}", event);
-                    events.publish(event);
+        authentication.begin();
+        try {
+            ImapFolder freshFolder = imapDao.findFolder(folderId);
+            for (BaseImapEvent event : imapEvents) {
+                log.trace("firing event {}", event);
+                events.publish(event);
 
-                    List<ImapEventHandler> eventHandlers = ImapEventType.getByEventType(event.getClass()).stream()
-                            .map(freshFolder::getEvent)
-                            .filter(Objects::nonNull)
-                            .map(ImapFolderEvent::getEventHandlers)
-                            .filter(handlers -> !CollectionUtils.isEmpty(handlers))
-                            .flatMap(Collection::stream)
-                            .collect(Collectors.toList());
-                    log.trace("firing event {} using handlers {}", event, eventHandlers);
-                    invokeAttachedHandlers(event, freshFolder, eventHandlers);
+                List<ImapEventHandler> eventHandlers = ImapEventType.getByEventType(event.getClass()).stream()
+                        .map(freshFolder::getEvent)
+                        .filter(Objects::nonNull)
+                        .map(ImapFolderEvent::getEventHandlers)
+                        .filter(handlers -> !CollectionUtils.isEmpty(handlers))
+                        .flatMap(Collection::stream)
+                        .collect(Collectors.toList());
+                log.trace("firing event {} using handlers {}", event, eventHandlers);
+                invokeAttachedHandlers(event, freshFolder, eventHandlers);
 
-                    log.trace("finish processing event {}", event);
-                }
-            } finally {
-                authentication.end();
+                log.trace("finish processing event {}", event);
             }
-        });
+        } finally {
+            authentication.end();
+        }
     }
 
     private void filterEvents(ImapFolder cubaFolder, Collection<? extends BaseImapEvent> imapEvents) {
