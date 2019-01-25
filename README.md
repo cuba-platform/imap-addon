@@ -1,7 +1,5 @@
 [![license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](http://www.apache.org/licenses/LICENSE-2.0)
 
-**Please note that the component is still in development and not stable.**
-
 # Table of Contents
 
 - [Overview](#overview)
@@ -69,7 +67,7 @@ imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
 
 # Component Functionalities
 
-## IMAP Configuration
+## IMAP Configuration <a name="imap-configuration"></a>
 
 *IMAP Configuration Browser* is designed to add and manage mailboxes from which emails are retrieved. The browser is 
 available from Menu: Administration → IMAP → IMAP Configuration.
@@ -82,8 +80,7 @@ Creating a new configuration is available by clicking the *Create* button.
 
 ### IMAP Configuration Editor
 
-*IMAP Configuration Editor* comprises two main sections to fill in: *Basic* and *Advanced*. All required fields are
-highlighted in red.
+*IMAP Configuration Editor* comprises two main sections to fill in: *Basic* and *Advanced*. 
 
 ![IMAP Configuration Editor](img/IMAP-conf-editor.png)
 
@@ -184,10 +181,10 @@ public class EmailReceiver {
 
 Once it is done, the selected method (in the example, it is `receiveEmail`) should be registered on a particular folder 
 for a given IMAP connection. This should be done at runtime using the IMAP configuration UI (see [Creating Handlers for
-IMAP Events]). 
+IMAP Events](#imap-handlers)). 
 After that, the method will be invoked every time, when the configured event occurs.
 
-## Creating Handlers for IMAP Events
+## Creating Handlers for IMAP Events <a name="imap-handlers"></a>
 
 After registering EventListeners, it is required to create handlers for IMAP events related to a particular folder and 
 mailbox (for more information see [IMAP Connection](#imap-configuration)). The table of folders comprises several columns,
