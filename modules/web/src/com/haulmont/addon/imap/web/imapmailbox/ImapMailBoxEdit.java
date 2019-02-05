@@ -5,16 +5,22 @@ import com.haulmont.addon.imap.exception.ImapException;
 import com.haulmont.addon.imap.service.ImapService;
 import com.haulmont.addon.imap.web.imapmailbox.helper.FolderRefresher;
 import com.haulmont.bali.util.ParamsMap;
-import com.haulmont.cuba.core.global.*;
+import com.haulmont.cuba.core.global.AppBeans;
+import com.haulmont.cuba.core.global.Messages;
+import com.haulmont.cuba.core.global.Metadata;
+import com.haulmont.cuba.core.global.PersistenceHelper;
+import com.haulmont.cuba.gui.Notifications;
+import com.haulmont.cuba.gui.ScreenBuilders;
+import com.haulmont.cuba.gui.UiComponents;
 import com.haulmont.cuba.gui.WindowManager;
 import com.haulmont.cuba.gui.components.*;
 import com.haulmont.cuba.gui.components.actions.BaseAction;
+import com.haulmont.cuba.gui.components.data.value.ContainerValueSource;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
 import com.haulmont.cuba.gui.data.HierarchicalDatasource;
 import com.haulmont.cuba.gui.data.impl.AbstractDatasource;
 import com.haulmont.cuba.gui.data.impl.DatasourceImplementation;
-import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,10 +99,16 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private CollectionDatasource<ImapEventHandler, UUID> handlersDs;
 
     @Inject
-    private ComponentsFactory componentsFactory;
+    private UiComponents componentsFactory;
 
     @Inject
     private ImapService service;
+
+    @Inject
+    private Notifications notifications;
+
+    @Inject
+    private ScreenBuilders screenBuilders;
 
     private boolean connectionEstablished = false;
 
@@ -104,10 +116,15 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         setEnableForButtons(false);
         try {
             refreshFolders(folderRefresher.refreshFolders(getItem()));
-            showNotification(getMessage("connectionSucceed"), NotificationType.HUMANIZED);
+            notifications.create(Notifications.NotificationType.HUMANIZED)
+                    .withCaption(getMessage("connectionSucceed"))
+                    .show();
         } catch (ImapException e) {
             log.error("Connection Error", e);
-            showNotification(getMessage("connectionFailed"), NotificationType.ERROR);
+            notifications.create(Notifications.NotificationType.ERROR)
+                    .withCaption(getMessage("connectionFailed"))
+                    .withDescription(e.getMessage())
+                    .show();
         }
     }
 
@@ -161,7 +178,8 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         setupFolders();
         setupEvents();
 
-        PickerField.LookupAction trashFolderLookupAction = trashFolderPickerField.addLookupAction();
+        PickerField.LookupAction trashFolderLookupAction = PickerField.LookupAction.create(trashFolderPickerField);
+        trashFolderPickerField.addAction(trashFolderLookupAction);
         trashFolderLookupAction.setLookupScreen("imap$Folder.lookup");
         trashFolderLookupAction.setLookupScreenOpenType(WindowManager.OpenType.THIS_TAB);
         trashFolderLookupAction.setLookupScreenParamsSupplier(() -> ParamsMap.of("mailBox", getItem()));
@@ -173,8 +191,10 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
     private void setupFolders() {
         foldersTable.addGeneratedColumn("selected", folder -> {
-            CheckBox checkBox = componentsFactory.createComponent(CheckBox.class);
-            checkBox.setDatasource(foldersTable.getItemDatasource(folder), "selected");
+            CheckBox checkBox = componentsFactory.create(CheckBox.class);
+            checkBox.setValueSource(
+                    new ContainerValueSource(foldersTable.getInstanceContainer(folder), "selected")
+            );
             checkBox.setEditable(Boolean.TRUE.equals(folder.getSelectable() && !Boolean.TRUE.equals(folder.getDisabled())));
             checkBox.setFrame(getFrame());
             checkBox.setWidth("20");
@@ -182,9 +202,8 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         });
 
         foldersTable.addGeneratedColumn("name", folder -> {
-            Label label = componentsFactory.createComponent(Label.class);
+            Label label = componentsFactory.create(Label.class);
             label.setHtmlEnabled(true);
-            label.setFrame(getFrame());
 
             if (Boolean.TRUE.equals(folder.getDisabled())) {
                 label.setValue("<strike>" + folder.getName() + "</strike>");
@@ -210,12 +229,11 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             ImapEventType eventType = eventTypes[i];
             String eventName = AppBeans.get(Messages.class).getMessage(eventType);
 
-            Label label = componentsFactory.createComponent(Label.class);
-            label.setFrame(getFrame());
+            Label label = componentsFactory.create(Label.class);
             label.setValue(eventName);
             editEventsGrid.add(label, 0, i + 1);
 
-            CheckBox checkBox = componentsFactory.createComponent(CheckBox.class);
+            CheckBox checkBox = componentsFactory.create(CheckBox.class);
             checkBox.setAlignment(Alignment.MIDDLE_CENTER);
             checkBox.setFrame(getFrame());
             checkBox.setDescription(eventName);
@@ -255,7 +273,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
             eventsChanging.set(true);
             eventCheckBoxes.forEach((checkbox, eventType) -> {
-                Object value = e.getValue();
+                Boolean value = e.getValue();
                 checkbox.setValue(value);
                 toggleEvent(Boolean.TRUE.equals(e.getValue()), selectedFolder, eventType);
             });
@@ -327,7 +345,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                         AbstractEditor eventEditor = openEditor(
                                 event, WindowManager.OpenType.DIALOG, Collections.emptyMap(), eventsDs
                         );
-                        eventEditor.addCloseWithCommitListener(() -> {
+                        eventEditor.addAfterCloseListener(e -> {
                             for (int i = 0; i < event.getEventHandlers().size(); i++) {
                                 ImapEventHandler handler = event.getEventHandlers().get(i);
                                 if (handler.getHandlingOrder() == null) {
@@ -349,11 +367,11 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
 
         for (ImapEventType eventType : ImapEventType.values()) {
             foldersTable.addGeneratedColumn(AppBeans.get(Messages.class).getMessage(eventType), folder -> {
-                HBoxLayout hbox = componentsFactory.createComponent(HBoxLayout.class);
+                HBoxLayout hbox = componentsFactory.create(HBoxLayout.class);
                 hbox.setWidthFull();
                 hbox.setFrame(getFrame());
                 if (folder.hasEvent(eventType)) {
-                    LinkButton button = componentsFactory.createComponent(LinkButton.class);
+                    LinkButton button = componentsFactory.create(LinkButton.class);
                     button.setAction(imapEventActions.get(eventType));
                     button.setCaption("");
                     button.setIcon("icons/gear.png");
@@ -393,7 +411,9 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     @Override
     protected boolean preCommit() {
         if (!connectionEstablished) {
-            showNotification(getMessage("saveWithoutConnectionWarning"), NotificationType.TRAY);
+            notifications.create(Notifications.NotificationType.TRAY)
+                    .withCaption(getMessage("saveWithoutConnectionWarning"))
+                    .show();
         }
         return connectionEstablished;
     }
@@ -538,7 +558,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             folders.clear();
             folders.addAll(foldersWithState.keySet());
             foldersWithState.entrySet().stream().filter(e -> e.getValue() == FolderRefresher.State.NEW).forEach(e ->
-                foldersDs.addItem(e.getKey())
+                    foldersDs.addItem(e.getKey())
             );
             foldersDs.refresh();
         }

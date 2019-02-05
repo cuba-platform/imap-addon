@@ -1,5 +1,5 @@
 buildscript {
-    ext.cubaVersion = '6.10.2'
+    ext.cubaVersion = '7.0.0'
     repositories {
         
         maven {
@@ -13,6 +13,7 @@ buildscript {
     }
     dependencies {
         classpath "com.haulmont.gradle:cuba-plugin:$cubaVersion"
+        classpath "com.haulmont.gradle:addon-gradle-plugin:1.0.3"
     }
 }
 
@@ -26,21 +27,17 @@ def webModule = project(":${modulePrefix}-web" )
 def servletApi = 'javax.servlet:javax.servlet-api:3.1.0'
 
 
-apply(plugin: 'idea')
 apply(plugin: 'cuba')
+apply(plugin: 'addon-gradle-plugin')
 
 cuba {
     artifact {
         group = 'com.haulmont.addon.imap'
-        version = '1.1'
+        version = '1.2'
         isSnapshot = true
     }
     tomcat {
         dir = "$project.rootDir/deploy/tomcat"
-        port = 8081
-        shutdownPort = 8006
-        ajpPort = 8010
-        debugPort = 8788
     }
     ide {
         vcs = 'Git'
@@ -59,9 +56,8 @@ configure([globalModule, coreModule, guiModule, webModule]) {
     apply(plugin: 'java')
     apply(plugin: 'groovy')
     apply(plugin: 'maven')
-    apply(plugin: 'idea')
     apply(plugin: 'cuba')
-    apply(plugin: 'checkstyle')
+    apply(plugin: 'addon-gradle-plugin')
 
     sourceSets {
         main {
@@ -99,24 +95,6 @@ configure([globalModule, coreModule, guiModule, webModule]) {
         archives sourceJar
     }
 
-    String checkstyleConfigDir = "${rootProject.projectDir}/config/checkstyle"
-    checkstyle {
-        toolVersion = "6.2"
-        configFile = new File("${checkstyleConfigDir}/checkstyle.xml".toString())
-        configProperties = [
-                'checkstyleConfigDir': checkstyleConfigDir
-        ]
-        reportsDir = new File("${buildDir}/checkstyle".toString())
-        ignoreFailures = false
-    }
-
-    checkstyleMain.doLast {
-        def checkstyleDir = "${project.buildDir}/checkstyle".toString()
-        ant.xslt('in': "$checkstyleDir/main.xml",
-                out: "$checkstyleDir/$project.name-checkstyle.html",
-                style: "$checkstyleConfigDir/checkstyle.xsl")
-    }
-
     idea {
         module {
             testSourceDirs += file('test-unit')
@@ -146,6 +124,10 @@ configure(globalModule) {
 
     dependencies {
         compile "com.fasterxml.jackson.core:jackson-databind:2.9.4"
+        if (!JavaVersion.current().isJava8()) {
+            runtime('javax.xml.bind:jaxb-api:2.3.1')
+            runtime('org.glassfish.jaxb:jaxb-runtime:2.3.1')
+        }
     }
     
 }
@@ -159,7 +141,7 @@ configure(coreModule) {
 
     dependencies {
         compile(globalModule)
-        provided(servletApi)
+        compileOnly(servletApi)
         jdbc(hsql)
         testRuntime(hsql)
 
@@ -250,7 +232,7 @@ configure(webModule) {
     }
 
     dependencies {
-        provided(servletApi)
+        compileOnly(servletApi)
         compile(guiModule)
 
     }
@@ -314,8 +296,5 @@ task restart(dependsOn: ['stop', ":${modulePrefix}-core:deploy" , ":${modulePref
     }
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '4.3.1'
-}
 
 apply from: 'extra.gradle'

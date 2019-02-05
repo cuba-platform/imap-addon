@@ -5,11 +5,7 @@ import com.haulmont.addon.imap.api.ImapAPI
 import com.haulmont.addon.imap.api.ImapFlag
 import com.haulmont.addon.imap.crypto.Encryptor
 import com.haulmont.addon.imap.dto.ImapMessageDto
-import com.haulmont.addon.imap.entity.ImapAuthenticationMethod
-import com.haulmont.addon.imap.entity.ImapFolder
-import com.haulmont.addon.imap.entity.ImapMailBox
-import com.haulmont.addon.imap.entity.ImapMessage
-import com.haulmont.addon.imap.entity.ImapSimpleAuthentication
+import com.haulmont.addon.imap.entity.*
 import com.haulmont.addon.imap.exception.ImapException
 import com.haulmont.cuba.core.global.AppBeans
 import com.icegreen.greenmail.imap.ImapConstants
@@ -19,21 +15,15 @@ import com.icegreen.greenmail.user.GreenMailUser
 import com.icegreen.greenmail.util.GreenMail
 import com.icegreen.greenmail.util.ServerSetup
 import com.sun.mail.imap.IMAPFolder
-import org.apache.commons.lang.RandomStringUtils
+import org.apache.commons.lang3.RandomStringUtils
 import org.junit.ClassRule
 import spock.lang.Shared
 import spock.lang.Specification
 
-import javax.mail.Flags
-import javax.mail.Folder
-import javax.mail.Message
-import javax.mail.Session
-import javax.mail.Store
-import javax.mail.URLName
+import javax.mail.*
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeMessage
 import java.util.concurrent.atomic.AtomicInteger
-
 
 class ImapAPISpec extends Specification {
 
@@ -192,7 +182,7 @@ class ImapAPISpec extends Specification {
             em.createQuery("update imap\$SimpleAuthentication auth set auth.password = :password where auth.id = " +
                     "( select mb.authentication.id from imap\$MailBox mb where mb.id = :mailBox)")
                     .setParameter("password", AppBeans.get(Encryptor).getEncryptedPassword(mailBoxConfig))
-                    .setParameter("mailBox", mailBoxConfig)
+                    .setParameter("mailBox", mailBoxConfig.getId())
                     .executeUpdate()
             em.flush()
         }

@@ -1,7 +1,7 @@
 package com.haulmont.addon.imap.events;
 
 import com.haulmont.addon.imap.entity.ImapMessage;
-import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  * Event triggered when IMAP message was moved to different folder

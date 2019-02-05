@@ -1,12 +1,19 @@
 package com.haulmont.addon.imap.web.imapfolderevent;
 
-import com.haulmont.addon.imap.entity.*;
+import com.haulmont.addon.imap.entity.ImapEventHandler;
+import com.haulmont.addon.imap.entity.ImapEventType;
+import com.haulmont.addon.imap.entity.ImapFolderEvent;
 import com.haulmont.addon.imap.service.ImapService;
 import com.haulmont.cuba.core.global.Metadata;
-import com.haulmont.cuba.gui.components.*;
+import com.haulmont.cuba.gui.Notifications;
+import com.haulmont.cuba.gui.UiComponents;
+import com.haulmont.cuba.gui.components.AbstractEditor;
+import com.haulmont.cuba.gui.components.Button;
+import com.haulmont.cuba.gui.components.LookupField;
+import com.haulmont.cuba.gui.components.Table;
+import com.haulmont.cuba.gui.components.data.value.ContainerValueSource;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
-import com.haulmont.cuba.gui.xml.layout.ComponentsFactory;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -37,10 +44,13 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
     private ImapService service;
 
     @Inject
-    private ComponentsFactory componentsFactory;
+    private UiComponents componentsFactory;
 
     @Inject
     private Metadata metadata;
+
+    @Inject
+    private Notifications notifications;
 
     @Override
     protected void postInit() {
@@ -69,7 +79,7 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
 
         generateColumns(availableBeans, beanNames, handlerMethodLookupFields);
 
-        addCloseWithCommitListener(() -> {
+        addAfterCloseListener(e -> {
 
             @SuppressWarnings("unchecked")
             Datasource<ImapFolderEvent> parentDs = getParentDs();
@@ -83,11 +93,13 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
 
     private void generateColumns(Map<String, List<String>> availableBeans,
                                  List<String> beanNames, Map<ImapEventHandler,
-                                 LookupField> handlerMethodLookupFields) {
+            LookupField> handlerMethodLookupFields) {
 
         handlersTable.addGeneratedColumn("beanName", eventHandler -> {
-            LookupField lookup = componentsFactory.createComponent(LookupField.class);
-            lookup.setDatasource(handlersTable.getItemDatasource(eventHandler), "beanName");
+            LookupField<String> lookup = componentsFactory.create(LookupField.class);
+            lookup.setValueSource(
+                    new ContainerValueSource(handlersTable.getInstanceContainer(eventHandler), "beanName")
+            );
             lookup.setWidth("250px");
             lookup.setFrame(getFrame());
             lookup.setOptionsList(beanNames);
@@ -107,7 +119,7 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
 
     private void addHandlersCollectionChangeListeners(Map<String, List<String>> availableBeans,
                                                       long maxHandlersCount, Map<ImapEventHandler,
-                                                      LookupField> handlerMethodLookupFields) {
+            LookupField> handlerMethodLookupFields) {
 
         handlersDs.addItemChangeListener(e -> {
             ImapEventHandler handler = e.getItem();
@@ -146,7 +158,9 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
             List<String> beanMethods = missedHandlers.stream()
                     .map(handler -> String.format("%s#%s", handler.getBeanName(), handler.getMethodName()))
                     .collect(Collectors.toList());
-            showNotification(formatMessage("missedHandlersWarning", beanMethods), NotificationType.HUMANIZED);
+            notifications.create(Notifications.NotificationType.HUMANIZED)
+                    .withCaption(formatMessage("missedHandlersWarning", beanMethods))
+                    .show();
             for (ImapEventHandler handler : missedHandlers) {
                 handlersDs.removeItem(handler);
             }
@@ -165,7 +179,9 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
                             .filter(bm -> bm != item && beanName.equals(bm.getBeanName()))
                             .count() == methods.size()) {
 
-                        showNotification(getMessage("beanNameConflictWarning"), NotificationType.HUMANIZED);
+                        notifications.create(Notifications.NotificationType.HUMANIZED)
+                                .withCaption(getMessage("beanNameConflictWarning"))
+                                .show();
                         item.setBeanName(event.getPrevValue() != null ? event.getPrevValue().toString() : null);
                     } else {
                         handlersDs.modifyItem(item);
@@ -183,7 +199,9 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
                         .filter(bm -> bm != item && methodName.equals(bm.getMethodName()) && item.getBeanName().equals(bm.getBeanName()))
                         .findFirst().ifPresent(bm -> {
 
-                    showNotification(getMessage("methodNameConflictWarning"), NotificationType.HUMANIZED);
+                    notifications.create(Notifications.NotificationType.HUMANIZED)
+                            .withCaption(getMessage("methodNameConflictWarning"))
+                            .show();
                     item.setMethodName(event.getPrevValue() != null ? event.getPrevValue().toString() : null);
                 });
             }
@@ -192,8 +210,10 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
     }
 
     private LookupField makeBeanMethodLookup(Map<String, List<String>> availableBeans, ImapEventHandler eventHandler) {
-        LookupField lookup = componentsFactory.createComponent(LookupField.class);
-        lookup.setDatasource(handlersTable.getItemDatasource(eventHandler), "methodName");
+        LookupField<String> lookup = componentsFactory.create(LookupField.class);
+        lookup.setValueSource(
+                new ContainerValueSource(handlersTable.getInstanceContainer(eventHandler), "methodName")
+        );
         lookup.setWidth("250px");
         String beanName = eventHandler.getBeanName();
         lookup.setFrame(getFrame());

@@ -319,7 +319,7 @@ public class ImapSynchronizer {
                     "select m from imap$Message m where m.msgUid = :uid and m.folder.id = :mailFolderId"
             )
                     .setParameter("uid", uid)
-                    .setParameter("mailFolderId", cubaFolder)
+                    .setParameter("mailFolderId", cubaFolder.getId())
                     .setMaxResults(1)
                     .getResultList()
                     .size();

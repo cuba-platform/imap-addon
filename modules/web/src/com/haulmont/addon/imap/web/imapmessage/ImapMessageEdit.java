@@ -1,12 +1,12 @@
 package com.haulmont.addon.imap.web.imapmessage;
 
 import com.haulmont.addon.imap.dto.ImapMessageDto;
+import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageAttachment;
 import com.haulmont.addon.imap.service.ImapAPIService;
 import com.haulmont.cuba.core.entity.Entity;
 import com.haulmont.cuba.core.global.FileTypesHelper;
 import com.haulmont.cuba.gui.components.*;
-import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.cuba.gui.data.CollectionDatasource;
 import com.haulmont.cuba.gui.data.Datasource;
 import com.haulmont.cuba.gui.executors.BackgroundTask;
@@ -14,7 +14,7 @@ import com.haulmont.cuba.gui.executors.BackgroundTaskHandler;
 import com.haulmont.cuba.gui.executors.BackgroundWorker;
 import com.haulmont.cuba.gui.executors.TaskLifeCycle;
 import com.haulmont.cuba.web.AppUI;
-import com.haulmont.cuba.web.toolkit.ui.CubaFileDownloader;
+import com.haulmont.cuba.web.widgets.CubaFileDownloader;
 import com.vaadin.server.StreamResource;
 
 import javax.inject.Inject;

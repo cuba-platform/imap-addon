@@ -161,13 +161,13 @@ public class ImapMessageSyncDao {
     private TypedQuery<ImapMessageSync> msgSyncQuery(ImapMessage message, EntityManager em) {
         return em.createQuery(
                 "select ms from imap$MessageSync ms where ms.message.id = :msgId", ImapMessageSync.class
-        ).setParameter("msgId", message);
+        ).setParameter("msgId", message.getId());
     }
 
     private TypedQuery<ImapMessageSync> msgSyncQuery(ImapMessage message, ImapSyncStatus status, EntityManager em) {
         return em.createQuery(
                 "select ms from imap$MessageSync ms where ms.message.id = :msgId and ms.status = :status", ImapMessageSync.class
-        ).setParameter("msgId", message).setParameter("status", status);
+        ).setParameter("msgId", message.getId()).setParameter("status", status);
     }
 
     public void removeMessagesSyncs(Collection<UUID> messageIds) {

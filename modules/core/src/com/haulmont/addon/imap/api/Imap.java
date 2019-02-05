@@ -1,6 +1,7 @@
 package com.haulmont.addon.imap.api;
 
-import com.haulmont.addon.imap.core.*;
+import com.haulmont.addon.imap.core.ImapHelper;
+import com.haulmont.addon.imap.core.ImapOperations;
 import com.haulmont.addon.imap.dto.ImapFolderDto;
 import com.haulmont.addon.imap.dto.ImapMessageDto;
 import com.haulmont.addon.imap.entity.ImapMailBox;
@@ -10,7 +11,7 @@ import com.haulmont.cuba.core.global.Metadata;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import com.sun.mail.imap.IMAPStore;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

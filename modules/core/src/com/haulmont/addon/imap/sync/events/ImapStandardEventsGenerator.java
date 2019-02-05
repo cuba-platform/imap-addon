@@ -334,7 +334,7 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
                     queryString += " and m.msgNum < :topMsgNum";
                 }
                 Query query = em.createQuery(queryString)
-                        .setParameter("mailFolderId", cubaFolder)
+                        .setParameter("mailFolderId", cubaFolder.getId())
                         .setParameter("msgNum", messageNumbers.get(i));
                 if (i < messageNumbers.size() - 1) {
                     query.setParameter("topMsgNum", messageNumbers.get(i + 1));

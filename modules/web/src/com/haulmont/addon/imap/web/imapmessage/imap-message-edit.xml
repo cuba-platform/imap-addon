@@ -18,7 +18,7 @@
                               class="com.haulmont.addon.imap.entity.ImapMessageAttachment"
                               view="imap-msg-attachment-full">
             <query>
-                <![CDATA[select a from imap$MessageAttachment a where a.imapMessage.id = :ds$imapMessageDs order by a.orderNumber asc]]>
+                <![CDATA[select a from imap$MessageAttachment a where a.imapMessage.id = :ds$imapMessageDs.id order by a.orderNumber asc]]>
             </query>
         </collectionDatasource>
     </dsContext>
