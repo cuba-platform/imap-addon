@@ -30,7 +30,7 @@ public class ImapTestContainer extends TestContainer {
                 // Add this file which is located in CUBA and defines some properties
                 // specifically for test environment. You can replace it with your own
                 // or add another one in the end.
-                "test-app.properties");
+                "com/haulmont/addon/imap/test-app.properties");
         initDbProperties();
         dbUrl = "jdbc:hsqldb:hsql://localhost/imap";
     }
