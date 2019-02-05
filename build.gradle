@@ -33,7 +33,7 @@ apply(plugin: 'addon-gradle-plugin')
 cuba {
     artifact {
         group = 'com.haulmont.addon.imap'
-        version = '1.2'
+        version = '1.3'
         isSnapshot = true
     }
     tomcat {
