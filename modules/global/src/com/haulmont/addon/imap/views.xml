@@ -79,4 +79,5 @@
         <property name="message"
                   view="imap-msg-full"/>
     </view>
+    <view entity="imap$MailBox" name="imapMailBox-browse" extends="_local" systemProperties="true"/>
 </views>

@@ -5,6 +5,7 @@ import com.haulmont.chile.core.annotations.MetaClass;
 import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.BaseUuidEntity;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.util.Date;
@@ -13,30 +14,30 @@ import java.util.List;
 /**
  * encapsulates IMAP message details:
  * <ul>
- *     <li>
- *     Folder name
- *     </li>
- *     <li>
- *     UID
- *     </li>
- *     <li>
- *     Sender
- *     </li>
- *     <li>
- *     Recipient lists (to, cc, bcc)
- *     </li>
- *     <li>
- *     Subject
- *     </li>
- *     <li>
- *     Body content
- *     </li>
- *     <li>
- *     Receive date
- *     </li>
- *     <li>
- *     IMAP metadata flags
- *     </li>
+ * <li>
+ * Folder name
+ * </li>
+ * <li>
+ * UID
+ * </li>
+ * <li>
+ * Sender
+ * </li>
+ * <li>
+ * Recipient lists (to, cc, bcc)
+ * </li>
+ * <li>
+ * Subject
+ * </li>
+ * <li>
+ * Body content
+ * </li>
+ * <li>
+ * Receive date
+ * </li>
+ * <li>
+ * IMAP metadata flags
+ * </li>
  * </ul>
  */
 @NamePattern("%s | subject")
@@ -87,7 +88,7 @@ public class ImapMessageDto extends BaseUuidEntity {
     @SuppressWarnings("UnusedReturnValue")
     @MetaProperty
     public String getTo() {
-        return toList != null ? toList.toString() : "";
+        return toList != null ? StringUtils.join(toList, ", ") : "";
     }
 
     public void setToList(List<String> toList) {
@@ -97,7 +98,7 @@ public class ImapMessageDto extends BaseUuidEntity {
     @SuppressWarnings("UnusedReturnValue")
     @MetaProperty
     public String getCc() {
-        return ccList != null ? ccList.toString() : "";
+        return ccList != null ? StringUtils.join(ccList, ", ") : "";
     }
 
     public void setCcList(List<String> ccList) {
@@ -107,7 +108,7 @@ public class ImapMessageDto extends BaseUuidEntity {
     @SuppressWarnings("UnusedReturnValue")
     @MetaProperty
     public String getBcc() {
-        return bccList != null ? bccList.toString() : "";
+        return bccList != null ? StringUtils.join(bccList, ", ") : "";
     }
 
     public void setBccList(List<String> bccList) {

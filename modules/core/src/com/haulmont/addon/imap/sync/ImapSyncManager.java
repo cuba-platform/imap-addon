@@ -1,20 +1,22 @@
 package com.haulmont.addon.imap.sync;
 
+import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.dao.ImapDao;
-import com.haulmont.addon.imap.entity.*;
+import com.haulmont.addon.imap.entity.ImapFolder;
+import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.sync.events.ImapEvents;
 import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.security.app.Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.event.EventListener;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
-import java.util.*;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -22,14 +24,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ImapSyncManager implements AppContext.Listener, Ordered {
 
     private final static Logger log = LoggerFactory.getLogger(ImapSyncManager.class);
-    private static boolean trackMailboxActivation = true;
 
     private final ImapDao dao;
     private final ImapEvents imapEvents;
     private final Authentication authentication;
 
+    @Inject
+    private ImapConfig imapConfig;
+
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final AtomicInteger threadNumber = new AtomicInteger(1);
+
         @Override
         public Thread newThread(@Nonnull Runnable r) {
             Thread thread = new Thread(
@@ -60,17 +65,7 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
 
     @Override
     public void applicationStarted() {
-        authentication.begin();
-        try {
-            for (ImapMailBox mailBox : dao.findMailBoxes()) {
-                log.debug("{}: synchronizing", mailBox);
-                UUID mailBoxId = mailBox.getId();
-                CompletableFuture.runAsync(() -> imapEvents.init(mailBox), executor);
-                runEventsEmitter(mailBoxId);
-            }
-        } finally {
-            authentication.end();
-        }
+
     }
 
     @Override
@@ -111,27 +106,7 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
         return LOWEST_PLATFORM_PRECEDENCE;
     }
 
-    @EventListener
-    public void handleActivationEvent(ImapMailboxSyncActivationEvent event) {
-        if (!trackMailboxActivation) {
-            return;
-        }
-        UUID mailboxId = event.getMailBox().getId();
-
-        if (event.getType() == ImapMailboxSyncActivationEvent.Type.ACTIVATE) {
-            CompletableFuture.runAsync(() -> imapEvents.init(event.getMailBox()), executor);
-            runEventsEmitter(mailboxId);
-        } else {
-            imapEvents.shutdown(event.getMailBox());
-            ScheduledExecutorService refresher = syncRefreshers.remove(mailboxId);
-            if (refresher != null) {
-                refresher.shutdownNow();
-            }
-        }
-
-    }
-
-    private void runEventsEmitter(UUID mailboxId) {
+    public void runEventsEmitter(UUID mailboxId) {
         syncRefreshers.computeIfAbsent(mailboxId, id -> Executors.newSingleThreadScheduledExecutor(r -> {
             Thread thread = new Thread(
                     r, "ImapMailBoxSyncRefresher#" + id
@@ -154,7 +129,7 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
             } finally {
                 authentication.end();
             }
-        }, 5, TimeUnit.SECONDS);
+        }, imapConfig.getSyncTimeout(), TimeUnit.SECONDS);
     }
 
 }

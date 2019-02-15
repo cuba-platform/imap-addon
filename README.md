@@ -61,9 +61,15 @@ to confirm the operation.
 properties in the `app.properties` file of your project.
 
 ```
+#IMAP configuration
 imap.encryption.key = HBXv3Q70IlmBMiW4EMyPHw==
 imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
+
+#Enable scheduling
+cuba.schedulingActive=true
 ```
+
+There should be configured `imap_ImapScheduler -> syncImap` scheduled task in `Administration -> Scheduled tasks` 
 
 # Component Functionalities
 

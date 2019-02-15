@@ -1,6 +1,9 @@
 package com.haulmont.addon.imap.config;
 
-import com.haulmont.cuba.core.config.*;
+import com.haulmont.cuba.core.config.Config;
+import com.haulmont.cuba.core.config.Property;
+import com.haulmont.cuba.core.config.Source;
+import com.haulmont.cuba.core.config.SourceType;
 import com.haulmont.cuba.core.config.defaults.DefaultBoolean;
 import com.haulmont.cuba.core.config.defaults.DefaultInt;
 
@@ -32,5 +35,10 @@ public interface ImapConfig extends Config {
     @DefaultInt(5)
     int getTimeoutSeconds();
     void setTimeoutSeconds(int value);
+
+    @Property("imap.syncTimeout")
+    @DefaultInt(5)
+    int getSyncTimeout();
+    void setSyncTimeout(int value);
 
 }

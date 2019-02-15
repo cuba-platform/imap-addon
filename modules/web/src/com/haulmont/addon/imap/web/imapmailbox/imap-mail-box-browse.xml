@@ -8,7 +8,7 @@
     <dsContext>
         <groupDatasource id="mailBoxesDs"
                          class="com.haulmont.addon.imap.entity.ImapMailBox"
-                         view="_local">
+                         view="imapMailBox-browse">
             <query>
                 <![CDATA[select e from imap$MailBox e]]>
             </query>
@@ -31,6 +31,7 @@
                 <action id="remove"/>
             </actions>
             <columns>
+                <column id="createTs"/>
                 <column id="name"/>
                 <column id="host"/>
                 <column id="port"/>
