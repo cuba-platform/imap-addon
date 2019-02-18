@@ -32,7 +32,6 @@ public class ImapTestContainer extends TestContainer {
                 // or add another one in the end.
                 "com/haulmont/addon/imap/test-app.properties");
         initDbProperties();
-        dbUrl = "jdbc:hsqldb:hsql://localhost/imap";
     }
 
     private void initDbProperties() {
