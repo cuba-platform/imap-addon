@@ -6,21 +6,8 @@ import com.haulmont.addon.imap.api.ImapFlag
 import com.haulmont.addon.imap.core.ImapEventsTestListener
 import com.haulmont.addon.imap.core.ImapOperations
 import com.haulmont.addon.imap.dao.ImapDao
-import com.haulmont.addon.imap.entity.ImapAuthenticationMethod
-import com.haulmont.addon.imap.entity.ImapEventType
-import com.haulmont.addon.imap.entity.ImapFolder
-import com.haulmont.addon.imap.entity.ImapFolderEvent
-import com.haulmont.addon.imap.entity.ImapMailBox
-import com.haulmont.addon.imap.entity.ImapMessage
-import com.haulmont.addon.imap.entity.ImapSimpleAuthentication
-import com.haulmont.addon.imap.events.BaseImapEvent
-import com.haulmont.addon.imap.events.EmailAnsweredImapEvent
-import com.haulmont.addon.imap.events.EmailDeletedImapEvent
-import com.haulmont.addon.imap.events.EmailFlagChangedImapEvent
-import com.haulmont.addon.imap.events.EmailMovedImapEvent
-import com.haulmont.addon.imap.events.EmailSeenImapEvent
-import com.haulmont.addon.imap.events.NewEmailImapEvent
-import com.haulmont.addon.imap.sync.ImapSyncManager
+import com.haulmont.addon.imap.entity.*
+import com.haulmont.addon.imap.events.*
 import com.haulmont.addon.imap.sync.events.ImapEvents
 import com.haulmont.cuba.core.global.AppBeans
 import com.icegreen.greenmail.imap.ImapHostManager
@@ -33,15 +20,11 @@ import org.junit.ClassRule
 import spock.lang.Shared
 import spock.lang.Specification
 
-import javax.mail.Flags
-import javax.mail.Folder
-import javax.mail.Message
-import javax.mail.Session
-import javax.mail.Store
-import javax.mail.URLName
+import javax.mail.*
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeMessage
 import java.util.concurrent.atomic.AtomicInteger
+
 // todo: add tests for flagless configuration
 class ImapEventsSpec extends Specification {
 
@@ -73,7 +56,6 @@ class ImapEventsSpec extends Specification {
     private ImapFolder INBOX
 
     void setup() {
-        ImapSyncManager.trackMailboxActivation = false
         eventListener = AppBeans.get(ImapEventsTestListener)
         imapEvents = AppBeans.get(ImapEvents)
         imapDao = AppBeans.get(ImapDao)
