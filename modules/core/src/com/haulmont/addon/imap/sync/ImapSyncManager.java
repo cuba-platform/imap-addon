@@ -65,7 +65,15 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
 
     @Override
     public void applicationStarted() {
-
+        authentication.begin();
+        try {
+            for (ImapMailBox mailBox : dao.findMailBoxes()) {
+                log.debug("{}: synchronizing", mailBox);
+                CompletableFuture.runAsync(() -> imapEvents.init(mailBox), executor);
+            }
+        } finally {
+            authentication.end();
+        }
     }
 
     @Override

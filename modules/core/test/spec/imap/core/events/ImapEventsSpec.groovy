@@ -8,6 +8,7 @@ import com.haulmont.addon.imap.core.ImapOperations
 import com.haulmont.addon.imap.dao.ImapDao
 import com.haulmont.addon.imap.entity.*
 import com.haulmont.addon.imap.events.*
+import com.haulmont.addon.imap.sync.ImapSynchronizer
 import com.haulmont.addon.imap.sync.events.ImapEvents
 import com.haulmont.cuba.core.global.AppBeans
 import com.icegreen.greenmail.imap.ImapHostManager
@@ -48,6 +49,7 @@ class ImapEventsSpec extends Specification {
 
     private ImapEventsTestListener eventListener
     private ImapEvents imapEvents
+    private ImapSynchronizer imapSynchronizer;
     private ImapDao imapDao
 
     private GreenMail mailServer
@@ -58,6 +60,7 @@ class ImapEventsSpec extends Specification {
     void setup() {
         eventListener = AppBeans.get(ImapEventsTestListener)
         imapEvents = AppBeans.get(ImapEvents)
+        imapSynchronizer = AppBeans.get(ImapSynchronizer)
         imapDao = AppBeans.get(ImapDao)
 
         mailServer = new GreenMail(new ServerSetup(9143 + counter.incrementAndGet(), null, ServerSetup.PROTOCOL_IMAP))
@@ -79,6 +82,7 @@ class ImapEventsSpec extends Specification {
         and: "INBOX is configured to handle new message events"
         INBOX = inbox(mailBoxConfig, [ImapEventType.NEW_EMAIL])
         imapEvents.init(mailBoxConfig)
+        imapSynchronizer.synchronize(mailBoxConfig.getId())
 
         when: "check for new messages"
         eventListener.events.clear()
@@ -121,6 +125,7 @@ class ImapEventsSpec extends Specification {
         }
         and: "sync was initialized"
         imapEvents.init(mailBoxConfig)
+        imapSynchronizer.synchronize(mailBoxConfig.getId())
 
         when: "check for modified messages"
         eventListener.events.clear()
@@ -159,6 +164,7 @@ class ImapEventsSpec extends Specification {
         }
         and: "sync was initialized"
         imapEvents.init(mailBoxConfig)
+        imapSynchronizer.synchronize(mailBoxConfig.getId())
 
         when: "check for modified messages"
         eventListener.events.clear()
@@ -199,6 +205,7 @@ class ImapEventsSpec extends Specification {
         }
         and: "sync was initialized"
         imapEvents.init(mailBoxConfig)
+        imapSynchronizer.synchronize(mailBoxConfig.getId())
 
         when: "check for missed messages"
         eventListener.events.clear()
@@ -267,6 +274,7 @@ class ImapEventsSpec extends Specification {
         }
         and: "sync was initialized"
         imapEvents.init(mailBoxConfig)
+        imapSynchronizer.synchronize(mailBoxConfig.getId())
 
         when: "check for modified messages"
         eventListener.events.clear()
@@ -377,6 +385,7 @@ class ImapEventsSpec extends Specification {
 
         and: "sync was initialized"
         imapEvents.init(mailBoxConfig)
+        imapSynchronizer.synchronize(mailBoxConfig.getId())
 
         when: "check for missed messages"
         eventListener.events.clear()
