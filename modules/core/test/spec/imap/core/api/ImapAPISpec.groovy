@@ -154,9 +154,9 @@ class ImapAPISpec extends Specification {
         messageDto != null
         messageDto.uid == STARTING_EMAIL_UID
         messageDto.from == EMAIL_TO
-        messageDto.to == "[${EMAIL_USER_ADDRESS}]"
-        messageDto.cc == "[${EMAIL_CC}]"
-        messageDto.bcc == "[${EMAIL_BCC}]"
+        messageDto.to == "${EMAIL_USER_ADDRESS}"
+        messageDto.cc == "${EMAIL_CC}"
+        messageDto.bcc == "${EMAIL_BCC}"
         messageDto.subject == EMAIL_SUBJECT
         messageDto.body == EMAIL_TEXT
         messageDto.flags == "[FLAGGED]"
