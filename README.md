@@ -3,14 +3,19 @@
 # Table of Contents
 
 - [Overview](#overview)
-- [Getting Started](#getting-started)
-    - [Installation](#installation)
+- [Installation](#installation)
 - [Component Functionalities](#component-functionalities)
+    - [IMAP Configuration](#imap-configuration)
+    - [IMAP Message Browser](#imap-message-browser)
 - [Configuration](#configuration)
+    - [Registering EventListeners to Interact with IMAP Events](#registering-eventlisteners-to-interact-with-imap-events)
+    - [Creating Handlers for IMAP Events](#creating-handlers-for-imap-events)
+    - [Using API](#using-api)
+    - [Registering Custom IMAP Implementation Class](#registering-custom-imap-implementation-class)
 
 # Overview
 
-The IMAP-addon provides a readily available instrument for integrating email messaging into any CUBA-based application 
+The IMAP-addon provides a readily available instrument for integrating email messaging into any CUBA-based application
 via the IMAP protocol. The main model of the component is designed to interact with incoming emails via Spring application events.
 
 The component includes the following set of functionalities:
@@ -23,22 +28,20 @@ The component includes the following set of functionalities:
 * Predefined events for implementing custom business logic and processing various updates.
 * User interface for configuring IMAP connection settings and events.
 
-Sample application, using this component can be found here: https://github.com/cuba-platform/imap-addon-demo
+See [sample application](https://github.com/cuba-platform/imap-addon-demo), using this component.
 
-# Getting Started
-
-## Installation
+# Installation
 To add the IMAP-addon to your project, the following steps should be taken:
 
 1. Open your application in CUBA Studio.
 
-2. Edit Project properties.
+2. Edit *Project properties*.
 
 3. Click the plus button in the *App components* section of the *Main* tab.
 
     ![Adding custom component1](img/adding_component1.png)
 
-4. Specify the coordinates of the component in the corresponding field as follows: **group:name:version**. Click *OK* 
+4. Specify the coordinates of the component in the corresponding field as follows: **group:name:version**. Click *OK*
 to confirm the operation.
 
     ![Adding component2](img/adding_component2.png)
@@ -46,21 +49,21 @@ to confirm the operation.
     * Artifact group: *com.haulmont.addon.imap*
     * Artifact name: *imap-global*
     * Version: *addon version*
-    
-    When specifying the component version, you should select the one, which is compatible with the platform version 
-    used in your project. Currently, the latest version is 
+
+    When specifying the component version, you should select the one, which is compatible with the platform version
+    used in your project.
 
     | Platform Version | Addon Version  |
     | ---------------- | -------------- |
     | 6.10.x           | 1.2.0          |
     | 6.9.x            | 1.1.1          |
     | 6.8.x            | 1.0.1          |
-    
 
-5. Before using the component as a part of your application, it is vital to configure the following application 
-properties in the `app.properties` file of your project.
 
-```
+5. Before using the component as a part of your application, it is vital to configure the following application
+properties in the `app.properties` file of your project:
+
+```xml
 #IMAP configuration
 imap.encryption.key = HBXv3Q70IlmBMiW4EMyPHw==
 imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
@@ -69,24 +72,24 @@ imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
 cuba.schedulingActive=true
 ```
 
-There should be configured `imap_ImapScheduler -> syncImap` scheduled task in `Administration -> Scheduled tasks` 
+There should be configured `imap_ImapScheduler -> syncImap` scheduled task in *Administration -> Scheduled tasks* screen.
 
 # Component Functionalities
 
 ## IMAP Configuration <a name="imap-configuration"></a>
 
-*IMAP Configuration Browser* is designed to add and manage mailboxes from which emails are retrieved. The browser is 
-available from Menu: Administration → IMAP → IMAP Configuration.
+*IMAP Configuration Browser* is designed to add and manage mailboxes from which emails are retrieved. The browser is
+available from *Menu: Administration → IMAP → IMAP Configuration*.
 
 ![IMAP Configuration Menu Item](img/imap_conf_item.png)
 
-Creating a new configuration is available by clicking the *Create* button. 
+Creating a new configuration is available by clicking the *Create* button.
 
 ![Creating IMAP Configuration](img/creating-IMAP-conf.png)
 
-### IMAP Configuration Editor
+### IMAP Configuration Editor <a name="imap-configuration-editor"></a>
 
-*IMAP Configuration Editor* comprises two main sections to fill in: *Basic* and *Advanced*. 
+*IMAP Configuration Editor* comprises two main sections to fill in: *Basic* and *Advanced*.
 
 ![IMAP Configuration Editor](img/IMAP-conf-editor.png)
 
@@ -95,6 +98,7 @@ Creating a new configuration is available by clicking the *Create* button.
 The *Basic* section enables to configure the main attributes for connecting to an email server via IMAP. The description of
 all fields is provided below.
 
+* *Name*: specify a name for connection.
 * *Host*: specify a host name or IP address of an email server.
 * *Port*: provide a port number to connect to an email server. The default value is *143*.
 * *Secure Connection*: select an option for secure connection if required. Available values: *STARTTLS*, *SSL/TLS*.
@@ -109,13 +113,13 @@ a list of folders from the email server to work with.
 
 The *Advanced* section provides a set of additional options for connecting to an email server.
 
-* *Custom Flag*: specify a custom flag 
+* *Custom Flag*: specify a custom flag.
 * *Use trash folder to remove emails*: if checked, then it is possible to specify a trash folder of a current mailbox
 (the *Trash Folder* field becomes available). The setting works as follows: if an email is moved to the specified folder on
 the email server, `EmailDeletedImapEvent` occurs (for more details, see [Event Types](#event-types)).
 * *Use custom event generator class*: if checked, it is possible to specify a custom class that defines additional logic
 for connecting to an IMAP server, handling events, etc. If the current setting is enabled, the *Event Generator Class*
-lookup field becomes available. To learn how to register a custom event generator class, please refer to 
+lookup field becomes available. To learn how to register a custom event generator class, please refer to
 [Registering Custom IMAP Implementation Class](#registering-custom-imap-implementation-class).
 * *Use proxy*: if checked, proxy settings become available (see the description below).
 
@@ -134,18 +138,17 @@ Once connection to the provided email server is successfully established, the ta
 The table shows a list of folders from the email server you are connected to. In order to enable/disable some folders,
 use the checkboxes in the second column. If some folder is disabled, then messages from it are not retrieved.
 
-For each folder you can select a set of IMAP events by using the *Events* table and register custom logic for them 
+For each folder you can select a set of IMAP events by using the *Events* table and register custom logic for them
 (for more details, please refer to [Configuration](#configuration)).
 
 ## IMAP Message Browser
 
-All emails from connected mailboxes are displayed in IMAP Message Browser (available from Menu: Administration → IMAP → 
-IMAP Message Browser).
+All emails from connected mailboxes are displayed in *IMAP Message Browser* (available from *Menu: Administration → IMAP → IMAP Message Browser*).
 
 ![IMAP Message Browser](img/Imap-message-browser.png)
 
 Selecting an email and clicking *View* opens it for reading. Email Screen contains all general details of an email:
-date, author, subject, etc., and two tabs: *Body* and *Attachments*. 
+date, author, subject, etc., and two tabs: *Body* and *Attachments*.
 
 On the *Body* tab, the whole text of an email is displayed.
 
@@ -160,7 +163,7 @@ The *Attachments* tab comprises the table of attachments and the button to downl
 In order to make your application react to IMAP events, you can register the `@Component` methods as Event listeners by using
 the `@EventListener` annotation. The example of how to set up an event listener is provided below.
 
-```
+```java
 import org.springframework.context.event.EventListener;
 
 @Service(EmailReceiveService.NAME)
@@ -175,7 +178,8 @@ public class EmailReceiveServiceBean implements EmailReceiveService {
 ```
 
 Another option is to create `@Component` with a method having the required event type as the only parameter.
-```
+
+```java
 public class EmailReceiver {
     String NAME = "ceuia_EmailReceiver";
 
@@ -185,22 +189,22 @@ public class EmailReceiver {
 }
 ```
 
-Once it is done, the selected method (in the example, it is `receiveEmail`) should be registered on a particular folder 
+Once it is done, the selected method (in the example, it is `receiveEmail`) should be registered on a particular folder
 for a given IMAP connection. This should be done at runtime using the IMAP configuration UI (see [Creating Handlers for
-IMAP Events](#imap-handlers)). 
+IMAP Events](#imap-handlers)).
 After that, the method will be invoked every time, when the configured event occurs.
 
 ## Creating Handlers for IMAP Events <a name="imap-handlers"></a>
 
-After registering EventListeners, it is required to create handlers for IMAP events related to a particular folder and 
+After registering EventListeners, it is required to create handlers for IMAP events related to a particular folder and
 mailbox (for more information see [IMAP Connection](#imap-configuration)). The table of folders comprises several columns,
-each representing a certain event type (e.g. New, Seen, Replied, etc.). Clicking gear icons opens IMAP Folder Event Editor.
+each representing a certain event type (e.g. New, Seen, Replied, etc.). Clicking gear icons opens *IMAP Folder Event Editor*.
 
 ![IMAP Folder Event Editor](img/imap-folder-event-editor.png)
 
 There you can specify required beans and methods for them.
 
-### Event types
+### Event types <a name="event-types"></a>
 
 All events contain the `ImapMessage` object that can be used to determine where an event occurs (mailbox, folder, message).
 
@@ -216,10 +220,10 @@ when a message is replied (usually it happens when a message is marked with the 
 when a standard or custom IMAP flag is changed for a message.
 The event contains a `Map` of all changed flags and their actual state (set or unset).
 * `EmailDeletedImapEvent` is triggered for a folder having an event of the `ImapEventType.EMAIL_DELETED` type enabled,
-when a message is completely deleted from a folder on the IMAP server side, it is **not** related to the IMAP flag `javax.mail.Flags.Flag.DELETED`. 
+when a message is completely deleted from a folder on the IMAP server side, it is **not** related to the IMAP flag `javax.mail.Flags.Flag.DELETED`.
 Such events are also triggered when a message is moved to a trash folder (if it is configured for a mailbox) on the server.
 * `EmailMovedImapEvent` is triggered for a folder having an event of the `ImapEventType.EMAIL_MOVED` type enabled,
-when a message is moved to another folder on the IMAP server. 
+when a message is moved to another folder on the IMAP server.
 **Note**: the standard implementation tracks only folders which are selected in the `ImapMailBox` configuration,
 but does not count a trash folder, if one is configured.
 * `NewThreadImapEvent` is not implemented yet.
@@ -229,22 +233,22 @@ but does not count a trash folder, if one is configured.
 The component provides the following API to interact with the IMAP server:
 
 * `ImapAPI` methods:
-    * `Collection<ImapFolderDto> fetchFolders(ImapMailBox)` — retrieves all folders preserving the tree structure. 
-    * `Collection<ImapFolderDto> fetchFolders(ImapMailBox, String...)` — retrieves folders with the specified names. 
+    * `Collection<ImapFolderDto> fetchFolders(ImapMailBox)` — retrieves all folders preserving the tree structure.
+    * `Collection<ImapFolderDto> fetchFolders(ImapMailBox, String...)` — retrieves folders with the specified names.
     The result is not structured as a tree.
     * `List<ImapFolderDto> fetchMessage(ImapMessage)` — fetches a single message using a reference.
     * `void moveMessage(ImapMessage, String)` — moves a message to a different folder on the IMAP server side.
     * `void deleteMessage(ImapMessage)` — deletes a message from a folder.
     * `void setFlag(ImapMessage, ImapFlag, boolean)` — sets or unsets a specified flag for a message.
 * `ImapAttachmentsAPI` methods:
-    * `Collection<ImapMessageAttachment> fetchAttachments(ImapMessage)` — retrieves attachments included in a message. 
+    * `Collection<ImapMessageAttachment> fetchAttachments(ImapMessage)` — retrieves attachments included in a message.
     The result contains only meta data, no content.
     * `InputStream openStream(ImapMessageAttachment)` and `byte[] loadFile(ImapMessageAttachment` — retrieve the content
     of a message attachment.
-    
-## Registering Custom IMAP Implementation Class
 
-In order to configure custom logic for a specific mailbox (e.g for applying IMAP extensions and custom communication 
+## Registering Custom IMAP Implementation Class <a name="registering-custom-imap-implementation-class"></a>
+
+In order to configure custom logic for a specific mailbox (e.g for applying IMAP extensions and custom communication
 mechanisms), it is required to register a custom IMAP implementation class in the source code of your application.
 The example of how to register such class is given below.
 
