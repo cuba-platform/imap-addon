@@ -10,6 +10,7 @@ import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.global.Metadata;
+import com.haulmont.cuba.core.global.TimeSource;
 import com.haulmont.cuba.security.app.Authentication;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
@@ -36,9 +37,10 @@ public class ImapFlaglessSynchronizer extends ImapSynchronizer {
                                     Persistence persistence,
                                     ImapDao dao,
                                     ImapMessageSyncDao messageSyncDao,
-                                    Metadata metadata) {
+                                    Metadata metadata,
+                                    TimeSource timeSource) {
 
-        super(imapHelper, imapOperations, imapConfig, authentication, persistence, dao, messageSyncDao, metadata);
+        super(imapHelper, imapOperations, imapConfig, authentication, persistence, dao, messageSyncDao, metadata, timeSource);
     }
 
     protected void handleNewMessages(List<ImapMessage> checkAnswers,

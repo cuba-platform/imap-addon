@@ -115,29 +115,15 @@ public class ImapSyncManager implements AppContext.Listener, Ordered {
     }
 
     public void runEventsEmitter(UUID mailboxId) {
-        syncRefreshers.computeIfAbsent(mailboxId, id -> Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread thread = new Thread(
-                    r, "ImapMailBoxSyncRefresher#" + id
-            );
-            thread.setDaemon(true);
-            return thread;
-        }));
-        syncRefreshers.get(mailboxId).schedule(() -> {
-            authentication.begin();
-            try {
-                ImapMailBox mailBox = dao.findMailBox(mailboxId);
-                if (mailBox == null) {
-                    return;
-                }
-                for (ImapFolder cubaFolder : mailBox.getProcessableFolders()) {
-                    imapEvents.handleNewMessages(cubaFolder);
-                    imapEvents.handleMissedMessages(cubaFolder);
-                    imapEvents.handleChangedMessages(cubaFolder);
-                }
-            } finally {
-                authentication.end();
-            }
-        }, imapConfig.getSyncTimeout(), TimeUnit.SECONDS);
+        ImapMailBox mailBox = dao.findMailBox(mailboxId);
+        if (mailBox == null) {
+            return;
+        }
+        for (ImapFolder cubaFolder : mailBox.getProcessableFolders()) {
+            imapEvents.handleNewMessages(cubaFolder);
+            imapEvents.handleMissedMessages(cubaFolder);
+            imapEvents.handleChangedMessages(cubaFolder);
+        }
     }
 
 }

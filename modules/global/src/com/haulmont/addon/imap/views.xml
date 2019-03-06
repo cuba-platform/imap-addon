@@ -55,6 +55,7 @@
     </view>
     <view class="com.haulmont.addon.imap.entity.ImapMessage"
           extends="_local"
+          systemProperties="true"
           name="imap-msg-full">
         <property name="folder"
                   view="imap-folder-full"/>

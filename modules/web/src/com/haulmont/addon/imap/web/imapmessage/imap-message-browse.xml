@@ -29,6 +29,7 @@
                 <action id="edit"/>
             </actions>
             <columns>
+                <column id="receivedDate"/>
                 <column id="folder.mailBox" />
                 <column id="folder"/>
                 <column id="caption"/>

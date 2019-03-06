@@ -8,6 +8,7 @@ import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Query;
 import com.haulmont.cuba.core.Transaction;
+import com.haulmont.cuba.core.global.TimeSource;
 import com.haulmont.cuba.security.app.Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,16 +29,19 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
     private final ImapMessageSyncDao messageSyncDao;
     private final Authentication authentication;
     private final Persistence persistence;
+    private final TimeSource timeSource;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public ImapStandardEventsGenerator(ImapMessageSyncDao messageSyncDao,
                                        Authentication authentication,
-                                       Persistence persistence) {
+                                       Persistence persistence,
+                                       TimeSource timeSource) {
         super(20); //todo: to config
         this.messageSyncDao = messageSyncDao;
         this.authentication = authentication;
         this.persistence = persistence;
+        this.timeSource = timeSource;
     }
 
     @Override
@@ -154,7 +158,7 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
 
             modificationEvents.add(new EmailFlagChangedImapEvent(msg, changedFlagsWithNewValue));
             msg.setImapFlags(newFlags);
-            msg.setUpdateTs(new Date());
+            msg.setUpdateTs(timeSource.currentTimestamp());
 //            msg.setThreadId();
             authentication.begin();
             try (Transaction tx = persistence.createTransaction()) {

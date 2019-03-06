@@ -5,19 +5,19 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.chile.core.annotations.NamePattern;
+import com.haulmont.cuba.core.entity.StandardEntity;
 import com.haulmont.cuba.core.entity.annotation.OnDeleteInverse;
 import com.haulmont.cuba.core.global.DeletePolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.mail.Flags;
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-import com.haulmont.cuba.core.entity.StandardEntity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 @NamePattern("%s (#%d) | caption, msgNum")
@@ -28,6 +28,7 @@ public class ImapMessage extends StandardEntity {
     private static final long serialVersionUID = -295396787486211720L;
 
     private final static Logger log = LoggerFactory.getLogger(ImapMessage.class);
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @OnDeleteInverse(DeletePolicy.CASCADE)
@@ -38,9 +39,6 @@ public class ImapMessage extends StandardEntity {
     @Lob
     @Column(name = "FLAGS")
     private String flags;
-
-    @Transient
-    private List<ImapFlag> internalFlags = Collections.emptyList();
 
     @NotNull
     @Column(name = "IS_ATL", nullable = false)
@@ -69,6 +67,21 @@ public class ImapMessage extends StandardEntity {
     @NotNull
     @Column(name = "CAPTION", nullable = false)
     private String caption;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(name = "RECEIVED_DATE")
+    protected Date receivedDate;
+
+    @Transient
+    private List<ImapFlag> internalFlags = Collections.emptyList();
+
+    public Date getReceivedDate() {
+        return receivedDate;
+    }
+
+    public void setReceivedDate(Date receivedDate) {
+        this.receivedDate = receivedDate;
+    }
 
     public String getFlags() {
         return flags;

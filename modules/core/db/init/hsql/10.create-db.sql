@@ -84,6 +84,7 @@ create table IMAP_MESSAGE (
     REFERENCE_ID longvarchar,
     MESSAGE_ID longvarchar,
     CAPTION longvarchar not null,
+    RECEIVED_DATE timestamp,
     --
     primary key (ID)
 )^

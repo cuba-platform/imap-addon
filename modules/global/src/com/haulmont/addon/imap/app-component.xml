@@ -5,6 +5,7 @@
             name="global">
         <artifact appJar="true"
                   name="imap-global"/>
+        <artifact name="imap-core" classifier="db" ext="zip" configuration="dbscripts"/>
         <property name="cuba.persistenceConfig"
                   value="+com/haulmont/addon/imap/persistence.xml"/>
         <property name="cuba.metadataConfig"

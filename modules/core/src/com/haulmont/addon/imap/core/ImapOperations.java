@@ -6,6 +6,7 @@ import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.cuba.core.global.Metadata;
+import com.haulmont.cuba.core.global.TimeSource;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
 import com.sun.mail.imap.IMAPStore;
@@ -20,7 +21,10 @@ import javax.mail.search.ComparisonTerm;
 import javax.mail.search.IntegerComparisonTerm;
 import javax.mail.search.SearchTerm;
 import java.io.UnsupportedEncodingException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 @Component("imap_ImapOperations")
 public class ImapOperations {
@@ -33,11 +37,13 @@ public class ImapOperations {
 
     private final ImapHelper imapHelper;
     private final Metadata metadata;
+    private final TimeSource timeSource;
 
     @Autowired
-    public ImapOperations(ImapHelper imapHelper, Metadata metadata) {
+    public ImapOperations(ImapHelper imapHelper, Metadata metadata, TimeSource timeSource) {
         this.imapHelper = imapHelper;
         this.metadata = metadata;
+        this.timeSource = timeSource;
     }
 
     public List<ImapFolderDto> fetchFolders(IMAPStore store) throws MessagingException {
@@ -88,14 +94,14 @@ public class ImapOperations {
     }
 
     public List<IMAPMessage> search(IMAPFolder folder, SearchTerm searchTerm, ImapMailBox mailBox) throws MessagingException {
-        log.debug("search messages in {} with {}", folder.getFullName(), searchTerm) ;
+        log.debug("search messages in {} with {}", folder.getFullName(), searchTerm);
 
         Message[] messages = folder.search(searchTerm);
         return fetch(folder, mailBox, messages);
     }
 
     public List<IMAPMessage> search(IMAPFolder folder, Integer lastMessageNumber, ImapMailBox mailBox) throws MessagingException {
-        log.debug("search messages in {} with number greater {}", folder.getFullName(), lastMessageNumber) ;
+        log.debug("search messages in {} with number greater {}", folder.getFullName(), lastMessageNumber);
 
         Message[] messages = lastMessageNumber != null
                 ? folder.search(newer(lastMessageNumber))
@@ -122,7 +128,7 @@ public class ImapOperations {
     }
 
     public List<IMAPMessage> searchMessageIds(IMAPFolder folder, SearchTerm searchTerm) throws MessagingException {
-        log.debug("search messages in {} with {}", folder.getFullName(), searchTerm) ;
+        log.debug("search messages in {} with {}", folder.getFullName(), searchTerm);
 
         Message[] messages = folder.search(searchTerm);
         FetchProfile fetchProfile = new FetchProfile();
@@ -137,8 +143,9 @@ public class ImapOperations {
         ImapMessage entity = metadata.create(ImapMessage.class);
         entity.setMsgUid(uid);
         entity.setFolder(cubaFolder);
-        entity.setUpdateTs(new Date());
+        entity.setUpdateTs(timeSource.currentTimestamp());
         entity.setImapFlags(flags);
+        entity.setReceivedDate(msg.getReceivedDate());
         entity.setCaption(getSubject(msg));
         entity.setMessageId(msg.getHeader(ImapOperations.MESSAGE_ID_HEADER, null));
         entity.setReferenceId(getRefId(msg));

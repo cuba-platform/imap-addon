@@ -3,18 +3,26 @@ package com.haulmont.addon.imap.sync;
 import com.haulmont.addon.imap.dao.ImapDao;
 import com.haulmont.addon.imap.entity.ImapMailBox;
 import com.haulmont.cuba.security.app.Authentication;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Component(ImapScheduler.NAME)
 public class ImapSchedulerBean implements ImapScheduler {
+
+    private final static Logger log = LoggerFactory.getLogger(ImapSchedulerBean.class);
 
     @Inject
     private ImapDao dao;
@@ -48,16 +56,26 @@ public class ImapSchedulerBean implements ImapScheduler {
 
     @Override
     public void syncImap() {
-        for (ImapMailBox mailBox : dao.findMailBoxes()) {
-            executor.submit(() -> {
+        Collection<ImapMailBox> mailBoxes = dao.findMailBoxes();
+        Map<ImapMailBox, Future> tasks = new HashMap<>(mailBoxes.size());
+        for (ImapMailBox mailBox : mailBoxes) {
+            tasks.put(mailBox, executor.submit(() -> {
                 authentication.begin();
                 try {
                     syncMailBox(mailBox);
                 } finally {
                     authentication.end();
                 }
-            });
+            }));
         }
+        tasks.keySet().forEach(mailBox -> {
+            try {
+                tasks.get(mailBox).get();
+            } catch (Exception e) {
+                log.error(String.format("Error on %s[%s] mailbox sync",
+                        mailBox.getName(), mailBox.getId()), e);
+            }
+        });
     }
 
     private void syncMailBox(ImapMailBox mailBox) {

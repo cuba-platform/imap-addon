@@ -12,6 +12,7 @@ import com.haulmont.cuba.core.EntityManager;
 import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.global.Metadata;
+import com.haulmont.cuba.core.global.TimeSource;
 import com.haulmont.cuba.security.app.Authentication;
 import com.sun.mail.imap.IMAPFolder;
 import com.sun.mail.imap.IMAPMessage;
@@ -44,6 +45,7 @@ public class ImapSynchronizer {
     protected final ImapDao dao;
     private final ImapMessageSyncDao messageSyncDao;
     private final Metadata metadata;
+    private final TimeSource timeSource;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
@@ -54,7 +56,8 @@ public class ImapSynchronizer {
                             Persistence persistence,
                             ImapDao dao,
                             ImapMessageSyncDao messageSyncDao,
-                            Metadata metadata) {
+                            Metadata metadata,
+                            TimeSource timeSource) {
 
         this.imapHelper = imapHelper;
         this.imapOperations = imapOperations;
@@ -64,6 +67,7 @@ public class ImapSynchronizer {
         this.dao = dao;
         this.messageSyncDao = messageSyncDao;
         this.metadata = metadata;
+        this.timeSource = timeSource;
     }
 
     public void synchronize(UUID mailBoxId) {
@@ -139,7 +143,7 @@ public class ImapSynchronizer {
                     messageSync.setStatus(ImapSyncStatus.IN_SYNC);
                     messageSync.setFolder(message.getFolder());
                     em.persist(messageSync);
-                    message.setUpdateTs(new Date());
+                    message.setUpdateTs(timeSource.currentTimestamp());
                     em.merge(message);
                 }
             }
@@ -303,7 +307,7 @@ public class ImapSynchronizer {
         if (imapFolder != null) {
             try {
                 imapFolder.close(false);
-            } catch (MessagingException e) {
+            } catch (MessagingException | IllegalStateException e) {
                 log.warn("can't close folder " + imapFolder.getFullName() + " of mailbox " + mailBox, e);
             }
         }

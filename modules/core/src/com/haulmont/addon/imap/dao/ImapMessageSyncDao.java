@@ -9,6 +9,7 @@ import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.TypedQuery;
 import com.haulmont.cuba.core.global.Metadata;
+import com.haulmont.cuba.core.global.TimeSource;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
@@ -26,15 +27,18 @@ public class ImapMessageSyncDao {
     private final Persistence persistence;
     private final ImapConfig imapConfig;
     private final Metadata metadata;
+    private final TimeSource timeSource;
 
     @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
     public ImapMessageSyncDao(Persistence persistence,
-                   @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig,
-                   Metadata metadata) {
+                              @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") ImapConfig imapConfig,
+                              Metadata metadata,
+                              TimeSource timeSource) {
         this.persistence = persistence;
         this.imapConfig = imapConfig;
         this.metadata = metadata;
+        this.timeSource = timeSource;
     }
 
     public Collection<ImapMessage> findMessagesWithSyncStatus(UUID folderId, ImapSyncStatus status, Integer maxSize) {
@@ -122,7 +126,7 @@ public class ImapMessageSyncDao {
                     messageSync.setStatus(syncStatus);
                     messageSync.setFolder(message.getFolder());
                     em.persist(messageSync);
-                    message.setUpdateTs(new Date());
+                    message.setUpdateTs(timeSource.currentTimestamp());
                     em.merge(message);
                 }
             }

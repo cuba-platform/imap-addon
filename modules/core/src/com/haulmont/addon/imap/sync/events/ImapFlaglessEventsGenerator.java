@@ -2,6 +2,7 @@ package com.haulmont.addon.imap.sync.events;
 
 import com.haulmont.addon.imap.dao.ImapMessageSyncDao;
 import com.haulmont.cuba.core.Persistence;
+import com.haulmont.cuba.core.global.TimeSource;
 import com.haulmont.cuba.security.app.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +17,8 @@ public class ImapFlaglessEventsGenerator extends ImapStandardEventsGenerator {
     @Inject
     public ImapFlaglessEventsGenerator(ImapMessageSyncDao messageSyncDao,
                                        Authentication authentication,
-                                       Persistence persistence) {
-        super(messageSyncDao, authentication, persistence);
+                                       Persistence persistence,
+                                       TimeSource timeSource) {
+        super(messageSyncDao, authentication, persistence, timeSource);
     }
 }

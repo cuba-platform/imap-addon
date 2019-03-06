@@ -9,4 +9,6 @@
     <suppress files="ThreadExtension.java" checks="MemberName"/>
     <suppress files="ThreadExtension.java" checks="TypeName"/>
     <suppress files="ImapMailBoxTrashFolder" checks="InnerAssignmentCheck"/>
+    <suppress files="ImapFlaglessSynchronizer" checks="ParameterNumber"/>
+    <suppress files="ImapSynchronizer" checks="ParameterNumber"/>
 </suppressions>
