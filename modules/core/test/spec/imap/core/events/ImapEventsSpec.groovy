@@ -335,7 +335,6 @@ class ImapEventsSpec extends Specification {
         msg3ChangedFlags.get(ImapFlag.ANSWERED)
     }
 
-    //todo: fix this test
     @SuppressWarnings("GroovyAccessibility")
     def "message has been moved"() {
         given: "other folder and trash folder exist for mailbox"
@@ -406,7 +405,7 @@ class ImapEventsSpec extends Specification {
         } == 1
         imapEvents.count {
             it instanceof EmailMovedImapEvent &&
-                    it.message.folder == INBOX &&
+                    it.message.folder.name == "other-folder" &&
                     it.message.msgUid == START_EMAIL_UID + 1 &&
                     it.newFolderName == "other-folder" &&
                     it.oldFolderName == "INBOX"
