@@ -1,30 +1,27 @@
 package com.haulmont.addon.imap.entity;
 
-import javax.mail.Flags;
-import javax.persistence.*;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.haulmont.addon.imap.api.ImapFlag;
+import com.haulmont.chile.core.annotations.NamePattern;
+import com.haulmont.cuba.core.entity.BaseUuidEntity;
+import com.haulmont.cuba.core.entity.Creatable;
+import com.haulmont.cuba.core.entity.Updatable;
+import com.haulmont.cuba.core.entity.Versioned;
 import com.haulmont.cuba.core.entity.annotation.OnDeleteInverse;
 import com.haulmont.cuba.core.global.DeletePolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.mail.Flags;
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-import com.haulmont.chile.core.annotations.NamePattern;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-
-import com.haulmont.cuba.core.entity.BaseUuidEntity;
-import com.haulmont.cuba.core.entity.Versioned;
-import com.haulmont.cuba.core.entity.Updatable;
-import com.haulmont.cuba.core.entity.Creatable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @NamePattern("%s with %s|message,status")
 @Table(name = "IMAP_MESSAGE_SYNC")
@@ -56,6 +53,11 @@ public class ImapMessageSync extends BaseUuidEntity implements Versioned, Updata
     @NotNull
     @Column(name = "STATUS", nullable = false)
     private String status;
+
+    @OnDeleteInverse(DeletePolicy.CASCADE)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "NEW_FOLDER_ID")
+    private ImapFolder newFolder;
 
     @Column(name = "NEW_FOLDER_NAME")
     private String newFolderName;
@@ -204,5 +206,13 @@ public class ImapMessageSync extends BaseUuidEntity implements Versioned, Updata
 
     public void setNewFolderName(String newFolderName) {
         this.newFolderName = newFolderName;
+    }
+
+    public ImapFolder getNewFolder() {
+        return newFolder;
+    }
+
+    public void setNewFolder(ImapFolder newFolder) {
+        this.newFolder = newFolder;
     }
 }

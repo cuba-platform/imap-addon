@@ -1,6 +1,7 @@
 package com.haulmont.addon.imap.sync.events;
 
 import com.haulmont.addon.imap.api.ImapFlag;
+import com.haulmont.addon.imap.config.ImapConfig;
 import com.haulmont.addon.imap.dao.ImapMessageSyncDao;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.events.*;
@@ -9,6 +10,7 @@ import com.haulmont.cuba.core.Persistence;
 import com.haulmont.cuba.core.Query;
 import com.haulmont.cuba.core.Transaction;
 import com.haulmont.cuba.core.global.TimeSource;
+import com.haulmont.cuba.core.sys.EntityFetcher;
 import com.haulmont.cuba.security.app.Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
 import javax.mail.Flags;
+import javax.transaction.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -26,27 +29,27 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
 
     static final String NAME = "imap_StandardEventsGenerator";
 
-    private final ImapMessageSyncDao messageSyncDao;
-    private final Authentication authentication;
-    private final Persistence persistence;
-    private final TimeSource timeSource;
-
-    @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapStandardEventsGenerator(ImapMessageSyncDao messageSyncDao,
-                                       Authentication authentication,
-                                       Persistence persistence,
-                                       TimeSource timeSource) {
-        super(20); //todo: to config
-        this.messageSyncDao = messageSyncDao;
-        this.authentication = authentication;
-        this.persistence = persistence;
-        this.timeSource = timeSource;
-    }
+    private ImapMessageSyncDao messageSyncDao;
+
+    @Inject
+    private Authentication authentication;
+
+    @Inject
+    private Persistence persistence;
+
+    @Inject
+    private TimeSource timeSource;
+
+    @Inject
+    private EntityFetcher entityFetcher;
+
+    @Inject
+    private ImapConfig imapConfig;
 
     @Override
     public void init(ImapMailBox imapMailBox) {
-
+        batchSize = imapConfig.getEventsBatchSize();
     }
 
     @Override
@@ -185,36 +188,42 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
     }
 
     @Override
+    @Transactional
     public Collection<? extends BaseImapEvent> generateForMissedMessages(ImapFolder cubaFolder, int batchSize) {
         authentication.begin();
         try {
-            Collection<ImapMessage> removed = messageSyncDao.findMessagesWithSyncStatus(
-                    cubaFolder.getId(), ImapSyncStatus.REMOVED, batchSize);
-            Collection<ImapMessageSync> moved = messageSyncDao.findMessagesSyncs(
-                    cubaFolder.getId(), ImapSyncStatus.MOVED, batchSize);
-
-            Collection<BaseImapEvent> missedMessageEvents = new ArrayList<>(removed.size() + moved.size());
-            List<Integer> missedMessageNums = new ArrayList<>(removed.size() + moved.size());
-            for (ImapMessage imapMessage : removed) {
-                missedMessageEvents.add(new EmailDeletedImapEvent(imapMessage));
-                missedMessageNums.add(imapMessage.getMsgNum());
-            }
-            for (ImapMessageSync imapMessageSync : moved) {
-                missedMessageEvents.add(new EmailMovedImapEvent(imapMessageSync.getMessage(), imapMessageSync.getNewFolderName()));
-                missedMessageNums.add(imapMessageSync.getMessage().getMsgNum());
-            }
-
             try (Transaction tx = persistence.createTransaction()) {
                 EntityManager em = persistence.getEntityManager();
-                for (BaseImapEvent missedMessageEvent : missedMessageEvents) {
-                    em.remove(missedMessageEvent.getMessage());
+                Collection<ImapMessage> removed = messageSyncDao.findMessagesWithSyncStatus(
+                        cubaFolder.getId(), ImapSyncStatus.REMOVED, batchSize);
+                Collection<ImapMessageSync> moved = messageSyncDao.findMessagesSyncs(
+                        cubaFolder.getId(), ImapSyncStatus.MOVED, batchSize);
+
+                Collection<BaseImapEvent> missedMessageEvents = new ArrayList<>(removed.size() + moved.size());
+                List<Integer> missedMessageNums = new ArrayList<>(removed.size() + moved.size());
+                for (ImapMessage imapMessage : removed) {
+                    missedMessageEvents.add(new EmailDeletedImapEvent(imapMessage));
+                    missedMessageNums.add(imapMessage.getMsgNum());
+                    em.remove(imapMessage);
                 }
+                for (ImapMessageSync imapMessageSync : moved) {
+                    ImapMessage message = imapMessageSync.getMessage();
+                    ImapFolder oldFolder = message.getFolder();
+                    ImapFolder newFolder = imapMessageSync.getNewFolder();
+                    message.setFolder(newFolder);
+                    message = em.merge(message);
+                    entityFetcher.fetch(message, "imap-msg-full");
+                    imapMessageSync.setStatus(ImapSyncStatus.REMAIN);
+                    em.merge(imapMessageSync);
+                    missedMessageEvents.add(new EmailMovedImapEvent(message, oldFolder));
+                    missedMessageNums.add(message.getMsgNum());
+                }
+
+                recalculateMessageNumbers(cubaFolder, missedMessageNums);
                 tx.commit();
+                return missedMessageEvents;
+
             }
-
-            recalculateMessageNumbers(cubaFolder, missedMessageNums);
-
-            return missedMessageEvents;
         } catch (Exception e) {
             log.error("Missed messages events for " + cubaFolder.getName() + " failure", e);
             return Collections.emptyList();

@@ -11,7 +11,6 @@ import com.haulmont.cuba.core.sys.AppContext;
 import com.haulmont.cuba.security.app.Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
@@ -26,25 +25,17 @@ public class ImapEvents {
 
     private final static Logger log = LoggerFactory.getLogger(ImapEvents.class);
 
-    private final Events events;
-    private final Authentication authentication;
-    private final ImapStandardEventsGenerator standardEventsGenerator;
-    private final ImapFlaglessEventsGenerator flaglessEventsGenerator;
-    private final ImapDao imapDao;
-
-    @SuppressWarnings("CdiInjectionPointsInspection")
     @Inject
-    public ImapEvents(Events events,
-                      Authentication authentication,
-                      @Qualifier(ImapStandardEventsGenerator.NAME) ImapStandardEventsGenerator standardEventsGenerator,
-                      @Qualifier(ImapFlaglessEventsGenerator.NAME) ImapFlaglessEventsGenerator flaglessEventsGenerator,
-                      ImapDao imapDao) {
-        this.events = events;
-        this.authentication = authentication;
-        this.standardEventsGenerator = standardEventsGenerator;
-        this.flaglessEventsGenerator = flaglessEventsGenerator;
-        this.imapDao = imapDao;
-    }
+    private Events events;
+
+    @Inject
+    private Authentication authentication;
+
+    @Inject
+    private ImapEventsGenerator standardEventsGenerator;
+
+    @Inject
+    private ImapDao imapDao;
 
     public void init(ImapMailBox mailBox) {
         getEventsGeneratorImplementation(mailBox).init(mailBox);
@@ -73,20 +64,16 @@ public class ImapEvents {
             Map<String, ?> beans = AppContext.getApplicationContext()
                     .getBeansOfType(eventsGeneratorClass);
             if (beans.isEmpty()) {
-                return standardEventsGenerator(mailBox);
+                return standardEventsGenerator;
             }
             Map.Entry<String, ?> bean = beans.entrySet().iterator().next();
             if (!(bean.getValue() instanceof ImapEventsGenerator)) {
                 log.warn("Bean {} is not implementation of ImapEventsGenerator interface", bean.getKey());
-                return standardEventsGenerator(mailBox);
+                return standardEventsGenerator;
             }
             return (ImapEventsGenerator) bean.getValue();
         }
-        return standardEventsGenerator(mailBox);
-    }
-
-    private ImapEventsGenerator standardEventsGenerator(ImapMailBox mailBox) {
-        return Boolean.TRUE.equals(mailBox.getFlagsSupported()) ? standardEventsGenerator : flaglessEventsGenerator;
+        return standardEventsGenerator;
     }
 
     private void fireEvents(ImapFolder cubaFolder, Collection<? extends BaseImapEvent> imapEvents) {

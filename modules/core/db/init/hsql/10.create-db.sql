@@ -172,11 +172,11 @@ create table IMAP_MESSAGE_SYNC (
     CREATED_BY varchar(50),
     VERSION integer not null,
     --
-    FLAGS longvarchar,
-    --
     MESSAGE_ID varchar(36) not null,
+    FLAGS longvarchar,
     FOLDER_ID varchar(36) not null,
     STATUS varchar(50) not null,
+    NEW_FOLDER_ID varchar(36),
     NEW_FOLDER_NAME varchar(255),
     --
     primary key (ID)

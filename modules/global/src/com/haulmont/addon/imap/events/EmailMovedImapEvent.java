@@ -1,5 +1,6 @@
 package com.haulmont.addon.imap.events;
 
+import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -8,29 +9,46 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
  */
 public class EmailMovedImapEvent extends BaseImapEvent {
 
-    private final String newFolderName;
+    private final String oldFolderName;
+    private final ImapFolder oldFolder;
 
     @SuppressWarnings("WeakerAccess")
-    public EmailMovedImapEvent(ImapMessage message, String newFolderName) {
+    public EmailMovedImapEvent(ImapMessage message, String oldFolderName) {
         super(message);
-
-        this.newFolderName = newFolderName;
+        this.oldFolder = null;
+        this.oldFolderName = oldFolderName;
     }
 
-    @SuppressWarnings("unused")
-    public String getOldFolderName() {
-        return message.getFolder().getName();
+    public EmailMovedImapEvent(ImapMessage message, ImapFolder oldFolder) {
+        super(message);
+        this.oldFolder = oldFolder;
+        this.oldFolderName = oldFolder.getName();
     }
 
     @SuppressWarnings("unused")
     public String getNewFolderName() {
-        return newFolderName;
+        return message.getFolder().getName();
+    }
+
+    @SuppressWarnings("unused")
+    public String getOldFolderName() {
+        return oldFolder != null ? oldFolder.getName() : oldFolderName;
+    }
+
+    @SuppressWarnings("unused")
+    public ImapFolder getNewFolder() {
+        return message.getFolder();
+    }
+
+    @SuppressWarnings("unused")
+    public ImapFolder getOldFolder() {
+        return oldFolder;
     }
 
     @Override
     public String toString() {
         return new ToStringBuilder(this).
-                append("newFolderName", newFolderName).
+                append("oldFolderName", oldFolderName).
                 append("message", message).
                 toString();
     }

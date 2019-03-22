@@ -16,8 +16,8 @@
           maxTotal="20"
           maxWaitMillis="5000"
           name="jdbc/CubaDS"
-          password="postgres"
+          password="cuba"
           type="javax.sql.DataSource"
-          url="jdbc:postgresql://localhost:32769/haulmont-imap"
-          username="postgres"/>-->
+          url="jdbc:postgresql://localhost:5432/imap"
+          username="cuba"/>-->
 </Context>

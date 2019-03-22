@@ -1,6 +1,7 @@
 package com.haulmont.addon.imap.dao;
 
 import com.haulmont.addon.imap.config.ImapConfig;
+import com.haulmont.addon.imap.entity.ImapFolder;
 import com.haulmont.addon.imap.entity.ImapMessage;
 import com.haulmont.addon.imap.entity.ImapMessageSync;
 import com.haulmont.addon.imap.entity.ImapSyncStatus;
@@ -139,7 +140,7 @@ public class ImapMessageSyncDao {
                                  ImapSyncStatus syncStatus,
                                  ImapSyncStatus oldStatus,
                                  Flags flags,
-                                 String newFolderName) {
+                                 ImapFolder newFolder) {
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
 
@@ -152,8 +153,9 @@ public class ImapMessageSyncDao {
                 if (flags != null) {
                     messageSync.setImapFlags(flags);
                 }
-                if (newFolderName != null) {
-                    messageSync.setNewFolderName(newFolderName);
+                if (newFolder != null) {
+                    messageSync.setNewFolder(newFolder);
+                    messageSync.setNewFolderName(newFolder.getName());
                 }
                 em.persist(messageSync);
 

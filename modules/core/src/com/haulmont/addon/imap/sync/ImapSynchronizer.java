@@ -238,7 +238,7 @@ public class ImapSynchronizer {
                         } else {
                             messageSyncDao.updateSyncStatus(cubaMessage,
                                     ImapSyncStatus.MOVED, ImapSyncStatus.MISSED,
-                                    null, cubaFolder.getName());
+                                    null, cubaFolder);
                         }
                     }
                 }

@@ -84,6 +84,7 @@ create table IMAP_MESSAGE (
     REFERENCE_ID text,
     MESSAGE_ID text,
     CAPTION text not null,
+    RECEIVED_DATE timestamp,
     --
     primary key (ID)
 )^
@@ -171,11 +172,11 @@ create table IMAP_MESSAGE_SYNC (
     CREATED_BY varchar(50),
     VERSION integer not null,
     --
-    FLAGS text,
-    --
     MESSAGE_ID uuid not null,
+    FLAGS text,
     FOLDER_ID uuid not null,
     STATUS varchar(50) not null,
+    NEW_FOLDER_ID uuid,
     NEW_FOLDER_NAME varchar(255),
     --
     primary key (ID)

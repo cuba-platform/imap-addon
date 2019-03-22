@@ -41,4 +41,9 @@ public interface ImapConfig extends Config {
     int getSyncTimeout();
     void setSyncTimeout(int value);
 
+    @Property("imap.eventsBatchSize")
+    @DefaultInt(20)
+    int getEventsBatchSize();
+    void setEventsBatchSize(int value);
+
 }
