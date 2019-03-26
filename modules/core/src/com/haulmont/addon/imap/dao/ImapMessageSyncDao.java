@@ -140,7 +140,7 @@ public class ImapMessageSyncDao {
                                  ImapSyncStatus syncStatus,
                                  ImapSyncStatus oldStatus,
                                  Flags flags,
-                                 ImapFolder newFolder) {
+                                 ImapFolder oldFolder) {
         try (Transaction tx = persistence.createTransaction()) {
             EntityManager em = persistence.getEntityManager();
 
@@ -153,9 +153,8 @@ public class ImapMessageSyncDao {
                 if (flags != null) {
                     messageSync.setImapFlags(flags);
                 }
-                if (newFolder != null) {
-                    messageSync.setNewFolder(newFolder);
-                    messageSync.setNewFolderName(newFolder.getName());
+                if (oldFolder != null) {
+                    messageSync.setOldFolder(oldFolder);
                 }
                 em.persist(messageSync);
 

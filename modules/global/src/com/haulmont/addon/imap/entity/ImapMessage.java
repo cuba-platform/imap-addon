@@ -104,7 +104,7 @@ public class ImapMessage extends StandardEntity {
         try {
             if (!internalFlags.equals(this.internalFlags)) {
                 log.debug("Convert imap flags {} to raw string", internalFlags);
-                this.flags = OBJECT_MAPPER.writeValueAsString(internalFlags);
+                setFlags(OBJECT_MAPPER.writeValueAsString(internalFlags));
                 this.internalFlags = internalFlags;
             }
         } catch (JsonProcessingException e) {
@@ -118,7 +118,8 @@ public class ImapMessage extends StandardEntity {
             if (flags == null) {
                 return new Flags();
             }
-            this.internalFlags = OBJECT_MAPPER.readValue(this.flags, new TypeReference<List<ImapFlag>>() {});
+            this.internalFlags = OBJECT_MAPPER.readValue(this.flags, new TypeReference<List<ImapFlag>>() {
+            });
         } catch (IOException e) {
             throw new RuntimeException("Can't parse flags from string " + flags, e);
         }

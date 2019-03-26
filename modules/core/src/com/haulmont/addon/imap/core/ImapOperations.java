@@ -136,23 +136,21 @@ public class ImapOperations {
         return fetch(folder, fetchProfile, messages);
     }
 
-    public ImapMessage map(IMAPMessage msg, ImapFolder cubaFolder) throws MessagingException {
+    public ImapMessage map(ImapMessage cubaMessage, IMAPMessage msg, ImapFolder cubaFolder) throws MessagingException {
         long uid = ((IMAPFolder) msg.getFolder()).getUID(msg);
         Flags flags = new Flags(msg.getFlags());
+        cubaMessage.setMsgUid(uid);
+        cubaMessage.setFolder(cubaFolder);
+        cubaMessage.setUpdateTs(timeSource.currentTimestamp());
+        cubaMessage.setImapFlags(flags);
+        cubaMessage.setReceivedDate(msg.getReceivedDate());
+        cubaMessage.setCaption(getSubject(msg));
+        cubaMessage.setMessageId(msg.getHeader(ImapOperations.MESSAGE_ID_HEADER, null));
+        cubaMessage.setReferenceId(getRefId(msg));
+        cubaMessage.setThreadId(getThreadId(msg, cubaFolder.getMailBox()));
+        cubaMessage.setMsgNum(msg.getMessageNumber());
 
-        ImapMessage entity = metadata.create(ImapMessage.class);
-        entity.setMsgUid(uid);
-        entity.setFolder(cubaFolder);
-        entity.setUpdateTs(timeSource.currentTimestamp());
-        entity.setImapFlags(flags);
-        entity.setReceivedDate(msg.getReceivedDate());
-        entity.setCaption(getSubject(msg));
-        entity.setMessageId(msg.getHeader(ImapOperations.MESSAGE_ID_HEADER, null));
-        entity.setReferenceId(getRefId(msg));
-        entity.setThreadId(getThreadId(msg, cubaFolder.getMailBox()));
-        entity.setMsgNum(msg.getMessageNumber());
-
-        return entity;
+        return cubaMessage;
     }
 
     private String getRefId(IMAPMessage message) throws MessagingException {

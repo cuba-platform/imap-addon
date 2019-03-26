@@ -2,6 +2,7 @@ package com.haulmont.addon.imap.sync.events;
 
 import com.haulmont.addon.imap.api.ImapFlag;
 import com.haulmont.addon.imap.config.ImapConfig;
+import com.haulmont.addon.imap.core.ImapOperations;
 import com.haulmont.addon.imap.dao.ImapMessageSyncDao;
 import com.haulmont.addon.imap.entity.*;
 import com.haulmont.addon.imap.events.*;
@@ -46,6 +47,9 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
 
     @Inject
     private ImapConfig imapConfig;
+
+    @Inject
+    private ImapOperations imapOperations;
 
     @Override
     public void init(ImapMailBox imapMailBox) {
@@ -208,11 +212,8 @@ public class ImapStandardEventsGenerator extends ImapEventsBatchedGenerator {
                 }
                 for (ImapMessageSync imapMessageSync : moved) {
                     ImapMessage message = imapMessageSync.getMessage();
-                    ImapFolder oldFolder = message.getFolder();
-                    ImapFolder newFolder = imapMessageSync.getNewFolder();
-                    message.setFolder(newFolder);
-                    message = em.merge(message);
-                    entityFetcher.fetch(message, "imap-msg-full");
+                    ImapFolder oldFolder = imapMessageSync.getOldFolder();
+
                     imapMessageSync.setStatus(ImapSyncStatus.REMAIN);
                     em.merge(imapMessageSync);
                     missedMessageEvents.add(new EmailMovedImapEvent(message, oldFolder));

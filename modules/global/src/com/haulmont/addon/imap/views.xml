@@ -79,7 +79,7 @@
           name="imap-msg-sync-with-message">
         <property name="message"
                   view="imap-msg-full"/>
-        <property name="newFolder" view="imap-folder-full"/>
+        <property name="oldFolder" view="imap-folder-full"/>
     </view>
     <view entity="imap$MailBox" name="imapMailBox-browse" extends="_local" systemProperties="true"/>
 </views>

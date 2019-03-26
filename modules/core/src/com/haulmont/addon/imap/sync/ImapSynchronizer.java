@@ -231,6 +231,8 @@ public class ImapSynchronizer {
                     );
                     if (!imapMessages.isEmpty()) {
                         foundMessages.add(cubaMessage);
+                        ImapFolder oldFolder = cubaMessage.getFolder();
+                        updateCubaMessage(cubaMessage, imapMessages.get(0), cubaFolder);
                         if (cubaFolder.getName().equals(mailBox.getTrashFolderName())) {
                             messageSyncDao.updateSyncStatus(cubaMessage,
                                     ImapSyncStatus.REMOVED, ImapSyncStatus.MISSED,
@@ -238,7 +240,7 @@ public class ImapSynchronizer {
                         } else {
                             messageSyncDao.updateSyncStatus(cubaMessage,
                                     ImapSyncStatus.MOVED, ImapSyncStatus.MISSED,
-                                    null, cubaFolder);
+                                    null, oldFolder);
                         }
                     }
                 }
@@ -252,6 +254,16 @@ public class ImapSynchronizer {
             messageSyncDao.updateSyncStatus(cubaMessage,
                     ImapSyncStatus.REMOVED, ImapSyncStatus.MISSED,
                     null, null);
+        }
+    }
+
+    private void updateCubaMessage(ImapMessage cubaMessage, IMAPMessage imapMessage, ImapFolder cubaFolder) throws MessagingException {
+        try (Transaction tx = persistence.createTransaction()) {
+            EntityManager em = persistence.getEntityManager();
+            cubaMessage = em.find(ImapMessage.class, cubaMessage.getId());
+            imapOperations.map(cubaMessage, imapMessage, cubaFolder);
+            em.merge(cubaMessage);
+            tx.commit();
         }
     }
 
@@ -329,7 +341,8 @@ public class ImapSynchronizer {
                     .size();
             if (sameUIDs == 0) {
                 log.trace("Save new message {}", msg);
-                ImapMessage entity = imapOperations.map(msg, cubaFolder);
+                ImapMessage entity = metadata.create(ImapMessage.class);
+                imapOperations.map(entity, msg, cubaFolder);
                 em.persist(entity);
 
                 ImapMessageSync messageSync = metadata.create(ImapMessageSync.class);

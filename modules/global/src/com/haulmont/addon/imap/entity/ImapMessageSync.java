@@ -30,20 +30,18 @@ public class ImapMessageSync extends BaseUuidEntity implements Versioned, Updata
     private static final long serialVersionUID = 4840104340467502496L;
 
     private final static Logger log = LoggerFactory.getLogger(ImapMessage.class);
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @NotNull
     @OnDeleteInverse(DeletePolicy.CASCADE)
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "", optional = false)
     @JoinColumn(name = "MESSAGE_ID", unique = true)
     private ImapMessage message;
 
     @Lob
     @Column(name = "FLAGS")
     private String flags;
-
-    @Transient
-    private List<ImapFlag> internalFlags = Collections.emptyList();
 
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -56,11 +54,8 @@ public class ImapMessageSync extends BaseUuidEntity implements Versioned, Updata
 
     @OnDeleteInverse(DeletePolicy.CASCADE)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "NEW_FOLDER_ID")
-    private ImapFolder newFolder;
-
-    @Column(name = "NEW_FOLDER_NAME")
-    private String newFolderName;
+    @JoinColumn(name = "OLD_FOLDER_ID")
+    private ImapFolder oldFolder;
 
     @Column(name = "UPDATE_TS")
     protected Date updateTs;
@@ -77,6 +72,9 @@ public class ImapMessageSync extends BaseUuidEntity implements Versioned, Updata
     @Version
     @Column(name = "VERSION", nullable = false)
     protected Integer version;
+
+    @Transient
+    private List<ImapFlag> internalFlags = Collections.emptyList();
 
     public String getFlags() {
         return flags;
@@ -200,19 +198,11 @@ public class ImapMessageSync extends BaseUuidEntity implements Versioned, Updata
         this.folder = folder;
     }
 
-    public String getNewFolderName() {
-        return newFolderName;
+    public ImapFolder getOldFolder() {
+        return oldFolder;
     }
 
-    public void setNewFolderName(String newFolderName) {
-        this.newFolderName = newFolderName;
-    }
-
-    public ImapFolder getNewFolder() {
-        return newFolder;
-    }
-
-    public void setNewFolder(ImapFolder newFolder) {
-        this.newFolder = newFolder;
+    public void setOldFolder(ImapFolder oldFolder) {
+        this.oldFolder = oldFolder;
     }
 }
