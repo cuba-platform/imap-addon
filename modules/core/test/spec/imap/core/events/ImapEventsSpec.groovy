@@ -406,9 +406,8 @@ class ImapEventsSpec extends Specification {
         imapEvents.count {
             it instanceof EmailMovedImapEvent &&
                     it.message.folder.name == "other-folder" &&
-                    it.message.msgUid == START_EMAIL_UID + 1 &&
-                    it.newFolderName == "other-folder" &&
-                    it.oldFolderName == "INBOX"
+                    it.message.msgUid == START_EMAIL_UID &&
+                    it.oldFolder.name == "INBOX"
         } == 1
     }
 
