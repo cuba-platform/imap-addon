@@ -1,5 +1,5 @@
 buildscript {
-    ext.cubaVersion = '7.0.2'
+    ext.cubaVersion = '7.0.4'
     repositories {
 
         if (System.getenv('HAULMONT_REPOSITORY_URL')) {
@@ -23,7 +23,7 @@ buildscript {
     }
     dependencies {
         classpath "com.haulmont.gradle:cuba-plugin:$cubaVersion"
-        classpath "com.haulmont.gradle:addon-gradle-plugin:1.0.4"
+        classpath "com.haulmont.gradle:addon-gradle-plugin:1.0.7"
     }
 }
 
@@ -31,7 +31,6 @@ def modulePrefix = 'imap'
 
 def globalModule = project(":${modulePrefix}-global")
 def coreModule = project(":${modulePrefix}-core")
-def guiModule = project(":${modulePrefix}-gui")
 def webModule = project(":${modulePrefix}-web")
 
 def servletApi = 'javax.servlet:javax.servlet-api:3.1.0'
@@ -73,9 +72,9 @@ dependencies {
 
 }
 
-def hsql = 'org.hsqldb:hsqldb:2.2.9'
+def hsql = 'org.hsqldb:hsqldb:2.4.1'
 
-configure([globalModule, coreModule, guiModule, webModule]) {
+configure([globalModule, coreModule, webModule]) {
     apply(plugin: 'java')
     apply(plugin: 'groovy')
     apply(plugin: 'maven')
@@ -205,19 +204,6 @@ configure(coreModule) {
     }
 }
 
-configure(guiModule) {
-    dependencies {
-        compile(globalModule)
-
-    }
-
-    task deployConf(type: Copy) {
-        from file('src')
-        include "com/haulmont/addon/imap/**"
-        into "$cuba.tomcat.dir/conf/${modulePrefix}"
-    }
-}
-
 configure(webModule) {
     configurations {
         webcontent
@@ -225,7 +211,7 @@ configure(webModule) {
 
     dependencies {
         compileOnly(servletApi)
-        compile(guiModule)
+        compile(globalModule)
 
     }
 
@@ -263,7 +249,7 @@ configure(webModule) {
 
     task deploy(dependsOn: [assemble, cleanConf], type: CubaDeployment) {
         appName = "${modulePrefix}"
-        appJars(modulePrefix + '-global', modulePrefix + '-gui', modulePrefix + '-web')
+        appJars(modulePrefix + '-global', modulePrefix + '-web')
     }
 }
 
