@@ -1,6 +1,6 @@
 <!-- 
-Please use https://www.cuba-platform.com/discuss for discussion, support, and reporting problems about Imap-addon.
-This repository is only for issues of the Imap-addon.
+Please use https://www.cuba-platform.com/discuss for discussion, support, and reporting problems about IMAP addon.
+This repository is only for issues of the IMAP addon.
 
 When creating an issue, provide as much as possible of the following information: 
 -->
