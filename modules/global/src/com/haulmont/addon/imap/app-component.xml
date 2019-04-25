@@ -43,14 +43,8 @@
         <property name="cuba.mainMessagePack"
                   value="+com.haulmont.addon.imap.core"/>
     </module>
-    <module blocks="web,desktop"
-            dependsOn="global"
-            name="gui">
-        <artifact appJar="true"
-                  name="imap-gui"/>
-    </module>
     <module blocks="web"
-            dependsOn="gui"
+            dependsOn="global"
             name="web">
         <artifact appJar="true"
                   name="imap-web"/>

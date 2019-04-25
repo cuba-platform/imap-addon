@@ -16,7 +16,7 @@
 
 rootProject.name = 'imap-component'
 def modulePrefix = 'imap'
-include(":${modulePrefix}-global" , ":${modulePrefix}-core" , ":${modulePrefix}-gui" , ":${modulePrefix}-web" )
+include(":${modulePrefix}-global" , ":${modulePrefix}-core" , ":${modulePrefix}-web" )
 project(":${modulePrefix}-global" ).projectDir = new File(settingsDir, 'modules/global')
 project(":${modulePrefix}-core" ).projectDir = new File(settingsDir, 'modules/core')
 project(":${modulePrefix}-web" ).projectDir = new File(settingsDir, 'modules/web')
