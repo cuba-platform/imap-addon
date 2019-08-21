@@ -16,20 +16,19 @@
 
 package com.haulmont.addon.imap.entity;
 
-import javax.persistence.*;
-
-import com.haulmont.chile.core.annotations.MetaProperty;
-import com.haulmont.cuba.core.entity.StandardEntity;
 import com.haulmont.chile.core.annotations.Composition;
-import com.haulmont.cuba.core.entity.annotation.OnDelete;
-import com.haulmont.cuba.core.global.DeletePolicy;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import com.haulmont.chile.core.annotations.MetaProperty;
 import com.haulmont.chile.core.annotations.NamePattern;
 import com.haulmont.cuba.core.entity.FileDescriptor;
+import com.haulmont.cuba.core.entity.StandardEntity;
 import com.haulmont.cuba.core.entity.annotation.Listeners;
+import com.haulmont.cuba.core.entity.annotation.OnDelete;
+import com.haulmont.cuba.core.global.DeletePolicy;
+
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Listeners({"imap_MailboxListener"})
 @NamePattern("%s:%s (%s)|host,port,name")
@@ -85,6 +84,7 @@ public class ImapMailBox extends StandardEntity {
     @MetaProperty
     private ImapFolder trashFolder;
 
+    @OrderBy("selected DESC, name")
     @OnDelete(DeletePolicy.CASCADE)
     @Composition
     @OneToMany(mappedBy = "mailBox")
