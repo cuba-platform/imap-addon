@@ -40,21 +40,19 @@ To add the IMAP-addon to your project, the following steps should be taken:
 
 2. Edit *Project properties*.
 
-3. Click the plus button in the *App components* section of the *Main* tab.
+3. Click the *Plus* button in the *App components* section of the *Main* tab.
 
     ![Adding custom component1](img/adding_component1.png)
 
-4. Specify the coordinates of the component in the corresponding field as follows: **group:name:version**. Click *OK*
-to confirm the operation.
+4. Specify the coordinates of the component in the corresponding field as follows: group:name:version.
 
     ![Adding component2](img/adding_component2.png)
 
     * Artifact group: *com.haulmont.addon.imap*
     * Artifact name: *imap-global*
-    * Version: *addon version*
+    * Version: *add-on version*
 
-    When specifying the component version, you should select the one, which is compatible with the platform version
-    used in your project.
+    When specifying the component version, you should select the one, which is compatible with the platform version used in your project.
 
     | Platform Version | Addon Version  |
     | ---------------- | -------------- |
@@ -63,8 +61,9 @@ to confirm the operation.
     | 6.9.x            | 1.1.1          |
     | 6.8.x            | 1.0.1          |
 
+5. Click *OK* to confirm the operation.
 
-5. Before using the component as a part of your application, it is vital to configure the following application
+6. Before using the component as a part of your application, it is vital to configure the following application
 properties in the `app.properties` file of your project:
 
 ```xml
