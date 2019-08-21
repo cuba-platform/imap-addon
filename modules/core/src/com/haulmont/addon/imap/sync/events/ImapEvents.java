@@ -48,9 +48,6 @@ public class ImapEvents {
     private Authentication authentication;
 
     @Inject
-    private ImapEventsGenerator standardEventsGenerator;
-
-    @Inject
     private ImapDao imapDao;
 
     public void init(ImapMailBox mailBox) {
@@ -62,15 +59,15 @@ public class ImapEvents {
     }
 
     public void handleNewMessages(ImapFolder cubaFolder) {
-        fireEvents( cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForNewMessages(cubaFolder) );
+        fireEvents(cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForNewMessages(cubaFolder));
     }
 
     public void handleChangedMessages(ImapFolder cubaFolder) {
-        fireEvents( cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForChangedMessages(cubaFolder) );
+        fireEvents(cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForChangedMessages(cubaFolder));
     }
 
     public void handleMissedMessages(ImapFolder cubaFolder) {
-        fireEvents( cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForMissedMessages(cubaFolder) );
+        fireEvents(cubaFolder, getEventsGeneratorImplementation(cubaFolder.getMailBox()).generateForMissedMessages(cubaFolder));
     }
 
     private ImapEventsGenerator getEventsGeneratorImplementation(ImapMailBox mailBox) {
@@ -80,16 +77,20 @@ public class ImapEvents {
             Map<String, ?> beans = AppContext.getApplicationContext()
                     .getBeansOfType(eventsGeneratorClass);
             if (beans.isEmpty()) {
-                return standardEventsGenerator;
+                return getStandartEventsGenerator();
             }
             Map.Entry<String, ?> bean = beans.entrySet().iterator().next();
             if (!(bean.getValue() instanceof ImapEventsGenerator)) {
                 log.warn("Bean {} is not implementation of ImapEventsGenerator interface", bean.getKey());
-                return standardEventsGenerator;
+                return getStandartEventsGenerator();
             }
             return (ImapEventsGenerator) bean.getValue();
         }
-        return standardEventsGenerator;
+        return getStandartEventsGenerator();
+    }
+
+    private ImapEventsGenerator getStandartEventsGenerator() {
+        return AppBeans.get(ImapStandardEventsGenerator.NAME);
     }
 
     private void fireEvents(ImapFolder cubaFolder, Collection<? extends BaseImapEvent> imapEvents) {
