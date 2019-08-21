@@ -122,9 +122,11 @@ public class ImapFolderEventEdit extends AbstractEditor<ImapFolderEvent> {
             return lookup;
         });
         handlersTable.addGeneratedColumn("methodName", eventHandler -> {
-            LookupField lookup = handlerMethodLookupFields.get(eventHandler);
+            LookupField<String> lookup = handlerMethodLookupFields.get(eventHandler);
             lookup = lookup != null ? lookup : makeBeanMethodLookup(availableBeans, eventHandler);
-
+            lookup.setValueSource(
+                    new ContainerValueSource(handlersTable.getInstanceContainer(eventHandler), "methodName")
+            );
             lookup.setOptionsList(
                     methodNames(availableBeans, eventHandler.getBeanName())
             );
