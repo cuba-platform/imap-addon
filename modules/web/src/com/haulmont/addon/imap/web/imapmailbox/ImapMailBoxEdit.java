@@ -38,7 +38,6 @@ import com.haulmont.cuba.gui.data.HierarchicalDatasource;
 import com.haulmont.cuba.gui.data.impl.AbstractDatasource;
 import com.haulmont.cuba.gui.data.impl.DatasourceImplementation;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -48,56 +47,6 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings({"CdiInjectionPointsInspection", "SpringJavaAutowiredFieldsWarningInspection"})
 public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
-
-    private final static Logger log = LoggerFactory.getLogger(ImapMailBoxEdit.class);
-
-    @Inject
-    private FieldGroup mainParams;
-
-    @Inject
-    private FieldGroup advancedParams;
-
-    @Inject
-    private FieldGroup proxyParams;
-
-    @Inject
-    private CheckBox useTrashFolderChkBox;
-
-    @Inject
-    private CheckBox useCustomEventsGeneratorChkBox;
-
-    @Inject
-    private LookupField customEventsGeneratorClassLookup;
-
-    @Inject
-    private CheckBox useProxyChkBox;
-
-    @Inject
-    private TreeTable<ImapFolder> foldersTable;
-
-    @Inject
-    private BoxLayout selectedFolderPanel;
-
-    @Inject
-    private GridLayout editEventsGrid;
-
-    @Inject
-    private CheckBox allEventsChkBox;
-
-    @Inject
-    private TextField cubaFlagTextField;
-
-    @Inject
-    private PickerField trashFolderPickerField;
-
-    @Inject
-    private Button checkConnectionBtn;
-
-    @Inject
-    private FolderRefresher folderRefresher;
-
-    @Inject
-    private Metadata metadata;
 
     @Inject
     private Datasource<ImapMailBox> mailBoxDs;
@@ -115,16 +64,67 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
     private CollectionDatasource<ImapEventHandler, UUID> handlersDs;
 
     @Inject
-    private UiComponents componentsFactory;
+    private ImapService service;
 
     @Inject
-    private ImapService service;
+    private FolderRefresher folderRefresher;
+
+    @Inject
+    private Metadata metadata;
+
+    @Inject
+    private UiComponents componentsFactory;
 
     @Inject
     private Notifications notifications;
 
     @Inject
     private ScreenBuilders screenBuilders;
+
+    @Inject
+    private Logger log;
+
+    @Inject
+    private FieldGroup mainParams;
+
+    @Inject
+    private FieldGroup advancedParams;
+
+    @Inject
+    private FieldGroup proxyParams;
+
+    @Inject
+    private CheckBox useTrashFolderChkBox;
+
+    @Inject
+    private CheckBox useCustomEventsGeneratorChkBox;
+
+    @Inject
+    private LookupField<String> customEventsGeneratorClassLookup;
+
+    @Inject
+    private CheckBox useProxyChkBox;
+
+    @Inject
+    private TreeTable<ImapFolder> foldersTable;
+
+    @Inject
+    private BoxLayout selectedFolderPanel;
+
+    @Inject
+    private GridLayout editEventsGrid;
+
+    @Inject
+    private CheckBox allEventsChkBox;
+
+    @Inject
+    private TextField<String> cubaFlagTextField;
+
+    @Inject
+    private PickerField trashFolderPickerField;
+
+    @Inject
+    private Button checkConnectionBtn;
 
     private boolean connectionEstablished = false;
 
@@ -218,7 +218,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
         });
 
         foldersTable.addGeneratedColumn("name", folder -> {
-            Label label = componentsFactory.create(Label.class);
+            Label<String> label = componentsFactory.create(Label.NAME);
             label.setHtmlEnabled(true);
 
             if (Boolean.TRUE.equals(folder.getDisabled())) {
@@ -245,7 +245,7 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
             ImapEventType eventType = eventTypes[i];
             String eventName = AppBeans.get(Messages.class).getMessage(eventType);
 
-            Label label = componentsFactory.create(Label.class);
+            Label<String> label = componentsFactory.create(Label.NAME);
             label.setValue(eventName);
             editEventsGrid.add(label, 0, i + 1);
 
@@ -366,11 +366,12 @@ public class ImapMailBoxEdit extends AbstractEditor<ImapMailBox> {
                                 ImapEventHandler handler = event.getEventHandlers().get(i);
                                 if (handler.getHandlingOrder() == null) {
                                     handlersDs.addItem(handler);
-                                } else if (handler.getHandlingOrder() != i) {
+                                } else {
                                     handlersDs.modifyItem(handler);
                                 }
                                 handler.setHandlingOrder(i);
                             }
+
                             for (ImapEventHandler handler : existingHandlers) {
                                 if (!event.getEventHandlers().contains(handler)) {
                                     handlersDs.removeItem(handler);
