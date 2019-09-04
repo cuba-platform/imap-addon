@@ -32,6 +32,7 @@ The component includes the following set of functionalities:
 * User interface for configuring IMAP connection settings and events.
 
 See [sample application](https://github.com/cuba-platform/imap-addon-demo), using this component.
+See [webinar](https://www.youtube.com/watch?v=u6U0Y4zNxMc) on the CUBA Platform channel.
 
 # Installation
 To add the IMAP-addon to your project, the following steps should be taken:
