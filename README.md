@@ -1,20 +1,24 @@
+# IMAP
+
 <p>
     <a href="http://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat" alt="license" title=""></a>
     <a href="https://travis-ci.org/cuba-platform/imap-addon"><img src="https://travis-ci.org/cuba-platform/imap-addon.svg?branch=master" alt="Build Status" title=""></a>
 </p>
 
-# Table of Contents
 
 - [Overview](#overview)
 - [Installation](#installation)
-- [Component Functionalities](#component-functionalities)
+  - [From the Marketplace](#from-the-marketplace)
+  - [By Coordinates](#by-coordinates)
+- [Add-on Configuration](#add-on-configuration)
+- [Usage](#usage)
+  - [Component Functionalities](#component-functionalities)
     - [IMAP Configuration](#imap-configuration)
     - [IMAP Message Browser](#imap-message-browser)
-- [Configuration](#configuration)
-    - [Registering EventListeners to Interact with IMAP Events](#registering-eventlisteners-to-interact-with-imap-events)
-    - [Creating Handlers for IMAP Events](#creating-handlers-for-imap-events)
-    - [Using API](#using-api)
-    - [Registering Custom IMAP Implementation Class](#registering-custom-imap-implementation-class)
+  - [Registering EventListeners to Interact with IMAP Events](#registering-eventlisteners-to-interact-with-imap-events)
+  - [Creating Handlers for IMAP Events](#creating-handlers-for-imap-events)
+  - [Using API](#using-api)
+  - [Registering Custom IMAP Implementation Class](#registering-custom-imap-implementation-class)
 
 # Overview
 
@@ -31,41 +35,58 @@ The component includes the following set of functionalities:
 * Predefined events for implementing custom business logic and processing various updates.
 * User interface for configuring IMAP connection settings and events.
 
-See [sample application](https://github.com/cuba-platform/imap-addon-demo), using this component.
+See [sample application](https://github.com/cuba-platform/imap-addon-demo) using this component.
 See [webinar](https://www.youtube.com/watch?v=u6U0Y4zNxMc) on the CUBA Platform channel.
 
 # Installation
-To add the IMAP-addon to your project, the following steps should be taken:
 
-1. Open your application in CUBA Studio.
+The add-on can be added to your project in one of the ways described below. Installation from the Marketplace is the simplest way. The last version of the add-on compatible with the used version of the platform will be installed.
+Also, you can install the add-on by coordinates choosing the required version of the add-on from the table.
 
-2. Edit *Project properties*.
+In case you want to install the add-on by manual editing or by building from sources see the complete add-ons installation guide in [CUBA Platform documentation](https://doc.cuba-platform.com/manual-latest/manual.html#app_components_usage).
 
-3. Click the *Plus* button in the *App components* section of the *Main* tab.
+## From the Marketplace
 
-    ![Adding custom component1](img/adding_component1.png)
+1. Open your application in CUBA Studio. Check the latest version of CUBA Studio on the [CUBA Platform site](https://www.cuba-platform.com/download/previous-studio/).
+2. Go to *CUBA -> Marketplace* in the main menu.
 
-4. Specify the coordinates of the component in the corresponding field as follows: group:name:version.
+ ![marketplace](img/marketplace.png)
 
-    ![Adding component2](img/adding_component2.png)
+3. Find the *IMAP* add-on there.
 
-    * Artifact group: *com.haulmont.addon.imap*
-    * Artifact name: *imap-global*
-    * Version: *add-on version*
+ ![addons](img/addons.png)
 
-    When specifying the component version, you should select the one, which is compatible with the platform version used in your project.
+4. Click *Install* and apply the changes.
+The add-on corresponding to the used platform version will be installed.
 
-    | Platform Version | Addon Version  |
-    | ---------------- | -------------- |
-    | 7.0.x            | 1.3.1          |
-    | 6.10.x           | 1.2.0          |
-    | 6.9.x            | 1.1.1          |
-    | 6.8.x            | 1.0.1          |
+## By coordinates
 
-5. Click *OK* to confirm the operation.
+1. Open your application in CUBA Studio. Check the latest version of CUBA Studio on the [CUBA Platform site](https://www.cuba-platform.com/download/previous-studio/).
+2. Go to *CUBA -> Marketplace* in the main menu.
+3. Click the icon in the upper-right corner.
 
-6. Before using the component as a part of your application, it is vital to configure the following application
-properties in the `app.properties` file of your project:
+ ![by-coordinates](img/by-coordinates.png)
+
+4. Paste the add-on coordinates in the corresponding field as follows:
+
+ `com.haulmont.addon.imap:imap-global:<add-on version>`
+
+ where `<add-on version>` is compatible with the used version of the CUBA platform.
+
+| Platform Version | Add-on Version |
+|------------------|----------------|
+| 7.0.x            | 1.3.1          |
+| 6.10.x           | 1.2.0          |
+| 6.9.x            | 1.1.1          |
+| 6.8.x            | 1.0.1          |
+
+5. Click *Install* and apply the changes. The add-on will be installed to your project.
+
+# Add-on Configuration
+
+Before using the add-on do the following:
+
+1. Open `app.properties` file of your application and configure the following application properties:
 
 ```xml
 #IMAP configuration
@@ -76,11 +97,13 @@ imap.encryption.iv = DYOKud/GWV5boeGvmR/ttg==
 cuba.schedulingActive=true
 ```
 
-There should be configured `imap_ImapScheduler -> syncImap` scheduled task in *Administration -> Scheduled tasks* screen.
+2. Run the application and go to  *Administration -> Scheduled tasks* screen. Configure `imap_ImapScheduler -> syncImap` scheduled task.
 
-# Component Functionalities
+# Usage
 
-## IMAP Configuration <a name="imap-configuration"></a>
+## Component Functionalities
+
+### IMAP Configuration <a name="imap-configuration"></a>
 
 *IMAP Configuration Browser* is designed to add and manage mailboxes from which emails are retrieved. The browser is
 available from *Menu: Administration → IMAP → IMAP Configuration*.
@@ -91,13 +114,13 @@ Creating a new configuration is available by clicking the *Create* button.
 
 ![Creating IMAP Configuration](img/creating-IMAP-conf.png)
 
-### IMAP Configuration Editor <a name="imap-configuration-editor"></a>
+#### IMAP Configuration Editor <a name="imap-configuration-editor"></a>
 
 *IMAP Configuration Editor* comprises two main sections to fill in: *Basic* and *Advanced*.
 
 ![IMAP Configuration Editor](img/IMAP-conf-editor.png)
 
-#### Basic
+**Basic**
 
 The *Basic* section enables to configure the main attributes for connecting to an email server via IMAP. The description of
 all fields is provided below.
@@ -113,7 +136,7 @@ all fields is provided below.
 The *Basic* section comprises the *Connect* button. After providing all required information, use the button to upload
 a list of folders from the email server to work with.
 
-#### Advanced
+**Advanced**
 
 The *Advanced* section provides a set of additional options for connecting to an email server.
 
@@ -127,13 +150,13 @@ lookup field becomes available. To learn how to register a custom event generato
 [Registering Custom IMAP Implementation Class](#registering-custom-imap-implementation-class).
 * *Use proxy*: if checked, proxy settings become available (see the description below).
 
-##### *Proxy Configuration*
+ **Proxy Configuration**
 
 * *Proxy Host*: provide a host name or IP address of a proxy server.
 * *Proxy Port*: provide a port to connect to a proxy server.
 * *Use web proxy*: if checked, web proxy is used.
 
-#### Table of Folders
+**Table of Folders**
 
 Once connection to the provided email server is successfully established, the table of folders becomes available.
 
@@ -145,7 +168,7 @@ use the checkboxes in the second column. If some folder is disabled, then messag
 For each folder you can select a set of IMAP events by using the *Events* table and register custom logic for them
 (for more details, please refer to [Configuration](#configuration)).
 
-## IMAP Message Browser
+### IMAP Message Browser
 
 All emails from connected mailboxes are displayed in *IMAP Message Browser* (available from *Menu: Administration → IMAP → IMAP Message Browser*).
 
@@ -159,8 +182,6 @@ On the *Body* tab, the whole text of an email is displayed.
 The *Attachments* tab comprises the table of attachments and the button to download required elements.
 
 ![Attachments](img/email-attachments.png)
-
-# Configuration
 
 ## Registering EventListeners to Interact with IMAP Events
 
@@ -198,7 +219,7 @@ for a given IMAP connection. This should be done at runtime using the IMAP confi
 IMAP Events](#imap-handlers)).
 After that, the method will be invoked every time, when the configured event occurs.
 
-## Creating Handlers for IMAP Events <a name="imap-handlers"></a>
+## Creating Handlers for IMAP Events
 
 After registering EventListeners, it is required to create handlers for IMAP events related to a particular folder and
 mailbox (for more information see [IMAP Connection](#imap-configuration)). The table of folders comprises several columns,
