@@ -71,9 +71,7 @@ public class DefaultEncryptor implements Encryptor {
             iv = Base64.getDecoder().decode(encryptionIv);
         }
 
-        log.info("Encryptor has been initialised with key {} and init vector {}",
-                imapConfig.getEncryptionKey(), imapConfig.getEncryptionIv()
-        );
+        log.info("Encryptor has been initialised");
     }
 
     @Override
