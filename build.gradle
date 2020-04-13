@@ -107,8 +107,8 @@ configure([globalModule, coreModule, webModule]) {
             groovy.outputDir = new File(project.buildDir, "classes/test")
         }
     }
-            sourceSets.main.output.classesDirs.setFrom(new File(project.buildDir, "classes/main"))
-            sourceSets.test.output.classesDirs.setFrom(new File(project.buildDir, "classes/test"))
+    sourceSets.main.output.classesDirs.setFrom(new File(project.buildDir, "classes/main"))
+    sourceSets.test.output.classesDirs.setFrom(new File(project.buildDir, "classes/test"))
 
     dependencies {
         testCompile(
