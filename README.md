@@ -103,6 +103,10 @@ cuba.schedulingActive=true
 
 # Usage
 
+## Predefined system roles
+
+**IMAP Admin role** - allows user to configure IMAP events
+
 ## Component Functionalities
 
 ### IMAP Configuration <a name="imap-configuration"></a>
