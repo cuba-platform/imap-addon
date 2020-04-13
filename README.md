@@ -12,6 +12,7 @@
   - [By Coordinates](#by-coordinates)
 - [Add-on Configuration](#add-on-configuration)
 - [Usage](#usage)
+  - [Predefined system roles](#predefined-roles)
   - [Component Functionalities](#component-functionalities)
     - [IMAP Configuration](#imap-configuration)
     - [IMAP Message Browser](#imap-message-browser)
@@ -103,7 +104,7 @@ cuba.schedulingActive=true
 
 # Usage
 
-## Predefined system roles
+## Predefined system roles <a name="predefined-roles"></a>
 
 **IMAP Admin role** - allows user to configure IMAP events
 
