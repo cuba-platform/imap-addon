@@ -18,6 +18,7 @@ package com.haulmont.addon.imap.crypto;
 
 import com.haulmont.addon.imap.config.ImapEncryptionConfig;
 import com.haulmont.addon.imap.entity.ImapMailBox;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,12 +92,7 @@ public class DefaultEncryptor implements Encryptor {
 
     private String saltedPassword(ImapMailBox mailBox) {
         String password = mailBox.getAuthentication().getPassword();
-        String host = mailBox.getHost();
-        if (host.length() > 16) {
-            host = host.substring(0, 16);
-        }
-        host = StringUtils.rightPad(host, 16);
-        return host + password;
+        return RandomStringUtils.random(16) + password;
     }
 
     @Override
