@@ -36,7 +36,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-@NamePattern("%s (#%d) | caption, msgNum")
+@NamePattern("%s (#%d)|caption, msgNum")
 @Table(name = "IMAP_MESSAGE")
 @Entity(name = "imap$Message")
 public class ImapMessage extends StandardEntity {
