@@ -140,11 +140,11 @@ public class ImapEvents {
         log.trace("{}: invoking handlers {} for event {}", cubaFolder.getName(), handlers, event);
 
         for (ImapEventHandler handler : handlers) {
-            Object bean = AppBeans.get(handler.getBeanName());
-            if (bean == null) {
+            if (!AppBeans.containsBean(handler.getBeanName())) {
                 log.warn("No bean {} is available, check the folder {} configuration", handler.getBeanName(), cubaFolder);
                 return;
             }
+            Object bean = AppBeans.get(handler.getBeanName());
             Class<? extends BaseImapEvent> eventClass = event.getClass();
             try {
                 authentication.begin();
