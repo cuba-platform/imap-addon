@@ -84,7 +84,7 @@ dependencies {
 
 }
 
-def hsql = 'org.hsqldb:hsqldb:2.4.1'
+def hsql = 'org.hsqldb:hsqldb:2.5.2'
 
 configure([globalModule, coreModule, webModule]) {
     apply(plugin: 'java')
@@ -157,7 +157,7 @@ configure(globalModule) {
     }
 
     dependencies {
-        compile "com.fasterxml.jackson.core:jackson-databind:2.9.4"
+        compile "com.fasterxml.jackson.core:jackson-databind:2.18.2"
         if (!JavaVersion.current().isJava8()) {
             runtime('javax.xml.bind:jaxb-api:2.3.1')
             runtime('org.glassfish.jaxb:jaxb-runtime:2.3.1')
